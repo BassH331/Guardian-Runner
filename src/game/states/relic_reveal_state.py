@@ -54,7 +54,11 @@ class RelicRevealState(State):
         self._on_dismiss = on_dismiss
         self.is_active: bool = True
 
-        self._renderer = AnimatedDialogueRenderer(typing_speed=40.0, max_scale=1.4)
+        self._renderer = AnimatedDialogueRenderer(
+            typing_speed=160.0,
+            scale_duration=0.12,
+            max_scale=1.12,
+        )
 
         # Fonts — created lazily in on_enter to ensure pygame display is up.
         self._font_name: pg.font.Font | None = None
@@ -167,7 +171,7 @@ class RelicRevealState(State):
             blink_visible = math.sin(self._elapsed * _BLINK_HZ * math.pi * 2) >= 0
             if blink_visible:
                 prompt_surf = self._font_prompt.render(
-                    "[ Press any key, click, or controller button to continue ]",
+                    "[ Press any key, click, or button to skip / continue ]",
                     True,
                     _PROMPT_COLOUR
                 )

@@ -1,44 +1,40 @@
-Resolve all pop-up notification appearance issues and eliminate JSON and data flow mismatches across the game runtime, configuration files, and all project editor plugins. Ensure all configured in-game pop-ups trigger seamlessly and data reading/writing remains consistent across the entire development workflow without regressions.
+Work together to fix the cinematic narrative overlay in Pixel Runner so that the Green Monster and all other monster/boss sprites appear and fit well on screen while their dialogue is displayed, and ensure the controller X button works to skip dialogue in addition to the SPACE key.
 
 Integrity mode: development
 
 ## Requirements
 
-### R1. Pop-up Configuration and Runtime Appearance
-Fix missing configuration keys and data discrepancies so that all in-game pop-ups appear at their intended triggers during gameplay:
-- Add missing event entries referenced in `src/game/states/game_state.py` (`event_book_ponder`, `event_first_encounter`, `event_forest_inquiry_1400m`) to `game_data/scene_popups_config.json`.
-- Correct the prologue awakening configuration (`event_prologue_awakening`) so its title and narrative text describe the prologue awakening rather than the Fabricator's Enforcer boss encounter.
-- Align trigger distances and entity IDs in `game_data/scene_popups_config.json` with entity definitions in `game_data/level_1.json`.
-- Update `game_data/.level_default.json` to point to a valid, existing level file.
-- Keep currently silenced systems (WhispererSystem, boss combat taunts, and ObjectiveDisplay/ItemLoreSystem) disabled as configured.
+### R1. Monster and Boss Sprite Presentation in Narrative Overlay
+Fix monster sprite rendering during cinematic narrative dialogues so that the Green Monster and all other monsters and bosses that speak in narrative sequences appear visibly on screen while their dialogue text box is active:
+- The Green Monster sprite, and sprites for all other narrative dialogue monster/boss speakers, must appear and fit well on screen while the text box displays their speech without clipping or showing a blank screen.
+- Layout, positioning, and scaling of sprites relative to the dialogue box are left to the team to determine.
 
-### R2. End-to-End JSON and Data Parity Across All Editor Plugins
-Audit and synchronize the data reading and writing workflows across all editor plugins and tools in the repository (including `popup_controller.py`, `level_editor.py`, `notification_editor.py`, `cutscene_editor.py`, `boss_editor.py`, and related editors):
-- Ensure every plugin reads the canonical game JSON schemas without missing fields, key errors, or parsing crashes.
-- Ensure all plugin save operations preserve external keys, follow atomic and non-clobbering file write patterns, and write valid JSON matching game runtime expectations.
-- Eliminate discrepancies where plugins expect different data types, naming conventions, or file structures than the game runtime uses.
+### R2. Controller X Button Dialogue Skip
+Enable controller input to advance and skip narrative cutscenes:
+- The controller X button must advance and skip narrative dialogue in addition to the keyboard SPACE key.
+- Both Xbox X button (button index 2) and PlayStation Cross/X button (button index 0) must trigger dialogue advance/skip.
+- Existing keyboard SPACE key functionality must remain intact.
 
-### R3. Automated Verification and Integrity Test Suite
-Provide comprehensive automated test scripts that verify JSON integrity and plugin compatibility:
-- Implement automated test scripts validating that all editor plugins can load, parse, and round-trip their corresponding game data files without data corruption or loss.
-- Implement programmatic verification confirming that all pop-up triggers in `GameState` resolve to existing, valid config entries in `scene_popups_config.json`.
-- Ensure all existing tests in the project pass with zero regressions.
+### R3. Automated Test Verification and Regression Suite
+Provide programmatic test coverage and ensure zero regressions across the codebase:
+- Automated tests in the test suite must verify monster sprite rendering/presentation during narrative cutscenes.
+- Automated tests in the test suite must verify controller X button skip/advance input handling.
+- The entire existing test suite (`pytest tests/`) must pass with zero regressions.
 
 ## Acceptance Criteria
 
-### Pop-up Configuration and Runtime Display
-- [ ] All scene pop-up event IDs referenced in `src/game/states/game_state.py` (`event_prologue_awakening`, `event_book_ponder`, `event_first_encounter`, `event_first_kill`, `event_forest_inquiry_1400m`, `event_moonstone_keeper`, `event_soul_quota_betrayal`, `event_level_complete`) are defined in `game_data/scene_popups_config.json`.
-- [ ] `event_prologue_awakening` in `game_data/scene_popups_config.json` contains title and body text specific to the prologue awakening, not the Fabricator's Enforcer.
-- [ ] Entity trigger distances and entity IDs in `game_data/scene_popups_config.json` match the entity coordinates and IDs in `game_data/level_1.json` (including the Sealed Book at ~1013m and boss encounters).
-- [ ] `game_data/.level_default.json` references an existing level configuration file (e.g., `"game_data/level_1.json"`).
-- [ ] Silenced systems (`WhispererSystem.ENABLED = False`, commented-out boss combat taunts, inactive ObjectiveDisplay) remain disabled.
+### Monster Sprite Presentation
+- [ ] Green Monster sprite is visibly rendered on screen during its narrative dialogue sequence.
+- [ ] All other monster and boss dialogue encounters display their corresponding entity sprites during dialogue.
+- [ ] Sprites fit well within the screen view without clipping or rendering as an empty black background.
+- [ ] The dialogue text box displays dialogue text concurrently with monster sprite visibility.
 
-### Editor Plugin Data Flow and Schema Parity
-- [ ] `popup_controller.py` loads, edits, displays, and saves all scene pop-up notifications and level entity links without schema errors or dropped fields.
-- [ ] All editor plugins (`level_editor.py`, `notification_editor.py`, `cutscene_editor.py`, `boss_editor.py`, etc.) load and parse their corresponding JSON configurations without unhandled exceptions or data loss.
-- [ ] Saving configurations from any editor plugin preserves external fields and maintains atomic save and backup safety standards.
+### Controller Input Handling
+- [ ] Pressing gamepad button index 2 (Xbox X) advances and skips narrative dialogue.
+- [ ] Pressing gamepad button index 0 (PlayStation Cross/X) advances and skips narrative dialogue.
+- [ ] Pressing keyboard SPACE key continues to advance and skip dialogue.
 
-### Test Suite and Verification
-- [ ] Dedicated automated test scripts verify JSON schema validity and round-trip load/save operations across all editor plugins.
-- [ ] Headless test verifies that every pop-up trigger path in `GameState` successfully retrieves a valid notification configuration without falling back to hardcoded error states.
-- [ ] Full existing test suite (`PYTHONPATH=. pytest`) passes with 100% success rate (zero regressions).
+### Automated Testing and System Integrity
+- [ ] Unit and integration tests verify narrative overlay sprite rendering and layout for dialogue speakers.
+- [ ] Unit and integration tests verify gamepad button skip events for both button indices 0 and 2.
+- [ ] All existing tests in `tests/` pass with 100% pass rate.

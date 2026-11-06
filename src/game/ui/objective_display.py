@@ -151,7 +151,7 @@ class ObjectiveDisplay(ParchmentDisplay):
 
         is_trigger = (
             (event.type == pg.KEYDOWN and event.key in (pg.K_SPACE, pg.K_RETURN, pg.K_x))
-            or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 6))
+            or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 2, 6))
         )
 
         if not is_trigger:

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.game.systems.corruption_manager import CorruptionManager
 
-_SECOND_RELIC_DELAY = 2.0  # seconds
+_SECOND_RELIC_DELAY = 0.4  # seconds
 
 
 class RelicManager:

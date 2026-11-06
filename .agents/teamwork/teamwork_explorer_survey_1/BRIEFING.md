@@ -1,50 +1,52 @@
-# BRIEFING — 2026-10-28T18:17:00Z
+# BRIEFING — 2026-11-03T11:47:30Z
 
 ## Mission
-Investigate GameState pop-up triggers, scene_popups_config.json, level_1.json, .level_default.json, silenced systems, and popup_scene_manager.py for pop-up notification appearance and schema alignment.
+Investigate Requirement R1: Monster and Boss Sprite Presentation in Narrative Overlay, identify root causes of missing/clipping sprites, examine asset loading, and propose a concrete implementation plan.
 
 ## 🔒 My Identity
 - Archetype: explorer
-- Roles: explorer, popup-systems-and-runtime-triggers
-- Working directory: c:\Users\me\Documents\game\Pixel-Runner\.agents\teamwork\teamwork_explorer_survey_1
-- Original parent: 4ca1b8f5-359d-47e4-86f8-c95f371a5412
-- Milestone: survey-and-analysis
+- Roles: narrative-overlay-surveyor, ui-graphics
+- Working directory: c:\Users\Chosen033\Documents\Pixel-Runner\.agents\teamwork\teamwork_explorer_survey_1\
+- Original parent: 1b7942f2-4c4f-4aef-aa55-e3e184e1963a
+- Milestone: survey-and-root-cause-analysis
 
 ## 🔒 Key Constraints
-- Read-only investigation — do NOT implement or modify source files
-- Write only to working directory .agents/teamwork/teamwork_explorer_survey_1/
-- Produce comprehensive handoff.md with 5 components
-- Heartbeat via progress.md
+- Read-only investigation — do NOT implement
+- Produce comprehensive report at handoff.md in working directory
+- Communicate completion via send_message to parent 1b7942f2-4c4f-4aef-aa55-e3e184e1963a
 
 ## Current Parent
-- Conversation ID: 4ca1b8f5-359d-47e4-86f8-c95f371a5412
-- Updated: 2026-10-28T18:03:35Z
+- Conversation ID: 1b7942f2-4c4f-4aef-aa55-e3e184e1963a
+- Updated: 2026-11-03T11:47:30Z
 
 ## Investigation State
 - **Explored paths**:
-  - `src/game/states/game_state.py` (lines 189-191, 491-537, 886-936, 965-975, 1061-1133, 1474-1485, 1572-1591, 1641-1694, 1821-1859, 2124-2144)
-  - `game_data/scene_popups_config.json` (all 146 lines)
-  - `game_data/level_1.json` (world_events lines 558-677)
-  - `game_data/.level_default.json`
-  - `src/game/systems/popup_scene_manager.py` (all 206 lines)
-  - `src/game/systems/whisperer_system.py` (lines 41-47, 233-270)
-  - `src/game/ui/objective_display.py` & `src/game/ui/hud_overlay.py`
-  - `src/game/systems/item_lore_system.py`
-  - `popup_controller.py` & `tests/test_popup_scene_manager.py`
+  - `src/game/ui/cinematic_narrative_overlay.py`
+  - `src/game/states/game_state.py`
+  - `src/game/systems/boss_encounter_manager.py`
+  - `src/game/systems/whisperer_system.py`
+  - `src/game/systems/cutscene_manager.py`
+  - `src/game/entities/boss_manager.py`
+  - `src/game/entities/green_monster.py`
+  - `src/game/entities/bloo_zombie.py`
+  - `src/game/entities/fire_wizard.py`
+  - `src/game/entities/dark_ronin.py`
+  - `game_data/storyline_config.json`, `game_data/level_1.json`, `game_data/scene_popups_config.json`, `game_data/entity_dimensions.json`
+  - `tests/test_cinematic_narrative_overlay.py`, `tests/test_narrative_backbone.py`
 - **Key findings**:
-  - 8 distinct event IDs and 5 entity IDs queried in `game_state.py`.
-  - 3 missing event configs in `scene_popups_config.json`: `event_book_ponder`, `event_first_encounter`, `event_forest_inquiry_1400m`.
-  - `event_prologue_awakening` has copy-pasted title/text from Fabricator's Enforcer.
-  - Entity 10 (Sealed Book) has distance mismatch (650m in popup config vs 1013m in level_1.json).
-  - `game_data/.level_default.json` points to non-existent `game_data/level_2.json`.
-  - Silenced systems correctly verified and isolated.
-- **Unexplored areas**: None for Explorer 1 scope. Ready for handoff synthesis.
+  1. `BossEncounterManager._show_next_line()` calls `_overlay.show_bark(line, speaker=None)` without passing `speaker_name` or `avatar_sprite`, causing the overlay to default speaker to "Kimi Narrative Director" and load 0 avatar frames.
+  2. `CinematicNarrativeOverlay.activate()` avatar loading logic only handles flat directories with PNGs (like Agis), but boss directories (`assets/graphics/green_monster`) have subdirectories (`idle/`, `1atk/`), causing frame loading to return empty.
+  3. Hardcoded `scale = 3.5` scales large boss sprites (native 500x400) to 1750x1400px, heavily clipping them off-screen.
+  4. Avatar Y positioning `(self._height - frame.get_height()) // 3` clips off top or collides into dialogue card at Y=515.
+  5. Vignette is 100% opaque solid black `(0, 0, 0, 255)`, creating an empty black void instead of a translucent cinematic scene overlay.
+  6. Gamepad skip (`JOYBUTTONDOWN` buttons 0 and 2) is missing in `CinematicNarrativeOverlay.handle_event()`.
+- **Unexplored areas**: None remaining within survey scope.
 
 ## Key Decisions Made
-- All evidence chains traced to exact lines and verified.
-- Formulating exact proposed patch/JSON definitions in handoff report.
+- Formulated 5-point root cause diagnosis and concrete implementation plan with bounding-box adaptive scaling, speaker-avatar registry, semi-transparent atmospheric vignette, and dual gamepad button mapping.
 
 ## Artifact Index
-- c:\Users\me\Documents\game\Pixel-Runner\.agents\teamwork\teamwork_explorer_survey_1\DISPATCH.md — Dispatch log
-- c:\Users\me\Documents\game\Pixel-Runner\.agents\teamwork\teamwork_explorer_survey_1\progress.md — Liveness heartbeat & progress log
-- c:\Users\me\Documents\game\Pixel-Runner\.agents\teamwork\teamwork_explorer_survey_1\handoff.md — Final investigation report
+- DISPATCH.md — Dispatch log
+- BRIEFING.md — Persistent context
+- progress.md — Liveness tracker
+- handoff.md — Final investigation report

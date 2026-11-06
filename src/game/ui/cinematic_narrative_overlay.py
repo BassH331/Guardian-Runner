@@ -1,9 +1,37 @@
 import os
 import math
+import re
 import pygame as pg
 from typing import Dict, Any, Optional, Callable, List
 from v3x_zulfiqar_gideon import AssetManager, UITheme
 from src.game.systems.custom_events import Speaker
+
+
+def _natural_sort_key(s: str) -> List[Any]:
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", os.path.basename(s))]
+
+
+SPEAKER_AVATAR_MAP: Dict[str, str] = {
+    "green monster": "assets/graphics/green_monster/idle",
+    "the gatekeeper": "assets/graphics/green_monster/idle",
+    "gatekeeper": "assets/graphics/green_monster/idle",
+    "the iron gatekeeper": "assets/graphics/green_monster/idle",
+    "greenmonster": "assets/graphics/green_monster/idle",
+    "blood zombie": "assets/graphics/bloodZombie/Idle",
+    "bloodzombie": "assets/graphics/bloodZombie/Idle",
+    "the fabricator's enforcer": "assets/wizard/Idle",
+    "fire wizard": "assets/wizard/Idle",
+    "firewizard": "assets/wizard/Idle",
+    "wizard": "assets/wizard/Idle",
+    "dark ronin": "assets/graphics/Ronin/spr_RoninIdle_strip8.png",
+    "darkronin": "assets/graphics/Ronin/spr_RoninIdle_strip8.png",
+    "ronin": "assets/graphics/Ronin/spr_RoninIdle_strip8.png",
+    "skeleton": "assets/skeleton/Skeleton_01_White_Idle",
+    "necromancer": "assets/graphics/Necromancer_creativekind-Sheet.png",
+    "andras": "assets/Agis",
+    "andras, marquis of discord": "assets/Agis",
+    "agis": "assets/Agis",
+}
 
 
 class CinematicNarrativeOverlay:
@@ -25,7 +53,7 @@ class CinematicNarrativeOverlay:
         self._displayed_text: str = ""
         self._char_index: int = 0
         self._char_timer: float = 0.0
-        self._CHAR_SPEED_SEC: float = 0.025
+        self._CHAR_SPEED_SEC: float = 0.008
 
         # Avatar animation
         self._avatar_frames: List[pg.Surface] = []
@@ -50,18 +78,25 @@ class CinematicNarrativeOverlay:
         self._rebuild_vignette()
 
     def _rebuild_vignette(self) -> None:
-        """Create a completely black void overlay."""
+        """Create atmospheric dark scrim overlay."""
         surface = pg.display.get_surface()
         if surface:
             self._width = surface.get_width()
             self._height = surface.get_height()
 
         self._vignette_surface = pg.Surface((self._width, self._height), pg.SRCALPHA)
-        # The user requested a completely black void
-        self._vignette_surface.fill((0, 0, 0, 255))
+        # Semi-transparent dark atmospheric scrim (0, 0, 0, 160) for standard dialogue so
+        # gameplay world and characters remain visible; deeper dark (0, 0, 0, 240) for book ritual.
+        alpha = 240 if getattr(self, "_is_book_ritual", False) else 160
+        self._vignette_surface.fill((0, 0, 0, alpha))
 
     def activate(self, narrative_event: Dict[str, Any], on_choice_selected: Optional[Callable[[Dict[str, Any]], None]] = None) -> None:
         """Trigger slow-motion cinematic overlay with Kimi narrative event dictionary."""
+        surface = pg.display.get_surface()
+        if surface:
+            self._width = surface.get_width()
+            self._height = surface.get_height()
+
         self._current_event = narrative_event
         self._on_choice_selected = on_choice_selected
         self._full_text = narrative_event.get("dialogue_text", "")
@@ -78,6 +113,7 @@ class CinematicNarrativeOverlay:
         self._runic_text = str(narrative_event.get("runic_text", ""))
         self._ritual_timer = float(narrative_event.get("duration", 5.0))
         self._ritual_elapsed = 0.0
+        self._rebuild_vignette()
 
         if self._is_book_ritual:
             # Single book image cutscene asset (Magic Books interface / book interface7.png)
@@ -100,40 +136,158 @@ class CinematicNarrativeOverlay:
         else:
             self._AVATAR_FRAME_SPEED = 0.28  # calm demon pacing
 
+        # Resolve avatar sprite path: check event avatar_sprite, else lookup speaker_name in SPEAKER_AVATAR_MAP
         avatar_path = narrative_event.get("avatar_sprite")
+        if not avatar_path and not self._is_book_ritual:
+            speaker_key = str(narrative_event.get("speaker_name", "")).strip().lower()
+            if speaker_key:
+                if speaker_key in SPEAKER_AVATAR_MAP:
+                    avatar_path = SPEAKER_AVATAR_MAP[speaker_key]
+                else:
+                    for map_name, map_path in SPEAKER_AVATAR_MAP.items():
+                        if map_name in speaker_key or speaker_key in map_name:
+                            avatar_path = map_path
+                            break
+            if not avatar_path and self._speaker is Speaker.ANDRAS:
+                avatar_path = SPEAKER_AVATAR_MAP.get("andras")
+
         if avatar_path and not self._is_book_ritual:
             try:
-                # Special handling for Agis: load all Agis_XX.png files in sorted order
-                agis_dir = avatar_path  # e.g. 'assets/Agis'
-                individual_pngs = sorted(
-                    [f for f in os.listdir(agis_dir) if f.lower().endswith(".png") and not os.path.isdir(os.path.join(agis_dir, f))]
-                )
-                if individual_pngs:
-                    scale = 3.5
-                    for fname in individual_pngs:
-                        img = pg.image.load(os.path.join(agis_dir, fname)).convert_alpha()
-                        w = int(img.get_width() * scale)
-                        h = int(img.get_height() * scale)
-                        self._avatar_frames.append(pg.transform.smoothscale(img, (w, h)))
-                else:
-                    # Fallback: use AssetManager
-                    frames = AssetManager.get_animation_frames(avatar_path)
+                resolved_path = os.path.normpath(avatar_path)
+                if not os.path.exists(resolved_path) and os.path.exists(os.path.join("assets", resolved_path)):
+                    resolved_path = os.path.join("assets", resolved_path)
+
+                raw_frames: List[pg.Surface] = []
+
+                if os.path.isfile(resolved_path) or resolved_path.lower().endswith(".png"):
+                    frames = AssetManager.get_animation_frames(resolved_path)
                     if frames:
-                        scale = 3.5
-                        for f in frames:
-                            self._avatar_frames.append(pg.transform.smoothscale(f, (int(f.get_width() * scale), int(f.get_height() * scale))))
+                        raw_frames = list(frames)
+                    else:
+                        img = pg.image.load(resolved_path)
+                        if pg.display.get_surface():
+                            try:
+                                img = img.convert_alpha()
+                            except pg.error:
+                                pass
+                        raw_frames = [img]
+                elif os.path.isdir(resolved_path):
+                    # Check for direct PNG files
+                    direct_pngs = sorted(
+                        [
+                            os.path.join(resolved_path, f)
+                            for f in os.listdir(resolved_path)
+                            if f.lower().endswith(".png") and os.path.isfile(os.path.join(resolved_path, f))
+                        ],
+                        key=_natural_sort_key,
+                    )
+
+                    if not direct_pngs:
+                        # Inspect child subfolders (prioritize 'idle', then any folder with PNGs)
+                        subdirs = [
+                            os.path.join(resolved_path, d)
+                            for d in os.listdir(resolved_path)
+                            if os.path.isdir(os.path.join(resolved_path, d))
+                        ]
+
+                        target_subfolder = None
+                        # Priority 1: exact name 'idle'
+                        for d in subdirs:
+                            if os.path.basename(d).lower() == "idle":
+                                sub_pngs = [
+                                    f for f in os.listdir(d)
+                                    if f.lower().endswith(".png") and os.path.isfile(os.path.join(d, f))
+                                ]
+                                if sub_pngs:
+                                    target_subfolder = d
+                                    break
+
+                        # Priority 2: contains 'idle' in name
+                        if not target_subfolder:
+                            for d in subdirs:
+                                if "idle" in os.path.basename(d).lower():
+                                    sub_pngs = [
+                                        f for f in os.listdir(d)
+                                        if f.lower().endswith(".png") and os.path.isfile(os.path.join(d, f))
+                                    ]
+                                    if sub_pngs:
+                                        target_subfolder = d
+                                        break
+
+                        # Priority 3: first child folder containing PNGs
+                        if not target_subfolder:
+                            for d in subdirs:
+                                sub_pngs = [
+                                    f for f in os.listdir(d)
+                                    if f.lower().endswith(".png") and os.path.isfile(os.path.join(d, f))
+                                ]
+                                if sub_pngs:
+                                    target_subfolder = d
+                                    break
+
+                        if target_subfolder:
+                            direct_pngs = sorted(
+                                [
+                                    os.path.join(target_subfolder, f)
+                                    for f in os.listdir(target_subfolder)
+                                    if f.lower().endswith(".png") and os.path.isfile(os.path.join(target_subfolder, f))
+                                ],
+                                key=_natural_sort_key,
+                            )
+
+                    if direct_pngs:
+                        for png_file in direct_pngs:
+                            img = pg.image.load(png_file)
+                            if pg.display.get_surface():
+                                try:
+                                    img = img.convert_alpha()
+                                except pg.error:
+                                    pass
+                            raw_frames.append(img)
+                    else:
+                        # Fallback to AssetManager
+                        frames = AssetManager.get_animation_frames(resolved_path)
+                        if frames:
+                            raw_frames = list(frames)
+
+                # Implement adaptive aspect-preserving scaling
+                if raw_frames:
+                    card_h = 180
+                    card_y = self._height - card_h - 25
+                    target_max_w = min(int(self._width * 0.45), 450)
+                    target_max_h = min(int(card_y - 40), 400)
+
+                    for f in raw_frames:
+                        raw_w = f.get_width()
+                        raw_h = f.get_height()
+                        if raw_w <= 0 or raw_h <= 0:
+                            continue
+                        scale = min(target_max_w / raw_w, target_max_h / raw_h)
+                        scaled_w = max(1, int(raw_w * scale))
+                        scaled_h = max(1, int(raw_h * scale))
+                        self._avatar_frames.append(pg.transform.smoothscale(f, (scaled_w, scaled_h)))
             except Exception as e:
                 print(f"[CinematicOverlay] Avatar load error: {e}")
 
         self.is_active = True
 
-    def show_bark(self, text: str, speaker: Optional[Speaker] = None) -> None:
-        """Show a whisperer bark line via the overlay."""
+    def show_bark(
+        self,
+        text: str,
+        speaker: Optional[Speaker] = None,
+        speaker_name: Optional[str] = None,
+        avatar_sprite: Optional[str] = None,
+    ) -> None:
+        """Show a whisperer bark line or boss dialogue line via the overlay."""
         self._speaker = speaker
         event: Dict[str, Any] = {
             "dialogue_text": text,
             "option_1_label": "[SPACE] Continue",
         }
+        if speaker_name is not None:
+            event["speaker_name"] = speaker_name
+        if avatar_sprite is not None:
+            event["avatar_sprite"] = avatar_sprite
         self.activate(event)
 
     def deactivate(self) -> None:
@@ -148,9 +302,10 @@ class CinematicNarrativeOverlay:
         self._is_book_ritual = False
         self._ritual_elapsed = 0.0
         self._avatar_frame_idx = 0
+        self._rebuild_vignette()
 
     def handle_event(self, event: pg.event.Event) -> bool:
-        """Handle keypresses [1], [2], SPACE, ENTER, ESC, or mouse clicks to select story choice."""
+        """Handle keypresses [1], [2], SPACE, ENTER, ESC, mouse clicks, or gamepad buttons to select story choice."""
         if not self.is_active or not self._current_event:
             return False
 
@@ -171,6 +326,19 @@ class CinematicNarrativeOverlay:
                 return True
             elif "option_2_label" not in self._current_event:
                 # In single-option monologue, clicking anywhere advances
+                self._select_option(1)
+                return True
+        elif event.type == pg.JOYBUTTONDOWN:
+            if event.button in (0, 2):
+                # Gamepad button index 2 (Xbox X) and index 0 (PlayStation Cross/X) advance/skip narrative dialogue
+                self._select_option(1)
+                return True
+            elif event.button in (1, 3) and "option_2_label" in self._current_event:
+                # Gamepad button index 1 (B / Circle) or index 3 (Y / Triangle) selects option 2 if present
+                self._select_option(2)
+                return True
+            elif "option_2_label" not in self._current_event and event.button in (1, 6, 7):
+                # In single-option monologue / bark, common face and trigger buttons also advance
                 self._select_option(1)
                 return True
         return False
@@ -222,11 +390,20 @@ class CinematicNarrativeOverlay:
                 self._avatar_frame_idx = (self._avatar_frame_idx + 1) % len(self._avatar_frames)
 
     def draw(self, surface: pg.Surface) -> None:
-        """Render dark vignette and floating bottom dialogue box."""
+        """Render atmospheric scrim and floating bottom dialogue box."""
         if not self.is_active or not self._current_event:
             return
 
-        # 1. Draw radial vignette — tinted per speaker when a bark is active
+        if surface:
+            self._width = surface.get_width()
+            self._height = surface.get_height()
+
+        card_w = int(self._width * 0.85)
+        card_h = 180
+        card_x = (self._width - card_w) // 2
+        card_y = self._height - card_h - 25
+
+        # 1. Draw atmospheric scrim — tinted per speaker when a bark is active
         if self._vignette_surface:
             if self._speaker is Speaker.ANDRAS:
                 tint = pg.Surface((self._width, self._height), pg.SRCALPHA)
@@ -307,14 +484,12 @@ class CinematicNarrativeOverlay:
         elif self._avatar_frames:
             frame = self._avatar_frames[self._avatar_frame_idx % len(self._avatar_frames)]
             av_x = (self._width - frame.get_width()) // 2
-            av_y = (self._height - frame.get_height()) // 3
+            av_y = max(20, (card_y - frame.get_height()) // 2)
+            if av_y + frame.get_height() >= card_y:
+                av_y = max(0, card_y - frame.get_height() - 5)
             surface.blit(frame, (av_x, av_y))
 
         # 2. Modern UI Dialogue Panel Base
-        card_w = int(self._width * 0.85)
-        card_h = 180
-        card_x = (self._width - card_w) // 2
-        card_y = self._height - card_h - 25
 
         # Background with a sleek dark glass look
         card_rect = pg.Rect(card_x, card_y, card_w, card_h)

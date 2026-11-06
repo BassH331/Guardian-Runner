@@ -33,6 +33,8 @@ class BossEncounterManager:
         self._phase_timer: float = 0.0
         self._dialogue_queue: list = []               # lines remaining to show
         self._bosses_frozen: bool = False             # whether boss AI is frozen
+        self._boss_title: Optional[str] = None
+        self._boss_sprite_path: Optional[str] = None
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -43,6 +45,8 @@ class BossEncounterManager:
             return  # No dialogue config — skip encounter sequence
 
         self._active_boss = boss_entity
+        self._boss_title = getattr(boss_entity, "boss_title", None) or getattr(boss_entity, "title", None) or boss_name
+        self._boss_sprite_path = getattr(boss_entity, "_base_path", None) or getattr(boss_entity, "sprite_root", None)
         self._bosses_frozen = True
         boss_entity.ai_frozen = True  # gate the entity's AI update
 
@@ -73,7 +77,23 @@ class BossEncounterManager:
         if death_line and self._overlay:
             show_fn = getattr(self._overlay, "show_bark", None)
             if show_fn:
-                show_fn(death_line, speaker=None)  # death lines carry no speaker tint
+                try:
+                    show_fn(
+                        death_line,
+                        speaker=None,
+                        speaker_name=self._boss_title or boss_name,
+                        avatar_sprite=self._boss_sprite_path,
+                    )
+                except TypeError:
+                    show_fn(death_line, speaker=None)
+            elif hasattr(self._overlay, "activate"):
+                event = {
+                    "dialogue_text": death_line,
+                    "speaker_name": self._boss_title or boss_name,
+                    "avatar_sprite": self._boss_sprite_path,
+                    "option_1_label": "[SPACE] Continue",
+                }
+                self._overlay.activate(event)
 
     def update(self, dt: float) -> None:
         """Advance the encounter state machine each frame."""
@@ -124,4 +144,20 @@ class BossEncounterManager:
         if self._overlay:
             show_fn = getattr(self._overlay, "show_bark", None)
             if show_fn:
-                show_fn(line, speaker=None)  # boss lines shown without Andras/MK tint
+                try:
+                    show_fn(
+                        line,
+                        speaker=None,
+                        speaker_name=self._boss_title,
+                        avatar_sprite=self._boss_sprite_path,
+                    )
+                except TypeError:
+                    show_fn(line, speaker=None)
+            elif hasattr(self._overlay, "activate"):
+                event = {
+                    "dialogue_text": line,
+                    "speaker_name": self._boss_title,
+                    "avatar_sprite": self._boss_sprite_path,
+                    "option_1_label": "[SPACE] Continue",
+                }
+                self._overlay.activate(event)

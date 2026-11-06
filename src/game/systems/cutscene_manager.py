@@ -79,7 +79,7 @@ class CutsceneManager:
         """
         cutscene_advance_pressed = (
             (event.type == pg.KEYDOWN and event.key in (pg.K_RETURN, pg.K_SPACE, pg.K_e, pg.K_x)) or
-            (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6))
+            (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 2, 6))
         )
         if not cutscene_advance_pressed:
             return False

@@ -3,6 +3,20 @@
   "description": "Canonical Scene and Entity Pop-up Notification Configuration for Pixel-Runner",
   "scenes": [
     {
+      "id": "event_prologue_awakening",
+      "trigger_type": "distance",
+      "distance": 0,
+      "entity_id": null,
+      "flag": null,
+      "title": "The Awakening",
+      "text": "DONT LOSE YOURSELF TO THE FOREST WARRIOR ...",
+      "theme": "arcane_void",
+      "icon": "assets/250 WARRIOR ICONS (pack by batareya)/17.png",
+      "hold": 6.0,
+      "enabled": true,
+      "description": "Prologue intro at game start"
+    },
+    {
       "id": "event_first_kill",
       "trigger_type": "flag",
       "distance": 850,
@@ -17,16 +31,44 @@
       "description": "First kill confirmation"
     },
     {
+      "id": "event_book_ponder",
+      "trigger_type": "flag",
+      "distance": 1013,
+      "entity_id": 10,
+      "flag": "book_ponder",
+      "title": "The Runner Wonders",
+      "text": "What does this demon want with me...?",
+      "theme": "grimoire_leather",
+      "icon": "assets/graphics/magic_book_single/magic_book.png",
+      "hold": 6.0,
+      "enabled": true,
+      "description": "Player reflection following the Sealed Book encounter"
+    },
+    {
+      "id": "event_sealed_book_encounter",
+      "trigger_type": "entity",
+      "distance": 1013,
+      "entity_id": 10,
+      "flag": null,
+      "title": "Grimoire of the Ancients",
+      "text": "The Runes of mortal demies, yet power here it lies, here him who speaks to those who look into his eyes",
+      "theme": "grimoire_leather",
+      "icon": "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png",
+      "hold": 7.0,
+      "enabled": true,
+      "description": "Encounter with the Sealed Book (Entity 10)"
+    },
+    {
       "id": "event_first_encounter",
       "trigger_type": "flag",
       "distance": 1080,
       "entity_id": null,
       "flag": "first_encounter",
       "title": "The Whispering Grimoire",
-      "text": "come closer warrior... open your eyes beyond human limits!!",
+      "text": "take a look inside human, are you brave enough?",
       "theme": "blood_bone",
       "icon": "assets/graphics/magic_book_single/magic_book.png",
-      "hold": 5.5,
+      "hold": 9.5,
       "enabled": true,
       "description": "First encounter with an enemy in Level 1"
     },
@@ -101,18 +143,46 @@
       "description": "Gatekeeper encounter (Entity 1 @ 12,500m)"
     },
     {
+      "id": "event_soul_quota_betrayal",
+      "trigger_type": "flag",
+      "distance": 20000,
+      "entity_id": null,
+      "flag": "soul_quota",
+      "title": "Harvester's Tithe",
+      "text": "Ten thousand souls consumed. The harvest is complete, yet the shadows demand greater tribute.",
+      "theme": "blood_bone",
+      "icon": "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png",
+      "hold": 7.5,
+      "enabled": true,
+      "description": "10,000 Souls Harvested milestone"
+    },
+    {
       "id": "event_fabricators_enforcer",
       "trigger_type": "entity",
       "distance": 34500,
       "entity_id": 3,
       "flag": null,
-      "title": "Harvester's Tithe",
-      "text": "Ten thousand souls consumed. The harvest is complete, yet the shadows demand greater tribute.",
+      "title": "The Fabricator's Enforcer",
+      "text": "Clanking gears of malice screech in the dark. The final sentinel awakens to crush your escape.",
       "theme": "clean_minimalist",
       "icon": "assets/free-undead-loot-pixel-art-icons (2)/PNG/Transperent/Icon1.png",
       "hold": 8.0,
       "enabled": true,
       "description": "Fabricator's Enforcer (Entity 3 @ 34,500m)"
+    },
+    {
+      "id": "event_level_complete",
+      "trigger_type": "distance",
+      "distance": 36000,
+      "entity_id": null,
+      "flag": null,
+      "title": "Extraction Achieved",
+      "text": "The catacomb collapses behind you. You emerge into the twilight, drenched in blood and glory.",
+      "theme": "gothic_gold",
+      "icon": "assets/graphics/ui/relic_icon.png",
+      "hold": 9.0,
+      "enabled": true,
+      "description": "Level 1 Extraction / Complete @ 36,000m"
     }
   ]
 }

@@ -167,7 +167,7 @@ class StoryState(State):
     def handle_event(self, event: pg.event.Event):
         advance_pressed = (
             (event.type == pg.KEYDOWN and event.key in (pg.K_RETURN, pg.K_SPACE, pg.K_e, pg.K_x))
-            or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6, 7))
+            or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 2, 6, 7))
         )
 
         if advance_pressed:

@@ -124,7 +124,13 @@ class PixelRunnerEngine(V3XCore):
         os.environ["SDL_VIDEO_CENTERED"] = "1"
         pg.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=2048)
         pg.init()
-        pg.mixer.set_num_channels(32)
+        try:
+            if not pg.mixer.get_init():
+                pg.mixer.init()
+            if pg.mixer.get_init():
+                pg.mixer.set_num_channels(32)
+        except Exception as e:
+            print(f"[AUDIO INIT] Warning: Audio mixer unavailable: {e}")
 
         self.width = base_width
         self.height = base_height

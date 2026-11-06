@@ -1,292 +1,398 @@
-# Comprehensive Exploration Report: Editor Plugins & Data Parity
-
-**Explorer**: Explorer 2 (Editor Plugins & Data Parity)  
-**Working Directory**: `c:\Users\me\Documents\game\Pixel-Runner\.agents\teamwork\teamwork_explorer_survey_2\`  
-**Date**: 2026-10-28  
-
----
+# Handoff Report: Controller X Button Dialogue Skip Investigation (Requirement R2)
 
 ## 1. Observation
 
-### 1.1 Repository Editor Plugins and Tools Inventory
-Direct search and filesystem inspection located 18 interactive GUI editor plugins, standalone tools, and underlying configuration managers across the codebase:
+### 1.1 Cinematic Narrative Overlay Input Handling
+In `src/game/ui/cinematic_narrative_overlay.py`, lines 152–177:
+```python
+    def handle_event(self, event: pg.event.Event) -> bool:
+        """Handle keypresses [1], [2], SPACE, ENTER, ESC, or mouse clicks to select story choice."""
+        if not self.is_active or not self._current_event:
+            return False
 
-1. **`popup_controller.py`** (2,701 lines / 128,809 bytes): Pop-up Notification Control System GUI plugin. Manages scene/entity notification pop-ups.
-2. **`level_editor.py`** (4,135 lines / 199,122 bytes): Level Spawner & World Event Editor v2 (Wizard-style multi-stage GUI).
-3. **`notification_editor.py`** (1,089 lines / 49,150 bytes): Pop-Up & Side Notification theme, timing, geometry, and live simulation GUI editor.
-4. **`cutscene_editor.py`** (6,001 lines / 256,104 bytes): Transformation Cutscene Web-based Studio and live visual previewer.
-5. **`boss_editor.py`** (2,382 lines / 113,904 bytes): Multi-boss configuration editor, AI telemetry simulator, and difficulty tuner.
-6. **`wizard_editor.py`** (1,158 lines / 55,128 bytes): Fire Wizard boss telemetry configurator and animation tuner.
-7. **`blood_zombie_editor.py`** (1,452 lines / 67,909 bytes): Blood Zombie animation, combat metrics, and metaphor tuning GUI.
-8. **`the_eye.py` & `src/game/systems/the_eye_manager.py`** (2,256 lines / 101,189 bytes; 1,744 lines / 83,959 bytes): 3D interactive narrative tree, dialogue leaves, and perception manager.
-9. **`wave_editor.py`** (648 lines / 27,980 bytes): Enemy Wave Designer v2 GUI plugin.
-10. **`entity_editor.py`** (874 lines / 39,357 bytes): Graphical Hitbox, Dimension & Floor Editor GUI.
-11. **`power_icons_editor.py`** (1,128 lines / 48,928 bytes): Power Icons & Screen Placement GUI editor.
-12. **`controls_editor.py`** (741 lines / 31,415 bytes): Control Mapping & Key/Gamepad Remapping GUI visualizer.
-13. **`audio_mixer_editor.py`** (3,742 lines / 184,927 bytes): Web-based Audio Configurator & Sound Mixer studio.
-14. **`player_editor.py`** (1,981 lines / 92,590 bytes): Player Character Animation Configurator & Hitbox Tuner GUI.
-15. **`shadow_editor.py`** (648 lines / 30,480 bytes): Shadow Tuning & Alignment Studio GUI.
-16. **`storyline_editor.py`** (366 lines / 16,830 bytes): Storyline & Relic Plugin GUI Editor.
-17. **`voiceover_editor.py`** (770 lines / 38,057 bytes): Chatterbox Voiceover Generation GUI plugin.
-18. **`split_spritesheet.py`** (165 lines / 5,930 bytes): Sprite sheet splitter and sidecar frame metadata generator.
-19. **`tools/chatterbox_backend.py`** (331 lines / 11,838 bytes): Subprocess voice manifest executor.
-20. **Underlying Config Managers**:
-    - `src/game/systems/popup_scene_manager.py`
-    - `src/game/systems/notification_config_manager.py`
-    - `src/game/systems/storyline_config_manager.py`
-    - `src/game/entities/hitbox_registry.py`
-    - `src/game/systems/shadow_registry.py`
-    - `src/game/controls_manager.py`
-    - `src/game/audio/audio_lock.py`
-    - `src/game/utils/atomic_save.py`
+        if event.type == pg.KEYDOWN:
+            if event.key in (pg.K_1, pg.K_KP1, pg.K_RETURN, pg.K_SPACE, pg.K_ESCAPE):
+                self._select_option(1)
+                return True
+            elif event.key in (pg.K_2, pg.K_KP2) and "option_2_label" in self._current_event:
+                self._select_option(2)
+                return True
+        elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            mpos = event.pos
+            if self._btn2_rect and self._btn2_rect.collidepoint(mpos):
+                self._select_option(2)
+                return True
+            elif self._btn1_rect and self._btn1_rect.collidepoint(mpos):
+                self._select_option(1)
+                return True
+            elif "option_2_label" not in self._current_event:
+                # In single-option monologue, clicking anywhere advances
+                self._select_option(1)
+                return True
+        return False
+```
+- Direct Observation: `handle_event` checks **only** `event.type == pg.KEYDOWN` and `event.type == pg.MOUSEBUTTONDOWN`.
+- There is **no handling** for `event.type == pg.JOYBUTTONDOWN`. Any joystick or gamepad event returns `False` immediately.
 
----
+### 1.2 Event Delegation in GameState Event Loop
+In `src/game/states/game_state.py`, lines 1008–1040:
+```python
+        # While relic reveal cutscene overlay is active, capture input (keyboard, mouse, gamepad)
+        if hasattr(self, "relic_reveal_overlay") and self.relic_reveal_overlay and self.relic_reveal_overlay.is_active:
+            if self.relic_reveal_overlay.handle_event(event):
+                return
 
-### 1.2 Data Loading, Saving, Atomic Save Usage, and Key Preservation Matrix
+        # While cinematic narrative overlay is active, capture keypress choices [1] or [2]
+        if hasattr(self, "cinematic_narrative_overlay") and self.cinematic_narrative_overlay.is_active:
+            if self.cinematic_narrative_overlay.handle_event(event):
+                return
 
-| Plugin / Tool | Target JSON File(s) | Read Logic | Write Logic | Atomic Save (`atomic_save.py`) | Rolling Backups? | Preserves External / Unowned Keys? | Discrepancies & Violations |
-|---|---|---|---|---|---|---|---|
-| **`popup_controller.py`** | `game_data/scene_popups_config.json`<br>`game_data/level_1.json` | `json.load` via `PopupSceneManager` & `EntityCatalog` | `PopupSceneManager.save_config()` | `atomic_write_json` used in manager | Yes (max 5) | **NO** (Drops unowned top-level keys in `save_config`) | Crash on `distance: null` in sort/distance steppers; Missing 3 events; Text mismatch; Distance mismatch. |
-| **`level_editor.py`** | `game_data/level_*.json`<br>`storyline/level_*.json`<br>`game_data/entity_dimensions.json` | `json.load` with UTF-8 | Custom `.tmp_<pid>` + `os.replace` (lines 2455-2458) | **NO** (Does not import `atomic_save.py`) | **NO** (No backup created on commit) | **YES** (Smart 3-way merge on disk read retains spawn zones, taunts, props) | No `fsync`/flush before replace; no rolling backups; does not use unified `atomic_save.py`. |
-| **`notification_editor.py`** | `game_data/notification_config.json` | `NotificationConfigManager.load_config()` | `NotificationConfigManager.save_config()` | **YES** (`atomic_merge_json` line 227) | Yes (max 5) | **YES** (`atomic_merge_json` merges fresh disk dict) | None. Fully CIA compliant. |
-| **`cutscene_editor.py`** | `game_data/cutscene_config.json` | `json.load` | `atomic_write_json` (line 121) | **YES** (`atomic_write_json`) | Yes (max 5) | **PARTIAL** (Overwrites top-level with frontend dict without disk merge) | Does not re-read disk or merge external keys added directly to JSON. |
-| **`boss_editor.py`** | `game_data/boss_*_config.json`<br>`game_data/*_presets.json`<br>`game_data/enemy_skeleton_minion_config.json` | `json.load` | Presets: `atomic_merge_json` (line 813)<br>Boss config: `open(w)` (lines 1002, 1015) | **INCONSISTENT** (Presets use `atomic_merge_json`; main config uses direct `open(w)`) | **AD-HOC** (`shutil.copy2` to `.backup_<ts>.json` unpruned) | Presets: YES.<br>Main config: **NO** (Does not re-read fresh disk before save) | Direct `open("w")` without tmp file or atomic replace; backup accumulation without 5-file cap. |
-| **`wizard_editor.py`** | `game_data/boss_wizard_config.json`<br>`game_data/wizard_presets.json` | `json.load` | `atomic_merge_json` (lines 335, 443) | **YES** (`atomic_merge_json` for both) | Yes (max 5) | **YES** (`atomic_merge_json`) | Redundant legacy `shutil.copy2` backup block prior to atomic merge. |
-| **`blood_zombie_editor.py`** | `game_data/enemy_blood_zombie_config.json`<br>`game_data/blood_zombie_presets.json`<br>`game_data/entity_dimensions.json` | `json.load` | `atomic_merge_json` (line 588) & `HitboxRegistry.save_all()` | **YES** (`atomic_merge_json` & `atomic_write_json`) | Yes (max 5) | **YES** | None. Fully compliant. |
-| **`the_eye.py` / `the_eye_manager.py`** | `game_data/level_1.json`<br>`game_data/storyline_config.json`<br>`game_data/notification_events.json` | `json.load` | `atomic_write_json` (lines 1148, 1584, 1742) | **YES** (`atomic_write_json`) | Yes (max 5) | **YES** (Smart 3-way merge, disk re-read, no event resurrection) | None. Fully compliant. |
-| **`wave_editor.py`** | `game_data/level_*.json` | `json.load` | Commit: custom `.tmp_<pid>` + `os.replace` (line 260)<br>Simulate: direct `open(w)` (line 350) | **NO** (Does not import `atomic_save.py`) | **NO** (No backup created on commit) | Commit: **YES** (re-reads disk and updates only `spawn_zones`).<br>Simulate: **DANGEROUS** (writes uncommitted temp data directly to level file) | In `simulate()`, writes directly to `level_file` with `open("w")`. If simulation crashes, file remains corrupted. |
-| **`entity_editor.py`** | `game_data/entity_dimensions.json` | `HitboxRegistry._load_config()` | `HitboxRegistry.save_all()` | **YES** (`atomic_write_json` via registry) | Yes (max 5) | **YES** (preserves unedited registry entities) | None. Fully compliant. |
-| **`power_icons_editor.py`** | `game_data/power_icons_config.json` | `json.load` | `atomic_merge_json` (line 406) | **YES** (`atomic_merge_json`) | Yes (max 5) | **YES** | None. Fully compliant. |
-| **`controls_editor.py`** | `game_data/controls_config.json` | `ControlsManager.load_config()` | `ControlsManager.save_config()` | **YES** (`atomic_write_json` via manager line 145) | Yes (max 5) | **NO** (constructs fixed payload dict) | Drops unknown top-level keys if present. |
-| **`audio_mixer_editor.py`** | `settings.json`<br>`game_data/*_audio_config.json` | `json.load` | `save_config_and_lock()` (line 3704) | **YES** (`atomic_write_json` via `audio_lock.py`) | Yes (max 5) | **PARTIAL** (Writes full config dict from web frontend) | None. |
-| **`player_editor.py`** | `game_data/player_config.json` | `json.load` | Custom `.tmp` + `os.replace` (lines 1097-1104) | **NO** (Does not import `atomic_save.py`) | **AD-HOC** (`shutil.copy2` unpruned) | **NO** (replaces file with `{"states": ..., "attacks": ...}`) | Does not use `atomic_write_json`, no fsync, unpruned backup accumulation. |
-| **`shadow_editor.py`** | `game_data/shadow_config.json` | `ShadowRegistry._load_config()` | `ShadowRegistry.save_profile()` | **YES** (`atomic_merge_json` via registry line 182) | Yes (max 5) | **YES** | None. Fully compliant. |
-| **`storyline_editor.py`** | `game_data/storyline_config.json` | `StorylineConfigManager.load_config()` | `StorylineConfigManager.save_config()` | **YES** (`atomic_merge_json` via manager line 68) | Yes (max 5) | **YES** | None. Fully compliant. |
-| **`voiceover_editor.py`** | `tools/voice_manifest.json` | `json.load` | `atomic_write_json` (line 51) | **YES** (`atomic_write_json`) | Yes (max 5) | **PARTIAL** (writes full manifest dict) | `tools/chatterbox_backend.py` uses direct `open("w")` on same file. |
-| **`split_spritesheet.py`** | None (reads PNGs) | N/A | Direct `open("w")` for sidecar `config.json` | **NO** (Direct `open`) | **NO** | N/A (Creates new file) | No atomic save on sidecar generation. |
+        # Check for Demon Time & The EYE QTE Void Strike input
+        if hasattr(self, "demon_time_system") and hasattr(self, "player") and self.player.sprite:
+            player_sp = self.player.sprite
+            ...
+            if self.demon_time_system.handle_input(
+                event,
+                player_x=player_sp.rect.centerx,
+                player_y=player_sp.rect.centery,
+                target_x=target_x,
+                target_y=target_y,
+            ):
+                return
+```
+- Direct Observation: `GameState.handle_event` delegates to `cinematic_narrative_overlay.handle_event(event)` at line 1015.
+- Because `cinematic_narrative_overlay.handle_event(event)` returns `False` for all `pg.JOYBUTTONDOWN` events, execution falls through to lines 1019–1039 (`demon_time_system.handle_input`), which consumes buttons 0 and 2 during Demon Time (`button in (0, 2): trigger_shot = True`), or continues down the loop without dismissing the narrative overlay.
 
----
-
-### 1.3 Detailed Deep-Dive Audit: `popup_controller.py` & `scene_popups_config.json`
-
-#### Direct Source Evidence
-
-1. **Top-Level Field Drop in `PopupSceneManager.save_config()`**:
-   *Location*: `src/game/systems/popup_scene_manager.py` lines 197-202:
+### 1.3 Narrative Dialogue Triggers Using CinematicNarrativeOverlay
+In `src/game/states/game_state.py` and `src/game/systems/boss_encounter_manager.py`:
+1. **Green Monster & Other Boss Pre-Fight Dialogue**:
+   In `src/game/states/game_state.py` lines 755–764:
    ```python
-   payload = {
-       "version": "1.0",
-       "description": "Canonical Scene and Entity Pop-up Notification Configuration for Pixel-Runner",
-       "scenes": self._scenes,
+   self.boss_encounter_manager.begin_encounter(_enc_key, boss)
+   ```
+   In `src/game/systems/boss_encounter_manager.py` lines 120–128:
+   ```python
+   def _show_next_line(self) -> None:
+       if not self._dialogue_queue:
+           return
+       line = self._dialogue_queue.pop(0)
+       if self._overlay:
+           show_fn = getattr(self._overlay, "show_bark", None)
+           if show_fn:
+               show_fn(line, speaker=None)
+   ```
+   In `src/game/ui/cinematic_narrative_overlay.py` lines 130–137:
+   ```python
+   def show_bark(self, text: str, speaker: Optional[Speaker] = None) -> None:
+       self._speaker = speaker
+       event: Dict[str, Any] = {
+           "dialogue_text": text,
+           "option_1_label": "[SPACE] Continue",
+       }
+       self.activate(event)
+   ```
+2. **Blood Zombie Pre-Battle Cinematic Confrontation**:
+   In `src/game/states/game_state.py` lines 732–750:
+   ```python
+   boss.ai_frozen = True
+   cutscene_event = {
+       "speaker_name": "Blood Zombie",
+       "avatar_sprite": "assets/graphics/bloodZombie/Idle",
+       "dialogue_text": (
+           "The one you didn't belong here, mortal... "
+           "The bark of the great one, you thief!! You shall die!!"
+       ),
+       "option_1_label": "[SPACE] Draw Blade",
+       "option_1_buff": {"start_blood_zombie_combat": True}
    }
-   success = atomic_write_json(path, payload, indent=2, backup=True)
-   ```
-   *Direct Observation*: When `save_config()` is executed, any key in `game_data/scene_popups_config.json` other than `"version"`, `"description"`, and `"scenes"` is discarded. Furthermore, it does not re-read disk before writing, which means external manual or concurrent edits to non-owned fields are completely overwritten.
+   def _on_blood_zombie_cutscene_dismiss(buff):
+       boss.ai_frozen = False
 
-2. **Crash Vector 1: `TypeError: float() argument must be a string or a real number, not 'NoneType'`**:
-   *Locations*: `popup_controller.py`:
-   - Line 551: `self.scenes.sort(key=lambda s: float(s.get("distance", 0)))`
-   - Line 1061: `self.scenes.sort(key=lambda s: float(s.get("distance", 0)))`
-   - Line 1094: `self.scenes.sort(key=lambda s: float(s.get("distance", 0)))`
-   *Direct Observation*: In Python, if a dictionary contains `"distance": null` (e.g. flag events or unconfigured distances), `s.get("distance", 0)` returns `None` (not `0`), because `"distance"` is a present key with value `None`. `float(None)` immediately raises:
+   self.cinematic_narrative_overlay.activate(cutscene_event, _on_blood_zombie_cutscene_dismiss)
+   ```
+3. **Book Opening Ritual at 1013m**:
+   In `src/game/states/game_state.py` lines 1804–1806:
    ```python
-   TypeError: float() argument must be a string or a real number, not 'NoneType'
+   self.cinematic_narrative_overlay.activate(book_ritual_event, _on_ritual_complete)
    ```
-
-3. **Crash Vector 2: String Formatting and Stepper Distance Crashes**:
-   *Locations*: `popup_controller.py`:
-   - Line 1749-1750: `tag_label = f"📍 {int(float(dist))}m"` where `dist = scene.get("distance", 0)`
-   - Line 1912: `nearest = self.catalog.get_nearest_entity(float(scene.get("distance", 0)))`
-   - Line 1914: `f"Linked Trigger: Distance Milestone @ {int(float(scene.get('distance', 0)))}m"`
-   - Line 1916: `f"Triggers when player runs past {int(float(scene.get('distance', 0)))}m mark{near_str}"`
-   - Line 1339: `cur_dist = float(scene.get("distance", 0))`
-   *Direct Observation*: All five locations assume `s.get("distance", 0)` cannot be `None`. If `distance` is `None`, each location crashes on `float(None)`.
-
-4. **Crash Vector 3: Unhandled Conversion `int(eid)`**:
-   *Locations*: `popup_controller.py`:
-   - Line 1881: `avatar = self.catalog.get_avatar_surface(int(eid), size=(44, 44))`
-   - Line 1884: `ent = self.catalog.get_entity(int(eid))`
-   *Direct Observation*: Although `get_avatar_surface` contains internal `try...except (ValueError, TypeError)`, line 1881 calls `int(eid)` prior to passing the value into `get_avatar_surface`. If `eid` is a string that cannot be parsed as an integer (e.g. `"?"` or `"boss_bat"`), an uncaught `ValueError` crashes the renderer.
-
-5. **Crash Vector 4: `TypeError` in `PopupSceneManager.get_popups_by_distance()`**:
-   *Location*: `src/game/systems/popup_scene_manager.py` line 141-143:
+4. **Demonic Pact Choices**:
+   In `src/game/states/game_state.py` line 1803, 1818, 2164:
    ```python
-   for s in self._scenes:
-       if s.get("trigger_type") == "distance":
-           target_dist = s.get("distance", -9999)
-           if abs(distance - target_dist) <= tolerance:
-               matches.append(dict(s))
+   self.cinematic_narrative_overlay.activate(pact_event, self._on_pact_choice)
    ```
-   *Direct Observation*: If a scene has `"trigger_type": "distance"` but `"distance": null`, `s.get("distance", -9999)` returns `None`. The subtraction `distance - None` immediately raises:
+
+### 1.4 Controller Button Mapping Definitions in the Repository
+In `src/game/controls_manager.py`, lines 55–86:
+```python
+DEFAULT_JOYSTICK_BINDINGS: Dict[str, str] = {
+    "MOVE_LEFT": "AXIS_0_MINUS",
+    "MOVE_RIGHT": "AXIS_0_PLUS",
+    "JUMP": "BUTTON_0",
+    "ATTACK_THRUST": "BUTTON_3",
+    "ATTACK_SMASH": "BUTTON_1",
+    "ATTACK_POWER": "BUTTON_2",
+    "DEFEND": "BUTTON_7",
+    "ROLL": "BUTTON_4",
+    "DASH": "BUTTON_5",
+    "SPECIAL_ATTACK": "BUTTON_6",
+    "TRANSFORM": "BUTTON_8",
+}
+
+JOYSTICK_LABELS: Dict[str, str] = {
+    "BUTTON_0": "Button 0 (A / Cross)",
+    "BUTTON_1": "Button 1 (B / Circle)",
+    "BUTTON_2": "Button 2 (X / Square)",
+    "BUTTON_3": "Button 3 (Y / Triangle)",
+    "BUTTON_4": "Button 4 (L1 / LB)",
+    "BUTTON_5": "Button 5 (R1 / RB)",
+    "BUTTON_6": "Button 6 (L2 Trigger)",
+    "BUTTON_7": "Button 7 (R2 Trigger)",
+    "BUTTON_8": "Button 8 (Select / Share)",
+    "BUTTON_9": "Button 9 (Start / Options)",
+    "BUTTON_10": "Button 10 (L3 Stick Press)",
+    "BUTTON_11": "Button 11 (R3 Stick Press)",
+    "AXIS_0_MINUS": "Left Stick Left",
+    "AXIS_0_PLUS": "Left Stick Right",
+    "AXIS_1_MINUS": "Left Stick Up",
+    "AXIS_1_PLUS": "Left Stick Down",
+}
+```
+- In `src/game/systems/demon_time_system.py`, line 722:
+  `elif event.type == pg.JOYBUTTONDOWN and event.button in (0, 2):  # A or X`
+- This confirms that in SDL/Pygame:
+  - **Button Index 2**: Xbox controller **X** button (and PS Square button).
+  - **Button Index 0**: PlayStation controller **Cross ("X")** button (and Xbox A button).
+
+### 1.5 Secondary Cutscene and Dialogue Input Handlers
+Other dialogue and cutscene modules have partial gamepad handling that omits Button Index 2 (Xbox X):
+1. `src/game/systems/cutscene_manager.py`, lines 80–83:
    ```python
-   TypeError: unsupported operand type(s) for -: 'float' and 'NoneType'
+   cutscene_advance_pressed = (
+       (event.type == pg.KEYDOWN and event.key in (pg.K_RETURN, pg.K_SPACE, pg.K_e, pg.K_x)) or
+       (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6))
+   )
    ```
-
-6. **Crash Vector 5: Missing `headless: bool = False` Constructor Support**:
-   *Location*: `popup_controller.py` lines 509-528:
-   *Direct Observation*: Unlike `notification_editor.py` which accepts `NotificationEditorApp(headless=True)`, `PopupControllerApp.__init__()` takes no arguments and attempts `win = pg.Window.from_display_module(); win.maximize()`. In headless CI environments where no window manager or display server exists, this can fail unless dummy display driver is set and window maximize exceptions are caught.
-
----
-
-### 1.4 Game Runtime & Configuration Parity Discrepancies
-
-1. **Missing Pop-up Event Entries in `game_data/scene_popups_config.json`**:
-   Inspection of `src/game/states/game_state.py` revealed that `GameState` actively queries `self.popup_scene_manager.get_popup()` for the following three scene IDs, none of which exist in `game_data/scene_popups_config.json`:
-   - **`event_book_ponder`** (queried at `game_state.py:919` in `_show_ambient_lore` and at line 2127):
-     - GameState fallback title: `"The Grimoire Whispers"` / `"The Runner Wonders"`
-     - Fallback text: `"What does this demon want with me...?"`
-     - Fallback icon: `"assets/graphics/magic_book_single/magic_book.png"`
-     - Fallback hold: `8.5`
-     - Fallback theme: `"grimoire_leather"`
-   - **`event_first_encounter`** (queried at `game_state.py:1840`):
-     - Fallback title: `"First Encounter"`
-     - Fallback theme: `"blood_bone"`
-   - **`event_forest_inquiry_1400m`** (queried at `game_state.py:1677`):
-     - Fallback distance: `1400.0`
-     - Fallback title: `"The Runner Questions"`
-     - Fallback text: `"What in God's name is this forest...?"`
-     - Fallback theme: `"clean_minimalist"`
-     - Fallback icon: `"assets/graphics/UI/PNG/Exclamation_Yellow.png"`
-     - Fallback hold: `6.0`
-
-2. **Narrative Text Copy-Paste Bug in `event_prologue_awakening`**:
-   *Location*: `game_data/scene_popups_config.json` lines 6-17:
-   ```json
-   {
-     "id": "event_prologue_awakening",
-     "trigger_type": "distance",
-     "distance": 0,
-     "entity_id": null,
-     "flag": null,
-     "title": "The Fabricator's Enforcer",
-     "text": "Clanking gears of malice screech in the dark. The final sentinel awakens to crush your escape.",
-     "theme": "gothic_gold",
-     "icon": "assets/MAGE ICONS BIG PACk (by Batareya)/48.png",
-     "hold": 15.0,
-     "enabled": true,
-     "description": "Prologue intro at game start"
-   }
+   Button 2 is **missing**.
+2. `src/game/ui/objective_display.py`, lines 152–155:
+   ```python
+   is_trigger = (
+       (event.type == pg.KEYDOWN and event.key in (pg.K_SPACE, pg.K_RETURN, pg.K_x))
+       or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 6))
+   )
    ```
-   *Direct Observation*: The title and text are an exact duplicate of `event_fabricators_enforcer` (Entity 3 @ 34,500m), whereas the prologue awakening narrative in `game_state.py:969-973` expects:
-   - Title: `"The Awakening"`
-   - Text: `"The catacombs stir. Death has not taken you, but the dark beckons. Advance through the gloom."`
-   - Icon: `"assets/graphics/UI/PNG/Exclamation_Yellow.png"`
-   - Hold: `6.0`
-   - Theme: `"gothic_gold"`
-
-3. **Entity Distance Misalignment with `game_data/level_1.json`**:
-   - In `game_data/level_1.json` line 560-565:
-     ```json
-     {
-         "id": 10,
-         "distance": 1013,
-         "type": "npc",
-         "params": {
-             "title": "The Sealed Book"
-         }
-     }
-     ```
-   - In `game_data/scene_popups_config.json` lines 20-24:
-     ```json
-     {
-       "id": "event_sealed_book_encounter",
-       "trigger_type": "entity",
-       "distance": 650,
-       "entity_id": 10
-     }
-     ```
-   *Direct Observation*: The Sealed Book entity in `level_1.json` is at distance `1013`, but `scene_popups_config.json` lists its distance as `650`.
-
-4. **Invalid Default Level Pointer**:
-   *Location*: `game_data/.level_default.json` line 1:
-   ```json
-   {"last_level": "game_data/level_2.json"}
+   Button 2 is **missing**.
+3. `src/game/states/story_state.py`, lines 168–171:
+   ```python
+   advance_pressed = (
+       (event.type == pg.KEYDOWN and event.key in (pg.K_RETURN, pg.K_SPACE, pg.K_e, pg.K_x))
+       or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6, 7))
+   )
    ```
-   *Direct Observation*: `find_by_name` for `level_2.json` across the entire workspace returned 0 results. Level 2 does not exist in the repository; the file must point to an existing level such as `"game_data/level_1.json"`.
-
-5. **Silenced Systems Verification**:
-   - `src/game/systems/whisperer_system.py:44`: `ENABLED: bool = False` (verified silenced).
-   - `src/game/states/game_state.py:1476`: `# self._update_boss_combat_taunts(dt)` (verified commented out / silenced).
-   - `src/game/ui/hud_overlay.py:50-54`: `objective_display` is never updated or drawn in `HUDOverlay.update()` or `HUDOverlay.draw()` (verified inactive).
+   Button 2 is **missing**.
+4. `src/game/states/ending_state.py`, lines 138–141:
+   ```python
+   skip = (
+       (event.type == pg.KEYDOWN and event.key in (pg.K_SPACE, pg.K_RETURN))
+       or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6, 7))
+   )
+   ```
+   Button 2 is **missing**.
+5. `src/game/states/relic_reveal_state.py`, lines 207–209:
+   ```python
+   if event.type in (pg.KEYDOWN, pg.MOUSEBUTTONDOWN, pg.JOYBUTTONDOWN):
+       self.dismiss()
+       return True
+   ```
+   This overlay correctly accepts any `pg.JOYBUTTONDOWN` event.
 
 ---
 
 ## 2. Logic Chain
 
-1. **Premise**: In-game notifications must trigger reliably across gameplay without fallback degradation or missing content.
-   - *Evidence*: `GameState` at lines 919, 1677, 1840 queries `PopupSceneManager` for `event_book_ponder`, `event_forest_inquiry_1400m`, and `event_first_encounter`.
-   - *Observation*: `game_data/scene_popups_config.json` contains none of these three keys.
-   - *Inference*: When a player triggers these milestones, `PopupSceneManager` returns `None`. Although `GameState` has hardcoded inline fallbacks, the data-driven architecture is bypassed, and the player cannot configure these messages via `popup_controller.py`.
-
-2. **Premise**: `popup_controller.py` must load, display, edit, and save all notifications without throwing runtime exceptions.
-   - *Evidence*: In `popup_controller.py` lines 551, 1061, 1094, `s.get("distance", 0)` is wrapped directly with `float(...)`. In lines 1749, 1912, 1914, `dist` is wrapped with `float(...)`.
-   - *Observation*: If a scene has `"distance": null` or is added with `None`, `s.get("distance", 0)` returns `None`. In Python, `float(None)` raises `TypeError`.
-   - *Inference*: Loading or sorting any configuration with null distances crashes `popup_controller.py`. A safe helper `float(s.get("distance") or 0.0)` is strictly necessary.
-
-3. **Premise**: Config saves across all plugins must maintain CIA integrity (atomic transactional write, fsync, non-empty rolling backups, disk re-read and key preservation).
-   - *Evidence*: `src/game/utils/atomic_save.py` provides `atomic_write_json` and `atomic_merge_json` with rolling backup pruning (max 5).
-   - *Observation*:
-     - `level_editor.py` (lines 2455-2458) and `wave_editor.py` (lines 259-262) write to `.tmp_<pid>` without calling `atomic_save.py`, without fsync, and without generating rolling backups.
-     - `boss_editor.py` (lines 1002, 1015) uses direct `open("w")` for boss and minion configs, and accumulates unpruned backups with `shutil.copy2`.
-     - `player_editor.py` (lines 1097-1104) writes to `.tmp` without fsync, accumulates unpruned backups, and drops external keys.
-     - `PopupSceneManager.save_config()` writes an explicit 3-key payload (`version`, `description`, `scenes`) without merging fresh disk content, dropping custom top-level fields.
-   - *Inference*: These five editors violate the project's CIA commit integrity invariants. Integrating `atomic_save.py` (`atomic_merge_json` or `atomic_write_json`) across all of them will eliminate partial-write vulnerabilities and backup proliferation.
-
-4. **Premise**: Entity links in `scene_popups_config.json` must be mathematically aligned with entity placement in `level_1.json`.
-   - *Evidence*: `game_data/level_1.json:561` places Entity 10 at distance `1013`. `game_data/scene_popups_config.json:22` places Entity 10 at distance `650`.
-   - *Inference*: When a player approaches Entity 10 at 1013m, a distance mismatch could lead to premature or delayed triggering. Updating `scene_popups_config.json` distance to `1013` restores 100% parity.
+1. **Premise 1**: All monster and boss narrative encounters (including Green Monster pre-fight dialogue, Blood Zombie confrontation, Book Opening Ritual, and Demonic Pact) use `CinematicNarrativeOverlay` to display dialogue text and options on screen (see Observation 1.3).
+2. **Premise 2**: In `GameState.handle_event`, any incoming user event while `cinematic_narrative_overlay.is_active == True` is passed directly to `cinematic_narrative_overlay.handle_event(event)` (see Observation 1.2).
+3. **Premise 3**: `cinematic_narrative_overlay.handle_event(event)` only inspects `pg.KEYDOWN` and `pg.MOUSEBUTTONDOWN`. It contains no branch for `pg.JOYBUTTONDOWN` and therefore returns `False` for any controller button event (see Observation 1.1).
+4. **Premise 4**: Because `cinematic_narrative_overlay.handle_event(event)` returns `False`, `GameState.handle_event` falls through to later systems (Demon Time Void Strike, CutsceneManager, etc.), failing to dismiss or advance the narrative dialogue (see Observation 1.2).
+5. **Premise 5**: On PC gamepads in SDL/Pygame, physical "X" button inputs generate `event.button = 2` on Xbox controllers and `event.button = 0` on PlayStation controllers (see Observation 1.4).
+6. **Premise 6**: Adding `pg.JOYBUTTONDOWN` handling in `CinematicNarrativeOverlay.handle_event` for `event.button in (0, 2)` directly selects Option 1 (`_select_option(1)`), invoking `deactivate()` and executing the callback, matching the exact behavior of pressing `pg.K_SPACE`.
+7. **Premise 7**: Secondary cutscene and dialogue modules (`cutscene_manager.py`, `objective_display.py`, `story_state.py`, `ending_state.py`) already check `button in (0, ...)` but currently omit `button 2`. Adding button index 2 to these tuples establishes 100% controller parity across the entire game (see Observation 1.5).
 
 ---
 
 ## 3. Caveats
 
-1. **Read-Only Investigation**: As an explorer agent, no source code, configuration, or test files were modified during this investigation. All findings represent current repository state as of 2026-10-28.
-2. **Subprocess/Sandbox Execution**: Terminal execution of custom python scripts was restricted by workspace sandbox policy; all code inspections and line audits were conducted via direct filesystem viewing and ripgrep tooling.
-3. **External Dependencies**: Audio generation in `voiceover_editor.py` relies on an optional `tools/chatterbox-venv` environment. Lack of Chatterbox does not affect data integrity or JSON schema parity.
-4. **No other caveats**: The findings above are exhaustive and directly verified against the repository source.
+- **No Caveats**: The investigation surveyed all event handlers, state machine states, and overlay components in the codebase.
+- **Hardware-Agnostic Note**: Gamepad input in Pygame relies on the standard SDL gamepad mapping. Under SDL2/Pygame-CE:
+  - Xbox Controller: Button 0 = A, Button 1 = B, Button 2 = X, Button 3 = Y.
+  - PlayStation Controller: Button 0 = Cross (physically marked 'X'), Button 1 = Circle, Button 2 = Square, Button 3 = Triangle.
+  Supporting both button index 0 and button index 2 guarantees that pressing the button labeled "X" works regardless of whether the player is using an Xbox or PlayStation controller.
 
 ---
 
-## 4. Conclusion
+## 4. Conclusion & Concrete Implementation Plan
 
-1. **Pop-up Runtime & Config Discrepancies**:
-   - `game_data/scene_popups_config.json` is missing 3 canonical events (`event_book_ponder`, `event_first_encounter`, `event_forest_inquiry_1400m`).
-   - `event_prologue_awakening` contains erroneous text copy-pasted from `event_fabricators_enforcer` and must be updated to prologue awakening text.
-   - `event_sealed_book_encounter` distance must be corrected from `650` to `1013` to match Entity 10 in `game_data/level_1.json`.
-   - `game_data/.level_default.json` must be updated from nonexistent `"game_data/level_2.json"` to `"game_data/level_1.json"`.
-   - Silenced systems (`WhispererSystem.ENABLED = False`, commented-out boss combat taunts, inactive `ObjectiveDisplay`) are verified disabled and must remain untouched.
+### 4.1 Root Cause Assessment
+Controller buttons fail to advance/skip narrative dialogues because `CinematicNarrativeOverlay.handle_event` completely ignores `pg.JOYBUTTONDOWN`. Furthermore, secondary dialogue handlers in `cutscene_manager.py` and `objective_display.py` handle button 0 (PS Cross) but omit button 2 (Xbox X).
 
-2. **`popup_controller.py` & `PopupSceneManager` Hardening**:
-   - Fix 5 crash vectors regarding `float(None)`, unhandled `int(eid)`, and `distance - None`.
-   - In `PopupSceneManager.save_config()`, preserve unowned top-level fields by reading fresh disk state and updating rather than replacing the dict.
-   - Add `headless: bool = False` support to `PopupControllerApp.__init__()` to enable seamless automated testing in CI.
+### 4.2 Concrete Implementation Plan
 
-3. **Multi-Editor Atomic Save Harmonization**:
-   - Update `boss_editor.py` (`confirm_save_config`), `level_editor.py` (`commit`), `wave_editor.py` (`commit` and `simulate`), and `player_editor.py` (`request_save_config`) to use `src/game/utils/atomic_save.py` (`atomic_merge_json` or `atomic_write_json`).
-   - Replace unpruned `shutil.copy2` backup logic with `create_validated_backup` and `prune_backups`.
+#### Target 1: `src/game/ui/cinematic_narrative_overlay.py`
+In `handle_event(self, event: pg.event.Event) -> bool` (insert after line 176):
+```python
+        elif event.type == pg.JOYBUTTONDOWN:
+            # Gamepad button index 2 (Xbox X) and index 0 (PlayStation Cross/X) advance/skip narrative dialogue
+            if event.button in (0, 2):
+                self._select_option(1)
+                return True
+            elif event.button in (1, 3) and "option_2_label" in self._current_event:
+                # Button index 1 (B / Circle) or index 3 (Y / Triangle) selects option 2 if present
+                self._select_option(2)
+                return True
+            elif "option_2_label" not in self._current_event and event.button in (1, 6, 7):
+                # In single-option monologues / barks, any common face button advances
+                self._select_option(1)
+                return True
+```
+*Benefits*:
+- Button index 2 (Xbox X) and Button index 0 (PlayStation Cross/X) immediately advance/skip narrative dialogue.
+- Option 1 is selected for single-option monologues/barks (such as Green Monster, Blood Zombie, Book Ritual).
+- In dual-choice prompts (Demonic Pact), button 0/2 selects Option 1 ("Embrace"), and button 1/3 selects Option 2 ("Reject").
+- Existing keyboard `SPACE`, `RETURN`, `1`, `2`, `ESCAPE` and mouse click handling remain completely untouched.
+- Returning `True` prevents the event from leaking into gameplay systems (e.g. Demon Time Void Strike).
+
+#### Target 2: `src/game/systems/cutscene_manager.py`
+In `handle_advance_input(self, event: pg.event.Event) -> bool` at line 82:
+```python
+# Before:
+(event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6))
+
+# After:
+(event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 2, 6))
+```
+
+#### Target 3: `src/game/ui/objective_display.py`
+In `handle_event(self, event: pg.event.Event) -> bool` at line 154:
+```python
+# Before:
+or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 6))
+
+# After:
+or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 2, 6))
+```
+
+#### Target 4: `src/game/states/story_state.py` and `ending_state.py`
+Add button index 2 to `advance_pressed` and `skip` in `story_state.py` (line 170) and `ending_state.py` (line 140):
+```python
+# After:
+(event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 2, 6, 7))
+```
 
 ---
 
 ## 5. Verification Method
 
-To independently verify these findings, perform the following steps:
+### 5.1 Programmatic Unit Tests to Add
+Add the following tests to `tests/test_cinematic_narrative_overlay.py`:
 
-1. **Inspect Missing Pop-up Event Keys**:
-   - Check `game_data/scene_popups_config.json` for `"event_book_ponder"`, `"event_first_encounter"`, `"event_forest_inquiry_1400m"`. Note that none exist.
-   - View `src/game/states/game_state.py` lines 919, 1677, 1840 to confirm `get_popup()` lookups for these exact event IDs.
+```python
+def test_cinematic_narrative_overlay_controller_xbox_x_skip():
+    """Verify gamepad button index 2 (Xbox X) advances and skips narrative dialogue."""
+    overlay = CinematicNarrativeOverlay()
+    callback_mock = MagicMock()
+    evt = {
+        "speaker_name": "Green Monster",
+        "dialogue_text": "You should not have come this far.",
+        "option_1_label": "[SPACE] Continue",
+        "option_1_buff": {"close_overlay_only": True}
+    }
+    overlay.activate(evt, callback_mock)
+    assert overlay.is_active
 
-2. **Inspect Entity 10 Coordinate Parity**:
-   - View `game_data/level_1.json` line 560-565 (distance is `1013`).
-   - View `game_data/scene_popups_config.json` lines 20-25 (distance is `650`).
+    # Simulate Xbox X button press (button=2)
+    joy_event = pg.event.Event(pg.JOYBUTTONDOWN, button=2)
+    handled = overlay.handle_event(joy_event)
 
-3. **Inspect Non-Atomic Saves in Editors**:
-   - View `boss_editor.py` lines 1001-1004 (direct `with open(config_path, "w")`).
-   - View `level_editor.py` lines 2455-2458 (custom `.tmp_<pid>` without fsync or rolling backup).
-   - View `wave_editor.py` lines 347-353 (`simulate()` direct write to `level_file`).
-   - View `player_editor.py` lines 1097-1104 (custom `.tmp` without fsync).
+    assert handled is True
+    assert overlay.is_active is False
+    callback_mock.assert_called_once_with({"close_overlay_only": True})
 
-4. **Verify Existing Integrity Test Pass Rate**:
-   - Run the project test suite:
-     ```bash
-     PYTHONPATH=. pytest tests/test_all_plugins_cia_integrity.py tests/test_plugin_commit_integrity.py tests/test_popup_scene_manager.py tests/test_popup_controller.py
-     ```
+
+def test_cinematic_narrative_overlay_controller_ps_cross_skip():
+    """Verify gamepad button index 0 (PlayStation Cross/X) advances and skips narrative dialogue."""
+    overlay = CinematicNarrativeOverlay()
+    callback_mock = MagicMock()
+    evt = {
+        "speaker_name": "Blood Zombie",
+        "dialogue_text": "You shall die!!",
+        "option_1_label": "[SPACE] Draw Blade",
+        "option_1_buff": {"start_blood_zombie_combat": True}
+    }
+    overlay.activate(evt, callback_mock)
+    assert overlay.is_active
+
+    # Simulate PlayStation Cross / X button press (button=0)
+    joy_event = pg.event.Event(pg.JOYBUTTONDOWN, button=0)
+    handled = overlay.handle_event(joy_event)
+
+    assert handled is True
+    assert overlay.is_active is False
+    callback_mock.assert_called_once_with({"start_blood_zombie_combat": True})
+
+
+def test_cinematic_narrative_overlay_space_key_remains_functional():
+    """Verify existing keyboard SPACE key continues to advance and skip narrative dialogue."""
+    overlay = CinematicNarrativeOverlay()
+    callback_mock = MagicMock()
+    evt = {
+        "speaker_name": "Ancient Grimoire",
+        "dialogue_text": "A vessel bound in iron...",
+        "option_1_label": "[SPACE] Continue",
+        "option_1_buff": {"ritual_done": True}
+    }
+    overlay.activate(evt, callback_mock)
+    assert overlay.is_active
+
+    # Simulate keyboard SPACE key press
+    key_event = pg.event.Event(pg.KEYDOWN, key=pg.K_SPACE)
+    handled = overlay.handle_event(key_event)
+
+    assert handled is True
+    assert overlay.is_active is False
+    callback_mock.assert_called_once_with({"ritual_done": True})
+
+
+def test_cinematic_narrative_overlay_dual_choice_gamepad_selection():
+    """Verify gamepad buttons map cleanly to dual choices [1] and [2]."""
+    overlay = CinematicNarrativeOverlay()
+    callback_mock = MagicMock()
+    evt = {
+        "speaker_name": "Andras",
+        "dialogue_text": "Embrace the void or reject it.",
+        "option_1_label": "[1] Embrace",
+        "option_1_buff": {"choice": 1},
+        "option_2_label": "[2] Reject",
+        "option_2_buff": {"choice": 2}
+    }
+    # Test choice 1 via button 2 (Xbox X)
+    overlay.activate(evt, callback_mock)
+    handled = overlay.handle_event(pg.event.Event(pg.JOYBUTTONDOWN, button=2))
+    assert handled is True
+    assert not overlay.is_active
+    callback_mock.assert_called_with({"choice": 1})
+
+    # Test choice 2 via button 1 (B / Circle)
+    callback_mock.reset_mock()
+    overlay.activate(evt, callback_mock)
+    handled = overlay.handle_event(pg.event.Event(pg.JOYBUTTONDOWN, button=1))
+    assert handled is True
+    assert not overlay.is_active
+    callback_mock.assert_called_with({"choice": 2})
+```
+
+### 5.2 Verification Commands
+Run the full test suite to guarantee 100% pass rate and zero regressions:
+```bash
+pytest tests/test_cinematic_narrative_overlay.py
+pytest tests/
+```
+All tests must pass with 0 regressions.
