@@ -10,6 +10,9 @@ from threading import Timer
 
 # Ensure directories are in sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SIBLING_ENGINE = os.path.join(os.path.dirname(BASE_DIR), "V3X-Zulfiqar-Gideon")
+if os.path.exists(SIBLING_ENGINE):
+    sys.path.insert(0, SIBLING_ENGINE)
 sys.path.insert(0, "/home/chosen333/Software/V3X-Zulfiqar-Gideon")
 sys.path.insert(0, BASE_DIR)
 
@@ -685,9 +688,9 @@ HTML_CONTENT = """<!DOCTYPE html>
             background: #0f172a;
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            width: 760px;
-            max-width: 95%;
-            max-height: 88vh;
+            width: 980px;
+            max-width: 96%;
+            max-height: 90vh;
             display: flex;
             flex-direction: column;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
@@ -905,6 +908,96 @@ HTML_CONTENT = """<!DOCTYPE html>
             color: #000;
             font-weight: 800;
         }
+
+        /* Sound Director & Bending Studio Styles */
+        .pill-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            align-items: center;
+        }
+        .filter-pill {
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.73rem;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+        .filter-pill:hover {
+            border-color: rgba(255,255,255,0.28);
+            color: var(--text-primary);
+        }
+        .filter-pill.active {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: var(--accent-cyan);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(6,182,212,0.25);
+        }
+        .emotion-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            background: rgba(139, 92, 246, 0.16);
+            color: #ddd6fe;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .env-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.14);
+            color: #a7f3d0;
+            border: 1px solid rgba(16, 185, 129, 0.28);
+        }
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.1rem 0.45rem;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            background: rgba(6, 182, 212, 0.15);
+            color: #67e8f9;
+        }
+        .dsp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.75rem;
+        }
+        .dsp-card {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 8px;
+            padding: 0.75rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .dsp-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+        .dsp-card-hint {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
     </style>
 </head>
 <body>
@@ -912,10 +1005,11 @@ HTML_CONTENT = """<!DOCTYPE html>
 
     <header>
         <div class="header-title-container">
-            <h1>RUNNER: AUDIO MIXER & SFX EDITOR</h1>
-            <p>Modify and preview character frame-by-frame triggers and volumes</p>
+            <h1>GUARDIAN RUNNER: AUDIO MIXER & SOUND DIRECTOR</h1>
+            <p>Browse by emotion & scene, bend sounds in real time, and lock frame-by-frame triggers</p>
         </div>
         <div class="header-actions">
+            <button class="btn" style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: #fff; font-weight: 700; border: none; padding: 0.45rem 0.95rem;" onclick="openSoundBendingStudio()">🎛️ Sound Director & Bending Studio</button>
             <div id="lock-status" class="lock-badge valid">
                 <span class="badge-dot"></span>
                 <span id="lock-text">LOCKED & SECURED</span>
@@ -1148,9 +1242,28 @@ HTML_CONTENT = """<!DOCTYPE html>
                         <img id="modal-frame-img" class="frame-preview-img" src="" alt="Frame Preview" onerror="this.parentElement.style.display='none';" />
                     </div>
                 </div>
+                <!-- Scene Context Auditioner Bar (Hear sounds inside an active environment bed) -->
+                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(139, 92, 246, 0.08)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 0.65rem 0.9rem; display: flex; flex-direction: column; gap: 0.45rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.78rem; font-weight: 800; color: #34d399;">🌲 SCENE CONTEXT AUDITIONER:</span>
+                            <select id="scene-recipe-select" class="form-input" style="font-size: 0.78rem; padding: 0.25rem 0.5rem; min-width: 280px;" onchange="onSelectSceneRecipe(this.value)">
+                                <option value="">-- Pick a Scene Mood to Test Sounds Over --</option>
+                            </select>
+                            <button id="btn-scene-bed-toggle" class="btn btn-secondary" style="padding: 0.28rem 0.7rem; font-size: 0.75rem; font-weight: 700;" onclick="toggleSceneContextBed()">▶ Start Scene Bed</button>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.72rem; color: var(--text-secondary);">
+                            <label style="display: flex; align-items: center; gap: 0.3rem;">Bed Vol <input type="range" id="scene-bed-vol" min="0" max="1" step="0.05" value="0.35" style="width: 65px;" oninput="updateSceneContextVolumes()"></label>
+                            <label style="display: flex; align-items: center; gap: 0.3rem;">Music Vol <input type="range" id="scene-music-vol" min="0" max="1" step="0.05" value="0.25" style="width: 65px;" oninput="updateSceneContextVolumes()"></label>
+                        </div>
+                    </div>
+                    <div id="scene-recipe-desc" style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.35; display: none;"></div>
+                </div>
+
                 <div class="tabs-header">
                     <button class="tab-link active" onclick="switchTab(event, 'tab-registered')">Registered Sounds</button>
-                    <button class="tab-link" onclick="switchTab(event, 'tab-raw')">Browse Audio Assets</button>
+                    <button class="tab-link" onclick="switchTab(event, 'tab-raw')">🧭 Browse by Emotion & Scene</button>
+                    <button class="tab-link" onclick="switchTab(event, 'tab-bend')">🎛️ Sound Bending & Layer Studio</button>
                 </div>
 
                 <!-- Tab 1: Registered Sounds -->
@@ -1161,23 +1274,42 @@ HTML_CONTENT = """<!DOCTYPE html>
                     </div>
                 </div>
 
-                <!-- Tab 2: Raw Audio Assets -->
+                <!-- Tab 2: Raw Audio Assets (Upgraded with Emotion, Environment & Role Filters) -->
                 <div id="tab-raw" class="tab-content">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; align-items: center;">
-                        <select id="raw-folder-select" class="form-input" style="flex: 1; min-width: 130px; font-size: 0.8rem;" onchange="filterRawAssets()">
-                            <option value="">All Folders</option>
-                        </select>
-                        <input type="text" id="raw-sound-search" class="search-box" style="flex: 1.5; margin-bottom: 0;" placeholder="Search audio filename or path..." oninput="filterRawAssets()">
+                    <div style="display: flex; flex-direction: column; gap: 0.45rem; background: rgba(0,0,0,0.28); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem;">
+                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #c084fc; min-width: 72px;">🎭 Feeling:</span>
+                            <div id="emotion-pills-bar" class="pill-bar"></div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #34d399; min-width: 72px;">🗺️ Scene:</span>
+                            <div id="env-pills-bar" class="pill-bar"></div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: 0.2rem;">
+                            <select id="raw-role-select" class="form-input" style="min-width: 150px; font-size: 0.78rem; padding: 0.35rem 0.5rem;" onchange="filterRawAssets()">
+                                <option value="">All Sound Roles</option>
+                            </select>
+                            <select id="raw-folder-select" class="form-input" style="flex: 1; min-width: 130px; font-size: 0.78rem; padding: 0.35rem 0.5rem;" onchange="filterRawAssets()">
+                                <option value="">All Folders</option>
+                            </select>
+                            <input type="text" id="raw-sound-search" class="search-box" style="flex: 1.5; margin-bottom: 0; font-size: 0.8rem; padding: 0.38rem 0.65rem;" placeholder="Search by feeling, title, or filename (e.g. scythe, damp dirt, dread, bell)..." oninput="filterRawAssets()">
+                            <label style="font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem; cursor: pointer; white-space: nowrap;">
+                                <input type="checkbox" id="hide-dup-formats" checked onchange="filterRawAssets()"> Hide duplicate OGG/WAV
+                            </label>
+                        </div>
                     </div>
-                    <div id="raw-asset-count" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.4rem; font-weight: 500;"></div>
-                    <div id="raw-assets-list" class="track-mixer-list" style="min-height: 200px; max-height: 260px; overflow-y: auto; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem;">
+                    <div id="raw-asset-count" style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.2rem; font-weight: 500;"></div>
+                    <div id="raw-assets-list" class="track-mixer-list" style="min-height: 220px; max-height: 290px; overflow-y: auto; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem;">
                         <!-- Dynamic -->
                     </div>
 
-                    <div class="register-form" style="margin-top: 0.8rem;">
-                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 0.2rem; display: flex; align-items: center; justify-content: space-between;">
-                            <span>Register Selected File as Sound ID</span>
-                            <span id="register-status-badge" style="font-size: 0.75rem; color: var(--accent-green); display: none;">✓ Registered!</span>
+                    <div class="register-form" style="margin-top: 0.5rem;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-cyan); margin-bottom: 0.2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem;">
+                            <span>Register Selected File or Send to Bending Studio</span>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <span id="register-status-badge" style="font-size: 0.75rem; color: var(--accent-green); display: none;">✓ Registered!</span>
+                                <button class="btn" style="background: rgba(139, 92, 246, 0.22); border: 1px solid #8b5cf6; color: #ddd6fe; padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 700;" onclick="sendSelectedToBender()">🎛️ Open in Sound Bender</button>
+                            </div>
                         </div>
                         <div class="form-row">
                             <label>Selected Asset Path:</label>
@@ -1194,6 +1326,158 @@ HTML_CONTENT = """<!DOCTYPE html>
                         <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.4rem;">
                             <button class="btn btn-secondary" onclick="registerOnlyAsset()" style="padding: 0.4rem 0.9rem;">Register Only</button>
                             <button id="btn-register-assign" class="btn btn-primary" onclick="registerAndAssignAsset()" style="padding: 0.4rem 0.9rem;">Register & Assign</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Sound Bending & Layer Studio -->
+                <div id="tab-bend" class="tab-content">
+                    <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 0.75rem 0.9rem; display: flex; flex-direction: column; gap: 0.55rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <div style="font-size: 0.9rem; font-weight: 800; color: #e9d5ff;">🎛️ Real-Time Sound Bender & Multi-Layer Baker</div>
+                                <div style="font-size: 0.74rem; color: var(--text-secondary);">Shape pitch/weight, roll off harsh treble to ground sounds in damp soil/fog, add space reverb, and stack layers.</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                <span style="font-size: 0.74rem; font-weight: 700; color: #67e8f9;">One-Click Mood Preset:</span>
+                                <select id="bend-preset-select" class="form-input" style="font-size: 0.78rem; padding: 0.3rem 0.55rem;" onchange="applyBendPreset(this.value)">
+                                    <option value="neutral">Raw / Unbent (Original)</option>
+                                    <option value="grounded_forest_step">🥾 Grounded Damp Forest Step (-1.5st, Warm Soil)</option>
+                                    <option value="heavy_scythe_weight">⚔️ Cursed Scythe Massive Weight (-4st, Grit)</option>
+                                    <option value="brutal_bone_impact">🩸 Visceral Bone-Crushing Impact (-2.5st, Hard Drive)</option>
+                                    <option value="distant_fog_omen">🌫️ Distant Through-the-Fog Omen (-3st, 950Hz LP + Forest)</option>
+                                    <option value="catacomb_echo">🏛️ Cold Stone Catacomb Echo (-1st, Cavern Reverb)</option>
+                                    <option value="abyssal_demonic_pact">👁️ Abyssal Void & Andras Pact (-6st, Deep Void Tail)</option>
+                                    <option value="crisp_ethereal_relic">✨ Sacred Star-Fire Shimmer (+3st, Airy Shimmer)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 1.6; min-width: 220px;">
+                                <label style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-bottom: 0.2rem;">Primary Source Sound File:</label>
+                                <input type="text" id="bend-source-path" class="form-input" list="raw-assets-datalist" placeholder="Select or type any audio path in assets/..." style="width: 100%; font-size: 0.8rem; padding: 0.38rem 0.6rem;" oninput="onBendSourceChange(this.value)">
+                            </div>
+                            <div style="flex: 1; min-width: 160px;">
+                                <label style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-bottom: 0.2rem;">Output Bent Sound Key / Alias:</label>
+                                <input type="text" id="bend-output-alias" class="form-input" placeholder="e.g. heavy_scythe_slash_1" style="width: 100%; font-size: 0.8rem; padding: 0.38rem 0.6rem;">
+                            </div>
+                        </div>
+
+                        <div id="bend-source-feeling-box" style="background: rgba(0,0,0,0.35); border-left: 3px solid var(--accent-cyan); padding: 0.45rem 0.7rem; border-radius: 4px; font-size: 0.74rem; color: #e2e8f0; display: none;"></div>
+                    </div>
+
+                    <!-- 6 DSP Controls Grid -->
+                    <div class="dsp-grid">
+                        <!-- 1. Pitch / Weight -->
+                        <div class="dsp-card">
+                            <div class="dsp-card-header">
+                                <span>1. Pitch & Physical Size</span>
+                                <span id="bend-pitch-val" style="color: var(--accent-cyan);">0.0 st</span>
+                            </div>
+                            <input type="range" id="bend-pitch" class="slider" min="-12" max="12" step="0.5" value="0" oninput="updateBendReadouts()">
+                            <div class="dsp-card-hint"><b>Left (-st):</b> Heavier, larger, slower, more ominous.<br><b>Right (+st):</b> Smaller, faster, sharper, crystalline.</div>
+                        </div>
+
+                        <!-- 2. Warmth / Distance Low-Pass -->
+                        <div class="dsp-card">
+                            <div class="dsp-card-header">
+                                <span>2. Warmth / Distance (Low-Pass)</span>
+                                <span id="bend-lp-val" style="color: #34d399;">20000 Hz</span>
+                            </div>
+                            <input type="range" id="bend-lp" class="slider" min="250" max="20000" step="50" value="20000" oninput="updateBendReadouts()">
+                            <div class="dsp-card-hint"><b>2200–3000 Hz:</b> Grounds footsteps in damp dirt.<br><b>700–1100 Hz:</b> Sounds far away through trees & fog.</div>
+                        </div>
+
+                        <!-- 3. Grit / Visceral Drive -->
+                        <div class="dsp-card">
+                            <div class="dsp-card-header">
+                                <span>3. Visceral Grit / Drive</span>
+                                <span id="bend-drive-val" style="color: #f87171;">0%</span>
+                            </div>
+                            <input type="range" id="bend-drive" class="slider" min="0" max="1" step="0.02" value="0" oninput="updateBendReadouts()">
+                            <div class="dsp-card-hint">Adds harmonic saturation punch so blade hits, bone snaps, and roars cut through combat music.</div>
+                        </div>
+
+                        <!-- 4. Environment Space (Reverb) -->
+                        <div class="dsp-card">
+                            <div class="dsp-card-header">
+                                <span>4. Environment Space (Reverb)</span>
+                                <span id="bend-reverb-val" style="color: #c084fc;">0% (Dry)</span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <select id="bend-reverb-space" class="form-input" style="font-size: 0.75rem; padding: 0.25rem 0.4rem; flex: 1;" onchange="updateBendReadouts()">
+                                    <option value="dry">Dry (Close / Intimate)</option>
+                                    <option value="forest">🌲 Forest Canopy</option>
+                                    <option value="cavern">🏛️ Stone Catacomb</option>
+                                    <option value="void">👁️ Abyssal Void</option>
+                                </select>
+                                <input type="range" id="bend-reverb-mix" class="slider" style="flex: 1;" min="0" max="0.8" step="0.02" value="0" oninput="updateBendReadouts()">
+                            </div>
+                            <div class="dsp-card-hint">Places the sound acoustically inside the forest, stone shrine, or demonic void.</div>
+                        </div>
+
+                        <!-- 5. Mud-Cut High-Pass & Gain -->
+                        <div class="dsp-card">
+                            <div class="dsp-card-header">
+                                <span>5. Low Mud-Cut & Output Gain</span>
+                                <span id="bend-hp-gain-val" style="color: #fbbf24;">20 Hz | 100%</span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <span style="font-size: 0.68rem; color: var(--text-secondary);">HP:</span>
+                                <input type="range" id="bend-hp" class="slider" min="20" max="1500" step="10" value="20" oninput="updateBendReadouts()">
+                                <span style="font-size: 0.68rem; color: var(--text-secondary);">Vol:</span>
+                                <input type="range" id="bend-gain" class="slider" min="0.2" max="1.8" step="0.05" value="1.0" oninput="updateBendReadouts()">
+                            </div>
+                            <div class="dsp-card-hint">Raise HP (150–300 Hz) to clean booming mud from UI/magic; raise Vol to boost quiet foley.</div>
+                        </div>
+
+                        <!-- 6. Envelope Fade In / Fade Out -->
+                        <div class="dsp-card">
+                            <div class="dsp-card-header">
+                                <span>6. Attack & Decay Envelope</span>
+                                <span id="bend-env-val" style="color: #93c5fd;">In 0ms | Out 15ms</span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <span style="font-size: 0.68rem; color: var(--text-secondary);">In:</span>
+                                <input type="range" id="bend-fade-in" class="slider" min="0" max="300" step="5" value="0" oninput="updateBendReadouts()">
+                                <span style="font-size: 0.68rem; color: var(--text-secondary);">Out:</span>
+                                <input type="range" id="bend-fade-out" class="slider" min="5" max="600" step="5" value="15" oninput="updateBendReadouts()">
+                            </div>
+                            <div class="dsp-card-hint">Soften harsh starts (Fade In) or tighten lingering tails (Fade Out).</div>
+                        </div>
+                    </div>
+
+                    <!-- Optional 2nd Sound Layer Stacker -->
+                    <div style="background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 8px; padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.45rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.8rem; font-weight: 700; color: #67e8f9;">🔗 Layer 2 Stacker (Optional — Combine e.g. Step + Chain Clink, or Scythe Whoosh + Bone Crack)</span>
+                            <button class="btn btn-secondary" style="padding: 0.15rem 0.5rem; font-size: 0.7rem;" onclick="document.getElementById('bend-layer2-path').value='';">Clear Layer 2</button>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="bend-layer2-path" class="form-input" list="raw-assets-datalist" placeholder="Optional 2nd audio path (e.g. bone_breaking_03.wav or Dirt Chain Walk 2.wav)..." style="flex: 2; min-width: 220px; font-size: 0.78rem; padding: 0.32rem 0.55rem;">
+                            <label style="font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;">
+                                Delay (ms): <input type="number" id="bend-layer2-delay" class="form-input" value="15" min="0" max="1000" step="5" style="width: 62px; padding: 0.25rem 0.4rem; font-size: 0.76rem;">
+                            </label>
+                            <label style="font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;">
+                                Pitch (st): <input type="number" id="bend-layer2-pitch" class="form-input" value="-2" min="-12" max="12" step="0.5" style="width: 58px; padding: 0.25rem 0.4rem; font-size: 0.76rem;">
+                            </label>
+                            <label style="font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.25rem;">
+                                Gain: <input type="number" id="bend-layer2-gain" class="form-input" value="0.65" min="0.05" max="1.5" step="0.05" style="width: 58px; padding: 0.25rem 0.4rem; font-size: 0.76rem;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Audition & Bake Action Bar -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding-top: 0.3rem;">
+                        <div style="display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap;">
+                            <button class="btn btn-primary" style="background: linear-gradient(135deg, #06b6d4, #3b82f6); padding: 0.45rem 0.95rem; font-weight: 700;" onclick="auditionBentSound(false)">▶ Audition Bent Sound</button>
+                            <button class="btn btn-secondary" style="padding: 0.45rem 0.8rem;" onclick="auditionBentSound(true)">▶ Compare Unbent Raw</button>
+                            <span id="bend-bake-status" style="font-size: 0.76rem; color: #4ade80; font-weight: 600;"></span>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 700; border: none; padding: 0.45rem 0.95rem;" onclick="bakeAndRegisterSound(false)">💾 Bake WAV & Register</button>
+                            <button id="btn-bake-assign" class="btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; font-weight: 700; border: none; padding: 0.45rem 0.95rem;" onclick="bakeAndRegisterSound(true)">⚡ Bake & Assign to Frame</button>
                         </div>
                     </div>
                 </div>
@@ -1647,6 +1931,11 @@ HTML_CONTENT = """<!DOCTYPE html>
             settings: {},
             jukebox_sounds: {},
             audio_assets: [],
+            emotionCatalog: null,
+            catalogByPath: {},
+            bentRegistry: {},
+            activeEmotionFilter: "",
+            activeEnvFilter: "",
             isModified: false,
             activeFrameTarget: null,
             valid: true,
@@ -1737,6 +2026,7 @@ HTML_CONTENT = """<!DOCTYPE html>
             variantToggle.style.display = ENTITY_META[currentEntity].has_variants ? "" : "none";
             await fetchStatus();
             await fetchAudioAssets();
+            await fetchEmotionCatalog();
             setupEventListeners();
             renderTimeline();
         });
@@ -3100,6 +3390,8 @@ HTML_CONTENT = """<!DOCTYPE html>
             if (previewHeader) previewHeader.style.display = 'block';
             const btnAssign = document.getElementById("btn-register-assign");
             if (btnAssign) btnAssign.style.display = "inline-block";
+            const btnBakeAssign = document.getElementById("btn-bake-assign-frame");
+            if (btnBakeAssign) btnBakeAssign.style.display = "inline-block";
 
             // Set modal frame preview image
             const imgEl = document.getElementById("modal-frame-img");
@@ -3120,13 +3412,15 @@ HTML_CONTENT = """<!DOCTYPE html>
         function openAudioBrowserModal() {
             stopAnimationPreview();
             appState.activeFrameTarget = null;
-            document.getElementById("modal-title-text").innerText = "Browse & Register Audio Assets";
+            document.getElementById("modal-title-text").innerText = "Browse & Register Audio Assets by Emotion & Scene";
             
             const previewHeader = document.querySelector(".modal-frame-preview");
             if (previewHeader) previewHeader.style.display = "none";
             
             const btnAssign = document.getElementById("btn-register-assign");
             if (btnAssign) btnAssign.style.display = "none";
+            const btnBakeAssign = document.getElementById("btn-bake-assign-frame");
+            if (btnBakeAssign) btnBakeAssign.style.display = "none";
             
             document.getElementById("new-sound-path").value = "";
             document.getElementById("new-sound-alias").value = "";
@@ -3139,7 +3433,41 @@ HTML_CONTENT = """<!DOCTYPE html>
             document.getElementById("assign-modal").classList.add("open");
         }
 
+        function openSoundBendingStudio(initialPath) {
+            stopAnimationPreview();
+            if (!document.getElementById("assign-modal").classList.contains("open")) {
+                appState.activeFrameTarget = null;
+                document.getElementById("modal-title-text").innerText = "🎛️ Sound Director: Emotion Browser & Sound Bending Studio";
+                const previewHeader = document.querySelector(".modal-frame-preview");
+                if (previewHeader) previewHeader.style.display = "none";
+                const btnAssign = document.getElementById("btn-register-assign");
+                if (btnAssign) btnAssign.style.display = "none";
+                const btnBakeAssign = document.getElementById("btn-bake-assign-frame");
+                if (btnBakeAssign) btnBakeAssign.style.display = "none";
+                filterRegisteredSounds();
+                filterRawAssets();
+                document.getElementById("assign-modal").classList.add("open");
+            }
+            switchTab(null, 'tab-bend');
+            const targetPath = initialPath || currentlySelectedRawPath || "assets/audio/smash.wav";
+            const srcInput = document.getElementById("bend-source-path");
+            if (srcInput && targetPath) {
+                srcInput.value = targetPath;
+                onBendSourceChange(targetPath);
+            }
+        }
+
+        function sendSelectedToBender() {
+            const path = document.getElementById("new-sound-path")?.value || currentlySelectedRawPath;
+            if (!path) {
+                alert("Please select an audio file from the list first, then click 'Open in Sound Bender'.");
+                return;
+            }
+            openSoundBendingStudio(path);
+        }
+
         function closeModal() {
+            stopSceneContextBed();
             document.getElementById("assign-modal").classList.remove("open");
             appState.activeFrameTarget = null;
         }
@@ -3150,9 +3478,11 @@ HTML_CONTENT = """<!DOCTYPE html>
             
             if (evt && evt.currentTarget) {
                 evt.currentTarget.classList.add("active");
-            } else if (tabId === 'tab-raw') {
+            } else {
                 const tabs = document.querySelectorAll(".tab-link");
-                if (tabs.length > 1) tabs[1].classList.add("active");
+                if (tabId === 'tab-registered' && tabs.length > 0) tabs[0].classList.add("active");
+                else if (tabId === 'tab-raw' && tabs.length > 1) tabs[1].classList.add("active");
+                else if (tabId === 'tab-bend' && tabs.length > 2) tabs[2].classList.add("active");
             }
             document.getElementById(tabId).classList.add("active");
         }
@@ -3236,6 +3566,121 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         let currentlySelectedRawPath = "";
 
+        async function fetchEmotionCatalog() {
+            try {
+                const res = await fetch("/api/emotion-catalog");
+                const data = await res.json();
+                appState.emotionCatalog = data.catalog || null;
+                appState.bentRegistry = data.bent_registry || {};
+                appState.catalogByPath = {};
+                if (appState.emotionCatalog && appState.emotionCatalog.assets) {
+                    const assetsObj = appState.emotionCatalog.assets;
+                    if (Array.isArray(assetsObj)) {
+                        assetsObj.forEach(entry => {
+                            const norm = entry.path.replace(/\\\\/g, "/");
+                            appState.catalogByPath[norm] = entry;
+                            appState.catalogByPath[entry.path] = entry;
+                        });
+                    } else {
+                        Object.entries(assetsObj).forEach(([relPath, entry]) => {
+                            const norm = relPath.replace(/\\\\/g, "/");
+                            appState.catalogByPath[norm] = entry;
+                            appState.catalogByPath[relPath] = entry;
+                        });
+                    }
+                }
+                initEmotionAndEnvPills();
+                populateSceneRecipeSelect();
+            } catch (err) {
+                console.error("Error loading emotion catalog:", err);
+            }
+        }
+
+        function initEmotionAndEnvPills() {
+            const emoBar = document.getElementById("emotion-pills-bar");
+            const envBar = document.getElementById("env-pills-bar");
+            const roleSel = document.getElementById("raw-role-select");
+            if (!appState.emotionCatalog) return;
+
+            if (emoBar) {
+                emoBar.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 700; margin-right: 0.25rem;">FEELING:</span>`;
+                const allBtn = document.createElement("button");
+                allBtn.className = "filter-pill" + (!appState.activeEmotionFilter ? " active" : "");
+                allBtn.textContent = "✨ All Feelings";
+                allBtn.onclick = () => selectEmotionPill("");
+                emoBar.appendChild(allBtn);
+
+                const emotionsList = appState.emotionCatalog.emotions || [];
+                emotionsList.forEach(meta => {
+                    const key = meta.id;
+                    const pill = document.createElement("button");
+                    pill.className = "filter-pill" + (appState.activeEmotionFilter === key ? " active" : "");
+                    pill.textContent = `${meta.icon || '✨'} ${meta.id}`;
+                    pill.title = meta.desc || "";
+                    pill.onclick = () => selectEmotionPill(key);
+                    emoBar.appendChild(pill);
+                });
+            }
+
+            if (envBar) {
+                envBar.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-secondary); font-weight: 700; margin-right: 0.25rem;">SCENE:</span>`;
+                const allEnvBtn = document.createElement("button");
+                allEnvBtn.className = "filter-pill env-pill" + (!appState.activeEnvFilter ? " active" : "");
+                allEnvBtn.textContent = "🌍 All Scenes";
+                allEnvBtn.onclick = () => selectEnvPill("");
+                envBar.appendChild(allEnvBtn);
+
+                const envsList = appState.emotionCatalog.environments || [];
+                envsList.forEach(meta => {
+                    const key = meta.id;
+                    const pill = document.createElement("button");
+                    pill.className = "filter-pill env-pill" + (appState.activeEnvFilter === key ? " active" : "");
+                    pill.textContent = `${meta.icon || '🌍'} ${meta.id}`;
+                    pill.title = meta.desc || "";
+                    pill.onclick = () => selectEnvPill(key);
+                    envBar.appendChild(pill);
+                });
+            }
+
+            if (roleSel) {
+                const prev = roleSel.value;
+                roleSel.innerHTML = `<option value="">All Sound Roles</option>`;
+                const rolesList = appState.emotionCatalog.roles || [];
+                rolesList.forEach(r => {
+                    const opt = document.createElement("option");
+                    const rKey = typeof r === "string" ? r : r.id;
+                    opt.value = rKey;
+                    opt.textContent = `🎯 ${rKey}`;
+                    roleSel.appendChild(opt);
+                });
+                roleSel.value = prev;
+            }
+        }
+
+        function selectEmotionPill(emoKey) {
+            appState.activeEmotionFilter = (appState.activeEmotionFilter === emoKey) ? "" : emoKey;
+            initEmotionAndEnvPills();
+            filterRawAssets();
+        }
+
+        function selectEnvPill(envKey) {
+            appState.activeEnvFilter = (appState.activeEnvFilter === envKey) ? "" : envKey;
+            initEmotionAndEnvPills();
+            filterRawAssets();
+        }
+
+        function populateSceneRecipeSelect() {
+            const sel = document.getElementById("scene-recipe-select");
+            if (!sel || !appState.emotionCatalog) return;
+            sel.innerHTML = `<option value="">-- Select Scene Mood to Loop Ambience & Music While Auditioning --</option>`;
+            (appState.emotionCatalog.scene_recipes || []).forEach(r => {
+                const opt = document.createElement("option");
+                opt.value = r.id;
+                opt.textContent = r.title;
+                sel.appendChild(opt);
+            });
+        }
+
         function filterRawAssets() {
             const list = document.getElementById("raw-assets-list");
             const countEl = document.getElementById("raw-asset-count");
@@ -3244,39 +3689,108 @@ HTML_CONTENT = """<!DOCTYPE html>
             
             const query = (document.getElementById("raw-sound-search")?.value || "").toLowerCase().trim();
             const folderFilter = (document.getElementById("raw-folder-select")?.value || "").trim();
+            const roleFilter = (document.getElementById("raw-role-select")?.value || "").trim();
+            const hideDups = !!document.getElementById("hide-dup-formats")?.checked;
+            const emoFilter = appState.activeEmotionFilter || "";
+            const envFilter = appState.activeEnvFilter || "";
+
+            const emotionsMap = {};
+            (appState.emotionCatalog?.emotions || []).forEach(e => { emotionsMap[e.id] = e; });
+            const envsMap = {};
+            (appState.emotionCatalog?.environments || []).forEach(e => { envsMap[e.id] = e; });
             
             let matchedCount = 0;
 
             (appState.audio_assets || []).forEach(assetPath => {
-                const filename = assetPath.split("/").pop();
-                const lastSlash = assetPath.lastIndexOf("/");
-                const dir = lastSlash !== -1 ? assetPath.substring(0, lastSlash) : "";
+                const normPath = assetPath.replace(/\\\\/g, "/");
+                const meta = appState.catalogByPath[normPath] || appState.catalogByPath[assetPath] || null;
+                if (hideDups && meta && (meta.is_duplicate_format || meta.duplicate_of)) return;
 
-                if (folderFilter && dir !== folderFilter && !dir.startsWith(folderFilter + "/")) return;
-                if (query && !filename.toLowerCase().includes(query) && !assetPath.toLowerCase().includes(query)) return;
+                const filename = normPath.split("/").pop();
+                const lastSlash = normPath.lastIndexOf("/");
+                const dir = lastSlash !== -1 ? normPath.substring(0, lastSlash) : "";
+
+                if (folderFilter && dir !== folderFilter.replace(/\\\\/g, "/") && !dir.startsWith(folderFilter.replace(/\\\\/g, "/") + "/")) return;
+                if (roleFilter && (!meta || meta.role !== roleFilter)) return;
+                if (emoFilter && (!meta || !(meta.emotions || []).includes(emoFilter))) return;
+                if (envFilter && (!meta || !(meta.environments || []).includes(envFilter))) return;
+
+                if (query) {
+                    const hay = [
+                        filename,
+                        normPath,
+                        meta?.display_title || "",
+                        meta?.feeling_summary || "",
+                        ...(meta?.emotions || []),
+                        ...(meta?.environments || []),
+                        meta?.role || ""
+                    ].join(" ").toLowerCase();
+                    if (!hay.includes(query)) return;
+                }
                 
                 matchedCount++;
-                const isSelected = (assetPath === currentlySelectedRawPath);
+                const isSelected = (assetPath === currentlySelectedRawPath || normPath === currentlySelectedRawPath);
                 
                 const item = document.createElement("div");
                 item.className = "asset-list-item" + (isSelected ? " selected" : "");
+                item.style.alignItems = "flex-start";
                 
                 const info = document.createElement("div");
                 info.className = "asset-info";
                 info.style.cursor = "pointer";
                 info.style.flex = "1";
-                info.onclick = () => selectRawAssetForRegistration(assetPath);
+                info.onclick = () => selectRawAssetForRegistration(normPath);
 
                 const nameSpan = document.createElement("span");
                 nameSpan.className = "asset-name";
                 nameSpan.style.color = isSelected ? 'var(--accent-cyan)' : 'var(--text-primary)';
-                nameSpan.textContent = "🎵 " + filename;
+                const titleText = meta?.display_title ? `${meta.display_title}` : filename;
+                nameSpan.innerHTML = `🎵 ${titleText} <span style="font-size:0.72rem; color:var(--text-secondary); font-weight:400;">(${filename}${meta?.size_kb ? ' · ' + meta.size_kb + ' KB' : ''})</span>`;
+                info.appendChild(nameSpan);
+
+                if (meta?.feeling_summary) {
+                    const feelSpan = document.createElement("div");
+                    feelSpan.style.fontSize = "0.75rem";
+                    feelSpan.style.color = "#cbd5e1";
+                    feelSpan.style.marginTop = "0.15rem";
+                    feelSpan.textContent = meta.feeling_summary;
+                    info.appendChild(feelSpan);
+                }
+
+                if (meta) {
+                    const badgeRow = document.createElement("div");
+                    badgeRow.style.display = "flex";
+                    badgeRow.style.flexWrap = "wrap";
+                    badgeRow.style.gap = "0.25rem";
+                    badgeRow.style.marginTop = "0.28rem";
+
+                    if (meta.role) {
+                        const rb = document.createElement("span");
+                        rb.className = "role-badge";
+                        rb.textContent = `🎯 ${meta.role}`;
+                        badgeRow.appendChild(rb);
+                    }
+                    (meta.emotions || []).forEach(ek => {
+                        const em = emotionsMap[ek];
+                        const eb = document.createElement("span");
+                        eb.className = "emotion-badge";
+                        eb.textContent = em ? `${em.icon} ${em.id}` : ek;
+                        badgeRow.appendChild(eb);
+                    });
+                    (meta.environments || []).forEach(evk => {
+                        const ev = envsMap[evk];
+                        const evb = document.createElement("span");
+                        evb.className = "env-badge";
+                        evb.textContent = ev ? `${ev.icon} ${ev.id}` : evk;
+                        badgeRow.appendChild(evb);
+                    });
+                    info.appendChild(badgeRow);
+                }
                 
                 const pathSpan = document.createElement("span");
                 pathSpan.className = "asset-path";
-                pathSpan.textContent = assetPath;
-
-                info.appendChild(nameSpan);
+                pathSpan.style.marginTop = "0.2rem";
+                pathSpan.textContent = normPath;
                 info.appendChild(pathSpan);
 
                 const actions = document.createElement("div");
@@ -3285,10 +3799,23 @@ HTML_CONTENT = """<!DOCTYPE html>
                 const playBtn = document.createElement("button");
                 playBtn.className = "play-icon-btn";
                 playBtn.innerHTML = "&#9658;";
-                playBtn.title = "Preview Audio File";
+                playBtn.title = "Preview Raw Audio File";
                 playBtn.onclick = (e) => {
                     e.stopPropagation();
-                    previewRawFile(assetPath);
+                    previewRawFile(normPath);
+                };
+
+                const bendBtn = document.createElement("button");
+                bendBtn.className = "btn btn-secondary";
+                bendBtn.style.padding = "0.3rem 0.55rem";
+                bendBtn.style.fontSize = "0.73rem";
+                bendBtn.style.borderColor = "rgba(168, 85, 247, 0.45)";
+                bendBtn.style.color = "#e9d5ff";
+                bendBtn.textContent = "🎛️ Bend";
+                bendBtn.title = meta?.bend_tip || "Open in Sound Bending & Layer Studio";
+                bendBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openSoundBendingStudio(normPath);
                 };
 
                 const selectBtn = document.createElement("button");
@@ -3298,10 +3825,11 @@ HTML_CONTENT = """<!DOCTYPE html>
                 selectBtn.textContent = isSelected ? "✓ Selected" : "Select";
                 selectBtn.onclick = (e) => {
                     e.stopPropagation();
-                    selectRawAssetForRegistration(assetPath);
+                    selectRawAssetForRegistration(normPath);
                 };
 
                 actions.appendChild(playBtn);
+                actions.appendChild(bendBtn);
                 actions.appendChild(selectBtn);
 
                 item.appendChild(info);
@@ -3315,12 +3843,457 @@ HTML_CONTENT = """<!DOCTYPE html>
                 emptyMsg.style.textAlign = "center";
                 emptyMsg.style.color = "var(--text-secondary)";
                 emptyMsg.style.fontSize = "0.85rem";
-                emptyMsg.textContent = query ? `No audio files match "${query}"` : "No audio assets found in selected folder.";
+                emptyMsg.textContent = "No audio assets match the current emotion / scene / search filters.";
                 list.appendChild(emptyMsg);
             }
 
             if (countEl) {
-                countEl.textContent = `Showing ${matchedCount} of ${(appState.audio_assets || []).length} audio assets`;
+                countEl.textContent = `Showing ${matchedCount} matching sounds (out of ${(appState.audio_assets || []).length} total files)`;
+            }
+        }
+
+        // ============================================================================
+        // SCENE CONTEXT AUDITIONER & WEB AUDIO DSP SOUND BENDER
+        // ============================================================================
+        const BEND_PRESETS_JS = {
+            "neutral": {
+                pitch_semitones: 0.0, lowpass_hz: 20000, highpass_hz: 20,
+                drive: 0.0, reverb_space: "none", reverb_mix: 0.0, gain_db: 0.0,
+                fade_in_ms: 0, fade_out_ms: 0
+            },
+            "grounded_forest_step": {
+                pitch_semitones: -2.0, lowpass_hz: 2600, highpass_hz: 45,
+                drive: 0.08, reverb_space: "forest", reverb_mix: 0.14, gain_db: 0.0,
+                fade_in_ms: 5, fade_out_ms: 35
+            },
+            "heavy_scythe_weight": {
+                pitch_semitones: -4.0, lowpass_hz: 4200, highpass_hz: 30,
+                drive: 0.25, reverb_space: "forest", reverb_mix: 0.18, gain_db: 1.5,
+                fade_in_ms: 0, fade_out_ms: 40
+            },
+            "brutal_bone_impact": {
+                pitch_semitones: -2.5, lowpass_hz: 5500, highpass_hz: 35,
+                drive: 0.38, reverb_space: "cavern", reverb_mix: 0.20, gain_db: 2.0,
+                fade_in_ms: 0, fade_out_ms: 25
+            },
+            "distant_fog_omen": {
+                pitch_semitones: -3.0, lowpass_hz: 1150, highpass_hz: 120,
+                drive: 0.05, reverb_space: "forest", reverb_mix: 0.48, gain_db: -2.5,
+                fade_in_ms: 40, fade_out_ms: 180
+            },
+            "catacomb_echo": {
+                pitch_semitones: -1.5, lowpass_hz: 3200, highpass_hz: 80,
+                drive: 0.10, reverb_space: "cavern", reverb_mix: 0.42, gain_db: 0.0,
+                fade_in_ms: 0, fade_out_ms: 120
+            },
+            "abyssal_demonic_pact": {
+                pitch_semitones: -6.0, lowpass_hz: 2400, highpass_hz: 25,
+                drive: 0.45, reverb_space: "void", reverb_mix: 0.50, gain_db: 2.0,
+                fade_in_ms: 15, fade_out_ms: 200
+            },
+            "crisp_ethereal_relic": {
+                pitch_semitones: 2.0, lowpass_hz: 16000, highpass_hz: 220,
+                drive: 0.05, reverb_space: "void", reverb_mix: 0.36, gain_db: 0.5,
+                fade_in_ms: 10, fade_out_ms: 150
+            }
+        };
+
+        let sceneBedState = {
+            playing: false,
+            bedAudio: null,
+            musicAudio: null,
+            activeRecipe: null
+        };
+
+        function onSelectSceneRecipe(recipeId) {
+            const descEl = document.getElementById("scene-recipe-desc");
+            const recipes = appState.emotionCatalog?.scene_recipes || [];
+            const recipe = recipes.find(r => r.id === recipeId) || null;
+            sceneBedState.activeRecipe = recipe;
+            if (descEl) {
+                if (recipe) {
+                    const feeling = recipe.target_feeling || recipe.emotional_goal || "";
+                    const guide = (recipe.how_to_mix || []).join(" · ") || recipe.bending_guideline || "";
+                    descEl.innerHTML = `<strong style="color:#e9d5ff;">${recipe.title}:</strong> ${feeling} <div style="color:#38bdf8; margin-top:0.15rem;">${guide}</div>`;
+                } else {
+                    descEl.textContent = "Select a scene above to hear how your sound effect sits inside the actual level atmosphere and music.";
+                }
+            }
+            if (sceneBedState.playing) {
+                stopSceneContextBed();
+                if (recipe) toggleSceneContextBed();
+            }
+        }
+
+        function toggleSceneContextBed() {
+            if (sceneBedState.playing) {
+                stopSceneContextBed();
+                return;
+            }
+            const recipe = sceneBedState.activeRecipe;
+            if (!recipe) {
+                alert("Select a Scene Mood Recipe from the dropdown first to loop its ambient bed and music.");
+                return;
+            }
+            const bedVol = parseFloat(document.getElementById("scene-bed-vol")?.value || 0.35);
+            const musVol = parseFloat(document.getElementById("scene-music-vol")?.value || 0.25);
+
+            const bedPath = recipe.ambient_bed_primary || recipe.recommended_beds?.[0]?.path;
+            const musPath = recipe.music_track || recipe.recommended_music?.[0]?.path;
+
+            if (bedPath) {
+                sceneBedState.bedAudio = new Audio("/" + bedPath);
+                sceneBedState.bedAudio.loop = true;
+                sceneBedState.bedAudio.volume = bedVol;
+                sceneBedState.bedAudio.play().catch(e => console.warn("Bed play err:", e));
+            }
+            if (musPath) {
+                sceneBedState.musicAudio = new Audio("/" + musPath);
+                sceneBedState.musicAudio.loop = true;
+                sceneBedState.musicAudio.volume = musVol;
+                sceneBedState.musicAudio.play().catch(e => console.warn("Music play err:", e));
+            }
+            sceneBedState.playing = true;
+            const btn = document.getElementById("btn-scene-bed-toggle");
+            if (btn) {
+                btn.textContent = "⏹ Stop Scene Bed";
+                btn.classList.remove("btn-secondary");
+                btn.classList.add("btn-danger");
+            }
+        }
+
+        function stopSceneContextBed() {
+            if (sceneBedState.bedAudio) {
+                sceneBedState.bedAudio.pause();
+                sceneBedState.bedAudio = null;
+            }
+            if (sceneBedState.musicAudio) {
+                sceneBedState.musicAudio.pause();
+                sceneBedState.musicAudio = null;
+            }
+            sceneBedState.playing = false;
+            const btn = document.getElementById("btn-scene-bed-toggle");
+            if (btn) {
+                btn.textContent = "▶ Loop Scene Bed";
+                btn.classList.remove("btn-danger");
+                btn.classList.add("btn-secondary");
+            }
+        }
+
+        function updateSceneContextVolumes() {
+            const bedVol = parseFloat(document.getElementById("scene-bed-vol")?.value || 0.35);
+            const musVol = parseFloat(document.getElementById("scene-music-vol")?.value || 0.25);
+            if (sceneBedState.bedAudio) sceneBedState.bedAudio.volume = bedVol;
+            if (sceneBedState.musicAudio) sceneBedState.musicAudio.volume = musVol;
+        }
+
+        function onBendSourceChange(path) {
+            const norm = (path || "").replace(/\\\\/g, "/").trim();
+            const meta = appState.catalogByPath[norm] || appState.catalogByPath[path] || null;
+            const box = document.getElementById("bend-source-feeling-box");
+            const aliasInput = document.getElementById("bend-output-alias");
+
+            if (norm) {
+                const stem = norm.split("/").pop().split(".")[0].replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase();
+                if (aliasInput && !aliasInput.value) {
+                    aliasInput.value = `${stem}_bent`;
+                }
+            }
+
+            if (box) {
+                if (meta) {
+                    box.style.display = "block";
+                    box.innerHTML = `<strong style="color:#38bdf8;">${meta.display_title}:</strong> ${meta.feeling_summary}<br><span style="color:#c084fc;">💡 Bending Tip:</span> ${meta.bend_tip || "Adjust pitch for weight, low-pass for distance, and reverb space to match the level."}`;
+                    if (meta.recommended_preset && BEND_PRESETS_JS[meta.recommended_preset]) {
+                        const presetSel = document.getElementById("bend-preset-select");
+                        if (presetSel) presetSel.value = meta.recommended_preset;
+                        applyBendPreset(meta.recommended_preset);
+                    }
+                } else {
+                    box.style.display = "none";
+                }
+            }
+        }
+
+        function applyBendPreset(presetKey) {
+            const p = BEND_PRESETS_JS[presetKey];
+            if (!p) return;
+            document.getElementById("bend-pitch").value = p.pitch_semitones;
+            document.getElementById("bend-lp").value = p.lowpass_hz;
+            document.getElementById("bend-hp").value = p.highpass_hz;
+            document.getElementById("bend-drive").value = p.drive;
+            document.getElementById("bend-reverb-space").value = p.reverb_space;
+            document.getElementById("bend-reverb-mix").value = p.reverb_mix;
+            document.getElementById("bend-gain").value = p.gain_db;
+            document.getElementById("bend-fade-in").value = p.fade_in_ms;
+            document.getElementById("bend-fade-out").value = p.fade_out_ms;
+            updateBendReadouts();
+        }
+
+        function updateBendReadouts() {
+            const pitch = parseFloat(document.getElementById("bend-pitch")?.value || 0);
+            const lp = parseInt(document.getElementById("bend-lp")?.value || 20000);
+            const hp = parseInt(document.getElementById("bend-hp")?.value || 20);
+            const drive = parseFloat(document.getElementById("bend-drive")?.value || 0);
+            const rmix = parseFloat(document.getElementById("bend-reverb-mix")?.value || 0);
+            const gain = parseFloat(document.getElementById("bend-gain")?.value || 0);
+
+            document.getElementById("bend-pitch-val").innerText = `${pitch >= 0 ? '+' : ''}${pitch.toFixed(1)} st`;
+            document.getElementById("bend-lp-val").innerText = `${lp} Hz`;
+            document.getElementById("bend-hp-val").innerText = `${hp} Hz`;
+            document.getElementById("bend-drive-val").innerText = `${Math.round(drive * 100)}%`;
+            document.getElementById("bend-reverb-mix-val").innerText = `${Math.round(rmix * 100)}%`;
+            document.getElementById("bend-gain-val").innerText = `${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB`;
+        }
+
+        let benderAudioCtx = null;
+        let benderBufferCache = {};
+
+        async function loadWebAudioBuffer(ctx, relPath) {
+            const norm = relPath.replace(/\\\\/g, "/");
+            if (benderBufferCache[norm]) return benderBufferCache[norm];
+            const res = await fetch("/" + norm);
+            const arr = await res.arrayBuffer();
+            const buf = await ctx.decodeAudioData(arr);
+            benderBufferCache[norm] = buf;
+            return buf;
+        }
+
+        function createSyntheticImpulse(ctx, space) {
+            const sr = ctx.sampleRate;
+            const cfg = {
+                "forest": { dur: 0.65, decay: 5.5, lp: 2800 },
+                "cavern": { dur: 1.45, decay: 3.2, lp: 1800 },
+                "void":   { dur: 2.40, decay: 2.1, lp: 1200 }
+            }[space] || { dur: 0.5, decay: 5.0, lp: 3000 };
+
+            const len = Math.floor(sr * cfg.dur);
+            const impulse = ctx.createBuffer(2, len, sr);
+            for (let ch = 0; ch < 2; ch++) {
+                const data = impulse.getChannelData(ch);
+                for (let i = 0; i < len; i++) {
+                    const t = i / sr;
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-cfg.decay * t);
+                }
+            }
+            return impulse;
+        }
+
+        function makeDistortionCurve(drive) {
+            const n = 8192;
+            const curve = new Float32Array(n);
+            const k = 1.0 + drive * 8.0;
+            const norm = Math.tanh(k);
+            for (let i = 0; i < n; i++) {
+                const x = (i * 2) / n - 1;
+                curve[i] = Math.tanh(k * x) / norm;
+            }
+            return curve;
+        }
+
+        function collectCurrentBendRecipe() {
+            const sourcePath = (document.getElementById("bend-source-path")?.value || "").trim();
+            const preset = document.getElementById("bend-preset-select")?.value || "neutral";
+            const pitch = parseFloat(document.getElementById("bend-pitch")?.value || 0);
+            const lp = parseFloat(document.getElementById("bend-lp")?.value || 20000);
+            const hp = parseFloat(document.getElementById("bend-hp")?.value || 20);
+            const drive = parseFloat(document.getElementById("bend-drive")?.value || 0);
+            const reverbSpace = document.getElementById("bend-reverb-space")?.value || "none";
+            const reverbMix = parseFloat(document.getElementById("bend-reverb-mix")?.value || 0);
+            const gainDb = parseFloat(document.getElementById("bend-gain")?.value || 0);
+            const fadeInMs = parseFloat(document.getElementById("bend-fade-in")?.value || 0);
+            const fadeOutMs = parseFloat(document.getElementById("bend-fade-out")?.value || 0);
+
+            const l2Path = (document.getElementById("bend-layer2-path")?.value || "").trim();
+            const l2Delay = parseFloat(document.getElementById("bend-layer2-delay")?.value || 0);
+            const l2Pitch = parseFloat(document.getElementById("bend-layer2-pitch")?.value || 0);
+            const l2Gain = parseFloat(document.getElementById("bend-layer2-gain")?.value || 0);
+
+            const layers = [];
+            if (l2Path) {
+                layers.push({
+                    source_path: l2Path,
+                    delay_ms: l2Delay,
+                    pitch_semitones: l2Pitch,
+                    gain_db: l2Gain,
+                    lowpass_hz: 20000
+                });
+            }
+
+            return {
+                source_path: sourcePath,
+                preset: preset,
+                pitch_semitones: pitch,
+                lowpass_hz: lp,
+                highpass_hz: hp,
+                drive: drive,
+                reverb_space: reverbSpace,
+                reverb_mix: reverbMix,
+                gain_db: gainDb,
+                fade_in_ms: fadeInMs,
+                fade_out_ms: fadeOutMs,
+                layers: layers
+            };
+        }
+
+        async function auditionBentSound(playRawOnly) {
+            const recipe = collectCurrentBendRecipe();
+            if (!recipe.source_path) {
+                alert("Please select a Primary Source Audio File first.");
+                return;
+            }
+            try {
+                if (!benderAudioCtx) {
+                    benderAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (benderAudioCtx.state === "suspended") {
+                    await benderAudioCtx.resume();
+                }
+
+                const mainBuf = await loadWebAudioBuffer(benderAudioCtx, recipe.source_path);
+                const now = benderAudioCtx.currentTime;
+
+                if (playRawOnly) {
+                    const src = benderAudioCtx.createBufferSource();
+                    src.buffer = mainBuf;
+                    src.connect(benderAudioCtx.destination);
+                    src.start(now);
+                    return;
+                }
+
+                // Helper to play a layer buffer into the shared bus
+                const filterRoot = benderAudioCtx.createBiquadFilter();
+                filterRoot.type = "highpass";
+                filterRoot.frequency.value = Math.max(20, recipe.highpass_hz);
+
+                const lpFilter = benderAudioCtx.createBiquadFilter();
+                lpFilter.type = "lowpass";
+                lpFilter.frequency.value = Math.min(20000, Math.max(80, recipe.lowpass_hz));
+
+                const shaper = benderAudioCtx.createWaveShaper();
+                if (recipe.drive > 0.005) {
+                    shaper.curve = makeDistortionCurve(recipe.drive);
+                    shaper.oversample = "2x";
+                }
+
+                const masterGain = benderAudioCtx.createGain();
+                masterGain.gain.value = Math.pow(10, recipe.gain_db / 20.0);
+
+                filterRoot.connect(lpFilter);
+                if (recipe.drive > 0.005) {
+                    lpFilter.connect(shaper);
+                    shaper.connect(masterGain);
+                } else {
+                    lpFilter.connect(masterGain);
+                }
+
+                if (recipe.reverb_space !== "none" && recipe.reverb_mix > 0.01) {
+                    const dryGain = benderAudioCtx.createGain();
+                    const wetGain = benderAudioCtx.createGain();
+                    dryGain.gain.value = 1.0 - recipe.reverb_mix * 0.45;
+                    wetGain.gain.value = recipe.reverb_mix;
+
+                    const convolver = benderAudioCtx.createConvolver();
+                    convolver.buffer = createSyntheticImpulse(benderAudioCtx, recipe.reverb_space);
+
+                    masterGain.connect(dryGain);
+                    dryGain.connect(benderAudioCtx.destination);
+
+                    masterGain.connect(convolver);
+                    convolver.connect(wetGain);
+                    wetGain.connect(benderAudioCtx.destination);
+                } else {
+                    masterGain.connect(benderAudioCtx.destination);
+                }
+
+                // Play main source
+                const mainSrc = benderAudioCtx.createBufferSource();
+                mainSrc.buffer = mainBuf;
+                mainSrc.playbackRate.value = Math.pow(2, recipe.pitch_semitones / 12.0);
+                mainSrc.connect(filterRoot);
+                mainSrc.start(now);
+
+                // Play stacked Layer 2 if configured
+                for (const layer of (recipe.layers || [])) {
+                    if (!layer.source_path) continue;
+                    const lBuf = await loadWebAudioBuffer(benderAudioCtx, layer.source_path);
+                    const lSrc = benderAudioCtx.createBufferSource();
+                    lSrc.buffer = lBuf;
+                    lSrc.playbackRate.value = Math.pow(2, (layer.pitch_semitones || 0) / 12.0);
+                    const lGain = benderAudioCtx.createGain();
+                    lGain.gain.value = Math.pow(10, (layer.gain_db || 0) / 20.0);
+                    lSrc.connect(lGain);
+                    lGain.connect(filterRoot);
+                    lSrc.start(now + Math.max(0, (layer.delay_ms || 0) / 1000.0));
+                }
+            } catch (err) {
+                console.error("Error auditioning bent sound:", err);
+                alert("Could not decode/audition sound: " + err.message);
+            }
+        }
+
+        async function bakeAndRegisterSound(assignToFrame) {
+            const recipe = collectCurrentBendRecipe();
+            const alias = (document.getElementById("bend-output-alias")?.value || "").trim();
+            const statusEl = document.getElementById("bend-bake-status");
+
+            if (!recipe.source_path) {
+                alert("Please choose a Primary Source Audio File to bend.");
+                return;
+            }
+            if (!alias) {
+                alert("Please enter a Baked Sound Alias (e.g. heavy_scythe_forest_1).");
+                return;
+            }
+
+            if (statusEl) {
+                statusEl.style.color = "#38bdf8";
+                statusEl.textContent = "⏳ Baking DSP audio & generating .wav file...";
+            }
+
+            try {
+                const res = await fetch("/api/bake-sound", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        alias: alias,
+                        recipe: recipe,
+                        entity: currentEntity
+                    })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    if (statusEl) {
+                        statusEl.style.color = "#f43f5e";
+                        statusEl.textContent = "❌ Bake failed: " + (result.error || "Unknown error");
+                    }
+                    return;
+                }
+
+                const bakedPath = result.baked.relative_path;
+                if (!appState.config.sounds) appState.config.sounds = {};
+                appState.config.sounds[result.baked.alias] = bakedPath;
+
+                await fetchAudioAssets();
+                await fetchEmotionCatalog();
+                markUnsaved();
+                filterRegisteredSounds();
+                renderTrackMixer();
+
+                if (statusEl) {
+                    statusEl.style.color = "#4ade80";
+                    statusEl.textContent = `✓ Baked to ${bakedPath} (${result.baked.duration_sec}s) & registered as '${result.baked.alias}'!`;
+                }
+
+                if (assignToFrame && appState.activeFrameTarget) {
+                    assignSoundToFrame(result.baked.alias);
+                }
+            } catch (err) {
+                console.error("Error baking sound:", err);
+                if (statusEl) {
+                    statusEl.style.color = "#f43f5e";
+                    statusEl.textContent = "❌ Failed to connect to server for baking.";
+                }
             }
         }
 
@@ -3582,9 +4555,33 @@ class MixerEditorHandler(http.server.BaseHTTPRequestHandler):
                         for file in files:
                             if file.lower().endswith((".mp3", ".wav", ".ogg", ".flac", ".m4a")):
                                 full_path = os.path.join(root, file)
-                                rel_path = os.path.relpath(full_path, BASE_DIR)
+                                rel_path = os.path.relpath(full_path, BASE_DIR).replace("\\", "/")
                                 audio_files.append(rel_path)
                 self.send_json({"assets": sorted(audio_files)})
+            except Exception as e:
+                self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/emotion-catalog":
+            try:
+                catalog_path = os.path.join(BASE_DIR, "game_data", "audio_emotion_catalog.json")
+                if not os.path.exists(catalog_path):
+                    from tools.build_audio_emotion_catalog import build_catalog
+                    catalog = build_catalog(BASE_DIR)
+                else:
+                    with open(catalog_path, "r", encoding="utf-8") as f:
+                        catalog = json.load(f)
+
+                bent_reg_path = os.path.join(BASE_DIR, "game_data", "bent_sounds_registry.json")
+                bent_reg = {}
+                if os.path.exists(bent_reg_path):
+                    with open(bent_reg_path, "r", encoding="utf-8") as f:
+                        bent_reg = json.load(f)
+
+                self.send_json({
+                    "catalog": catalog,
+                    "bent_registry": bent_reg
+                })
             except Exception as e:
                 self.send_json({"error": str(e)}, 500)
             return
@@ -3713,6 +4710,29 @@ class MixerEditorHandler(http.server.BaseHTTPRequestHandler):
                 })
             except Exception as e:
                 self.send_json({"error": str(e)}, 500)
+            return
+
+        elif path == "/api/bake-sound":
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                payload = json.loads(post_data.decode('utf-8'))
+
+                alias = payload.get("alias", "").strip()
+                recipe = payload.get("recipe", {})
+                if not alias or not recipe or not recipe.get("source_path"):
+                    self.send_json({"success": False, "error": "Missing alias or recipe.source_path"}, 400)
+                    return
+
+                from src.game.audio.sound_bender import bake_sound_to_disk
+                baked_meta = bake_sound_to_disk(BASE_DIR, alias, recipe)
+
+                self.send_json({
+                    "success": True,
+                    "baked": baked_meta
+                })
+            except Exception as e:
+                self.send_json({"success": False, "error": str(e)}, 500)
             return
 
         self.send_error(404, "Not Found")
