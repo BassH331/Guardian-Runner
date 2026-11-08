@@ -1,0 +1,4 @@
+- Sound needs to more work. must feel like the player is in that envirnmonet and the movements must sound real
+- the visuals are clean and now we can continue working on the worldaround the player and try make it more interactive and alive [adding props and more objects with animation]
+- clean up the story line and the blocks of text used to display lore and important game interactions
+- find more little bugs and add them to a small bugs list to prioritize  feature development

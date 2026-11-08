@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-title Pixel-Runner Game Launcher
+title Guardian Runner Game Launcher
 
 if exist .venv\Scripts\python.exe (
     .venv\Scripts\python.exe main.py %*

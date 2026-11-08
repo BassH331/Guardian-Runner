@@ -1,8 +1,36 @@
-# 🏃‍♂️ Pixel Runner
+# 🏃‍♂️ Guardian Runner
 
 An action-packed 2D side-scrolling pixel-art game built in Python using **Pygame** and the **V3X Zulfiqar Gideon Engine**. 
 
-Pixel Runner features human-like enemy perception, multi-enemy squad flanking & pincer tactics, dynamic telemetry difficulty scaling, and a comprehensive suite of visual GUI plugin editors.
+Guardian Runner features human-like enemy perception, multi-enemy squad flanking & pincer tactics, dynamic telemetry difficulty scaling, and a comprehensive suite of visual GUI plugin editors.
+
+<p align="center">
+  <img src="docs/screenshots/08_shadow_dash.png" alt="Shadow dash into a shielded Blood Zombie and its skeleton guard" width="100%">
+</p>
+
+---
+
+## 📸 Gameplay Screenshots
+
+> Every frame below is captured straight from the live game loop (real `GameState` update + draw at 1280×720). None of it is mocked up.
+
+### The Journey Begins
+
+| Title Screen | The Demonic Pact |
+| :---: | :---: |
+| ![Title screen — The Unpaid Debt](docs/screenshots/01_title_screen.png) | ![Story prologue — The Demonic Pact](docs/screenshots/02_story_prologue.png) |
+| **Level 1 — The Dark Forest** | **Into the Forest** |
+| ![Level 1 intro banner with the white dragon](docs/screenshots/03_level_intro.png) | ![Runner leaping through the forest past a ruined shrine](docs/screenshots/04_forest_jump.png) |
+
+### Combat
+
+| Skeleton Duel | Boss Incoming |
+| :---: | :---: |
+| ![Runner squaring up to a skeleton swordsman](docs/screenshots/05_skeleton_duel.png) | ![Warning: Blood Zombie approaching](docs/screenshots/06_boss_warning.png) |
+| **Skeleton Horde vs. Blood Zombie** | **Lightning Strike** |
+| ![Scythe swing into a skeleton squad while the Blood Zombie raises its shield](docs/screenshots/07_skeleton_horde.png) | ![Lightning strike on the Blood Zombie as bats swarm overhead](docs/screenshots/09_lightning_strike.png) |
+
+<sub>Regenerate these with `python tools/capture_readme_screenshots.py`. It runs the game headlessly with a scripted player and dumps frames to `scratch/readme_capture/` so you can pick the best ones.</sub>
 
 ---
 
@@ -40,7 +68,7 @@ You can launch `main.py` in several distinct execution modes depending on whethe
 
 ## 💀 AI Difficulty Modes ("Turning Up the Heat")
 
-Pixel Runner features an adaptive AI system with 4 distinct difficulty modes controlled via the `AI_DIFFICULTY` environment variable. These adjust enemy reaction latency, squad coordination tokens, and tactical spacing retractions:
+Guardian Runner features an adaptive AI system with 4 distinct difficulty modes controlled via the `AI_DIFFICULTY` environment variable. These adjust enemy reaction latency, squad coordination tokens, and tactical spacing retractions:
 
 ```bash
 # Easy Mode (Relaxed pacing)
@@ -71,7 +99,7 @@ make nightmare
 
 ## 🎨 Plugin Editors & Visual GUI Tools
 
-Pixel Runner includes 10 standalone visual GUI editors for live tuning of game assets, entity statistics, animation speeds, level layouts, and sound channels.
+Guardian Runner includes 10 standalone visual GUI editors for live tuning of game assets, entity statistics, animation speeds, level layouts, and sound channels.
 
 ### 1. 👑 Boss Editor
 - **Command**: `make boss-editor` or `python boss_editor.py`
