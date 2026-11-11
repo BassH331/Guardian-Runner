@@ -178,3 +178,104 @@ def test_environment_manager_updates_animated_props():
     env.update(0.1, player_speed=0.0)
     assert prop.frame_idx == 1
 
+
+def test_spritesheet_grid_prop_animates_all_40_frames_and_scales():
+    """Verify Large Skull.png slices all 10x4 frames, animates through all 40 frames, and preserves frames on rescale."""
+    skull_path = (
+        "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/"
+        "GandalfHardcore The Damned Enemies and NPCs/Large Skull.png"
+    )
+    prop = EnvironmentProp(
+        texture_path=skull_path,
+        slice_rect=[0, 0, 128, 128],
+        pos_x=12201.0,
+        pos_y=151.0,
+        scale=3.0,
+        anim_grid=[10, 4],
+        anim_speed=0.1,
+    )
+    assert len(prop.frames) == 40
+    assert prop.width == 384 and prop.height == 384
+
+    # Advance through all 40 frames and wrap back to 0
+    seen = {prop.frame_idx}
+    for _ in range(40):
+        prop.update(0.1)
+        seen.add(prop.frame_idx)
+    assert seen == set(range(40))
+    assert prop.frame_idx == 0
+
+    # Rescaling preserves all 40 frames at the new dimensions
+    prop.set_scale(2.0)
+    assert len(prop.frames) == 40
+    assert prop.width == 256 and prop.height == 256
+
+    # Serialization round-trip keeps anim_grid & anim_speed
+    d = prop.to_dict()
+    assert d["anim_grid"] == [10, 4]
+    assert d["anim_speed"] == 0.1
+    mgr = EnvironmentManager(1280, 720, env_config={"props": [d]})
+    assert len(mgr.props[0].frames) == 40
+
+
+def test_level_1_large_skull_prop_is_animated():
+    """Verify the Large Skull prop in game_data/level_1.json loads with all 40 animation frames and trap loop."""
+    with open("game_data/level_1.json", "r", encoding="utf-8") as f:
+        lvl = json.load(f)
+    mgr = EnvironmentManager(1280, 720, env_config=lvl.get("environment", {}))
+    skulls = [p for p in mgr.props if "Large Skull.png" in p.texture_path]
+    assert len(skulls) >= 1
+    for skull in skulls:
+        assert len(skull.frames) == 40
+        assert skull.pos_y + skull.height == lvl["environment"]["ground_y"]
+        assert skull.collision_type == "hazard"
+        assert skull.trap_max_hp == 45.0
+        assert skull.trap_loop_frames == 30
+        assert skull.trap_reward_souls == 75
+
+
+def test_hell_skull_trap_window_and_banish_dissolve():
+    """Verify timed hazard window (14..23), telegraph (11..13), 0..29 loop, and Row 3 dissolve upon banish."""
+    skull_path = (
+        "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/"
+        "GandalfHardcore The Damned Enemies and NPCs/Large Skull.png"
+    )
+    trap = EnvironmentProp(
+        texture_path=skull_path,
+        slice_rect=[0, 0, 128, 128],
+        pos_x=12201.0,
+        pos_y=151.0,
+        scale=3.0,
+        collision_type="hazard",
+        anim_grid=[10, 4],
+        anim_speed=0.1,
+        trap_hp=45.0,
+        trap_loop_frames=30,
+        trap_telegraph_range=[11, 13],
+        trap_hazard_range=[14, 23],
+        trap_reward_souls=75,
+    )
+
+    # Active trap loops strictly within 0..29 (never dissolves automatically)
+    seen = set()
+    for i in range(35):
+        seen.add(trap.frame_idx)
+        assert trap.frame_idx < 30
+        assert trap.is_telegraph_active() == (11 <= trap.frame_idx <= 13)
+        assert trap.is_hazard_active() == (14 <= trap.frame_idx <= 23)
+        trap.update(0.1)
+    assert seen == set(range(30))
+
+    # Partial hit does not banish; lethal hit enters Row 3 dissolve (frames 30..39) -> destroyed
+    assert trap.take_trap_damage(20.0) is False
+    assert trap.trap_state == "active"
+    assert trap.take_trap_damage(25.0) is True
+    assert trap.trap_state == "dissolving"
+    assert trap.frame_idx == 30
+    assert trap.is_hazard_active() is False
+
+    for _ in range(10):
+        trap.update(0.1)
+    assert trap.trap_state == "destroyed"
+
+

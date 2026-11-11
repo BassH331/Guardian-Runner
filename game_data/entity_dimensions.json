@@ -37,7 +37,7 @@
         "top": 208,
         "bottom": 192,
         "ground_offset": 127,
-        "scale": 4.11
+        "scale": 3.8
     },
     "generic_npc": {
         "left": 0,
@@ -166,5 +166,13 @@
         "bottom": 0,
         "ground_offset": 34,
         "scale": 2.0
+    },
+    "boss:ronin": {
+        "left": 65,
+        "right": 65,
+        "top": 20,
+        "bottom": 0,
+        "ground_offset": 127,
+        "scale": 2.6
     }
 }

@@ -1,5 +1,5 @@
 """
-RelicManager — tracks collected relics, handles drop delays, applies corruption
+RelicManager  -  tracks collected relics, handles drop delays, applies corruption
 deltas, and pushes the RelicRevealState cutscene.
 
 Drop sequencing rules (per the plan):
@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.game.systems.corruption_manager import CorruptionManager
 
-_SECOND_RELIC_DELAY = 0.4  # seconds
+_SECOND_RELIC_DELAY = 1.2  # seconds between consecutive boss drops after the first is dismissed
 
 
 class RelicManager:
@@ -26,7 +26,7 @@ class RelicManager:
         event_bus:           Shared ``EventBus`` instance.
         corruption_manager:  ``CorruptionManager`` to push/pull corruption on collect.
         config:              Full ``storyline_config.json`` data dict.
-        state_push_callback: Callable that accepts a ``State`` instance — wraps
+        state_push_callback: Callable that accepts a ``State`` instance  -  wraps
                              ``state_manager.push``.
     """
 
@@ -120,9 +120,11 @@ class RelicManager:
         elif delta < 0:
             self._corruption_manager.reduce(abs(delta))
 
-        # Push the relic reveal cutscene.
+        # Push the relic reveal cutscene with live corruption context.
         from src.game.states.relic_reveal_state import RelicRevealState
-        relic_data = self._config.get("relics", {}).get(relic_id, {})
+        relic_data = dict(self._config.get("relics", {}).get(relic_id, {}))
+        relic_data["_corruption_value"] = self._corruption_manager.value
+        relic_data["_corruption_delta"] = delta
         self._push_state(RelicRevealState(None, relic_id, relic_data))
         print(f"[RelicManager] Collected '{relic_id}' (corruption={self._corruption_manager.value:.1f})")
 

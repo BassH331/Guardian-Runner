@@ -70,6 +70,48 @@ class CombatSystem:
 
             self._apply_player_damage_to_enemy(player, obstacle)
 
+        # Allow player strikes to shatter destructible environmental traps (e.g. Hell-Skull Totems)
+        env_mgr = getattr(self.game, "environment_manager", None)
+        if env_mgr is not None:
+            world_dist = float(getattr(self.game, "world_distance", 0.0))
+            for prop in getattr(env_mgr, "props", []):
+                if not (hasattr(prop, "is_destructible_trap") and prop.is_destructible_trap()):
+                    continue
+                prop_hitbox = prop.get_world_hitbox(world_dist)
+                if not colliderect(prop_hitbox):
+                    continue
+                if not try_register_hit(id(prop)):
+                    continue
+
+                damage = player.get_current_attack_damage()
+                VisualEffectManager.spawn_hit_vfx(prop_hitbox.centerx, prop_hitbox.centery, target_entity=player)
+                banished = prop.take_trap_damage(damage)
+                if self.game.audio_manager:
+                    try:
+                        self.game.audio_manager.play_sound("skeleton_hurt", volume=0.45)
+                    except Exception:
+                        pass
+                if banished:
+                    reward = int(getattr(prop, "trap_reward_souls", 75) or 75)
+                    if hasattr(self.game, "total_souls"):
+                        self.game.total_souls += reward
+                    if hasattr(self.game, "player_ui"):
+                        self.game.player_ui.add_souls(reward)
+                    if hasattr(self.game, "score"):
+                        self.game.score += reward
+                    if hasattr(self.game, "trippy_zoom"):
+                        self.game.trippy_zoom.trigger(
+                            focal_x=prop_hitbox.centerx,
+                            focal_y=prop_hitbox.centery,
+                            intensity=1.0,
+                            target_tier="elite",
+                        )
+                    if self.game.audio_manager:
+                        try:
+                            self.game.audio_manager.play_sound("skeleton_death", volume=0.55)
+                        except Exception:
+                            pass
+
     def _apply_player_damage_to_enemy(self, player: Player, enemy: Any) -> None:
         damage = player.get_current_attack_damage()
         knockback = player.get_attack_knockback(enemy.rect.center)
@@ -273,14 +315,21 @@ class CombatSystem:
 
         for prop in self.game.environment_manager.props:
             if getattr(prop, "collision_type", "solid") == "hazard":
-                draw_x = int(prop.pos_x - self.game.world_distance * prop.parallax_ratio)
-                draw_y = int(prop.pos_y)
-                prop_rect = pg.Rect(draw_x, draw_y, prop.width, prop.height)
+                if hasattr(prop, "is_hazard_active") and not prop.is_hazard_active():
+                    continue
+                if hasattr(prop, "get_world_hitbox"):
+                    prop_rect = prop.get_world_hitbox(self.game.world_distance)
+                else:
+                    draw_x = int(prop.pos_x - self.game.world_distance * prop.parallax_ratio)
+                    draw_y = int(prop.pos_y)
+                    prop_rect = pg.Rect(draw_x, draw_y, prop.width, prop.height)
 
                 if player_sprite.rect.colliderect(prop_rect):
                     damage = 15.0
                     damage_applied = player_sprite.take_damage(damage)
                     if damage_applied:
+                        kb_dir = -1 if player_sprite.rect.centerx < prop_rect.centerx else 1
+                        self._apply_knockback_to_player(player_sprite, kb_dir * 8.0)
                         VisualEffectManager.spawn_hit_vfx(
                             player_sprite.rect.centerx,
                             player_sprite.rect.centery,

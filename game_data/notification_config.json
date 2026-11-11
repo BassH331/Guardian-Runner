@@ -1,10 +1,10 @@
 {
     "timing": {
         "slide_in_time": 0.35,
-        "default_hold_time": 13.79,
+        "default_hold_time": 8.5,
         "slide_out_time": 0.44,
-        "words_per_sec": 0.35,
-        "base_hold_pad": 2.5,
+        "words_per_sec": 0.28,
+        "base_hold_pad": 1.8,
         "easing_type": "cubic_ease_out",
         "breath_shimmer_enabled": true,
         "breath_amplitude": 2.0,

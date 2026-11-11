@@ -1,5 +1,5 @@
 {
-    "config_hash": "77368a7fe905d10b13197a720f3ef4dc5c011b6da0c43e52f85f3205ce677e0d",
+    "config_hash": "c4d6d85c5ab8d10d3d46a6ed5e9b16a2f66ea8418443ee7f35eaa3ecc32d5818",
     "audio_hashes": {
         "assets/audio/1 Exploration TomMusic.ogg": "346889023226b8711ded582f38ed0d71f98d4bdc9106ac5a705b112a50a62ce5",
         "assets/audio/Burning Fire.mp3": "52e783b99cf1606d0916b5b7128fc98dd44630c397c7a1ce4ff9e7dfd16b1d0a",
@@ -22,6 +22,11 @@
         "assets/audio/whoosh-cinematic-sound-effect-376889.wav": "047880f09a5ee0b52c709f452451ae0af07ac2c635c6f0a551934908f4bdf072",
         "assets/audio/land2-43790.mp3": "fa538a84848473341ecab81be395d130ff0fc65467680259c58707e931d0f8e5",
         "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LONG LOOP 1min44s.wav": "d7c43f28ba15835f4aedd70fccf1c5685f8f221fde96af8b020f53b141aaa2d0",
-        "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LOOP 52s.wav": "f96c07ba69679cf3f9e291b0d767b7c6b6f25697ae85df2ad6e712c4df41d94d"
+        "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LOOP 52s.wav": "f96c07ba69679cf3f9e291b0d767b7c6b6f25697ae85df2ad6e712c4df41d94d",
+        "assets/audio/Combat Pack - vol 1/1. For Better Tomorrow - 120bpm - LOOP 56s.wav": "8f515e240a4be4895b272cfb588a4ede35f518104a2246ea25f5fd2d1c1bfb4b",
+        "assets/audio/Abyssal Horror SFX Vol.1/Abyssal Horror/Abyssal_Descent.mp3": "1ff85326261ee48c09834b3083c95f0f6c1afea6e3395bfb6ead7d535084883d",
+        "assets/audio/Combat Pack - vol 1/3. Time For a Revenge - 157bpm - LOOP 33s.wav": "b44076a2cc6b40bbf365c8b3f938737e316bc7e77b4e9a877645a8819dc27920",
+        "assets/audio/Combat Pack - vol 1/5. Only One Can Survive - 140bpm - 45s.wav": "9a6dfee0ea90928cbb02f3203017d02a4f47e3e23b18938a166790788ce8ef54",
+        "assets/audio/Abyssal Horror SFX Vol.1/Abyssal Horror/Abyssal_Descent1.mp3": "0324a5d48cca651e9e9131197e87e0959bd24b777da5c31671c7fa93bd4248d1"
     }
 }

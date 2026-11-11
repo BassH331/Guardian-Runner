@@ -24,33 +24,83 @@
         "jump": "assets/audio/land2-43790.mp3",
         "skeleton_spawn": "assets/audio/zombie-noise.mp3",
         "game_loop_2": "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LONG LOOP 1min44s.wav",
-        "game_loop": "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LOOP 52s.wav"
+        "game_loop": "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LOOP 52s.wav",
+        "zone_1_music": "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LOOP 52s.wav",
+        "zone_2_music": "assets/audio/1 Exploration TomMusic.ogg",
+        "zone_3_music": "assets/audio/Combat Pack - vol 1/1. For Better Tomorrow - 120bpm - LOOP 56s.wav",
+        "zone_4_music": "assets/audio/Abyssal Horror SFX Vol.1/Abyssal Horror/Abyssal_Descent.mp3",
+        "boss_combat_music": "assets/audio/Combat Pack - vol 1/3. Time For a Revenge - 157bpm - LOOP 33s.wav",
+        "final_boss_music": "assets/audio/Combat Pack - vol 1/5. Only One Can Survive - 140bpm - 45s.wav",
+        "corruption_drone": "assets/audio/Abyssal Horror SFX Vol.1/Abyssal Horror/Abyssal_Descent1.mp3"
     },
     "sound_metadata": {
         "collision_player_skeleton": {
             "category": "COLLISION",
-            "state": "\ud83d\udca5 Skeleton Hit",
+            "state": "💥 Skeleton Hit",
             "usage": "Player sword hit slicing/breaking Skeleton bones.",
             "color": "#f59e0b"
         },
         "skeleton_spawn": {
             "category": "SKELETON",
-            "state": "\ud83d\udc80 Skeleton Spawn",
+            "state": "💀 Skeleton Spawn",
             "usage": "Atmospheric spawn noise played when a new skeleton spawns.",
             "color": "#9333ea",
             "volume": 0.2
         },
         "game_loop_2": {
             "category": "MUSIC",
-            "state": "\ud83c\udfae Gameplay State",
+            "state": "🎮 Gameplay State",
             "usage": "Main active level & runner gameplay music loop.",
             "color": "#c084fc"
         },
         "game_loop": {
             "category": "MUSIC",
-            "state": "\ud83c\udfae Gameplay State",
+            "state": "🎮 Gameplay State",
             "usage": "Main active level & runner gameplay music loop.",
             "color": "#c084fc"
+        },
+        "zone_1_music": {
+            "category": "MUSIC",
+            "state": "🌲 Act I: Fallen Battlefield",
+            "usage": "Grim marching survival loop for Zone 1 (0 - 9,000px).",
+            "color": "#c084fc"
+        },
+        "zone_2_music": {
+            "category": "MUSIC",
+            "state": "🪦 Act II: Hollowed Graves",
+            "usage": "Lonely, haunting exploration theme for Zone 2 (9,000 - 18,000px).",
+            "color": "#818cf8"
+        },
+        "zone_3_music": {
+            "category": "MUSIC",
+            "state": "🌙 Act III: Moon-Shrines",
+            "usage": "Sacred resolve and melodic momentum for Zone 3 (18,000 - 27,000px).",
+            "color": "#38bdf8"
+        },
+        "zone_4_music": {
+            "category": "MUSIC",
+            "state": "🩸 Act IV: Bleeding Threshold",
+            "usage": "Oppressive dread approaching the Bleeding Great Tree (27,000 - 36,000px).",
+            "color": "#f43f5e"
+        },
+        "boss_combat_music": {
+            "category": "MUSIC",
+            "state": "⚔️ Boss Showdown",
+            "usage": "High-stakes tragic combat theme during fallen comrade boss duels.",
+            "color": "#ef4444"
+        },
+        "final_boss_music": {
+            "category": "MUSIC",
+            "state": "👑 Final Duel: Commander Kaelen",
+            "usage": "Climactic showdown music against Commander Kaelen (Dark Ronin).",
+            "color": "#fbbf24"
+        },
+        "corruption_drone": {
+            "category": "AMBIENT",
+            "state": "👁️ Corruption Undertone",
+            "usage": "Subtle abyssal undertone triggered when Corruption crosses 33% and 66%.",
+            "color": "#a855f7",
+            "volume": 0.3
         }
     },
     "collision_map": {
@@ -61,14 +111,15 @@
         "boss": "collision_player_boss",
         "fire_wizard": "collision_player_boss",
         "boss_wizard": "collision_player_boss",
+        "dark_ronin": "collision_player_boss",
         "bat": "collision_player_bat",
         "green_monster": "collision_player_green_monster",
         "defend": "collision_player_defend"
     },
     "boss_music_sequence": [
-        "game_loop",
-        "game_loop",
-        "game_loop",
-        "game_loop"
+        "zone_1_music",
+        "zone_2_music",
+        "zone_3_music",
+        "zone_4_music"
     ]
 }

@@ -49,7 +49,9 @@ class PlayerUI:
         self.souls_icon_pos = (20, self.corruption_bar_pos[1])
         self.relic_icon_pos = (20, self.corruption_bar_pos[1] + 62)
         self.power_up_icon_pos = (20, self.relic_icon_pos[1] + 52)
-        self.time_pos = (pg.display.Info().current_w - 160, 20)
+        surf = pg.display.get_surface() if pg.display.get_init() else None
+        screen_w = surf.get_width() if surf else (pg.display.Info().current_w if pg.display.get_init() else 1280)
+        self.time_pos = (screen_w - 16, 60)
 
         self.souls_icon = self.load_icon("assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png", (36, 36))
         self.corruption_icon = self.load_icon("assets/Free-Undead-Skill-Pixel-Art-Icons/PNG/Icon1.png", (36, 36))

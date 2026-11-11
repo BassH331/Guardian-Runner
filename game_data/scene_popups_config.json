@@ -1,6 +1,6 @@
 {
-  "version": "1.0",
-  "description": "Canonical Scene and Entity Pop-up Notification Configuration for Pixel-Runner",
+  "version": "2.0",
+  "description": "Canonical Scene, Zone, and Entity Pop-up Notification Configuration for Guardian Runner (The Cycle of Vessels)",
   "scenes": [
     {
       "id": "event_prologue_awakening",
@@ -8,13 +8,13 @@
       "distance": 0,
       "entity_id": null,
       "flag": null,
-      "title": "The Awakening",
-      "text": "DONT LOSE YOURSELF TO THE FOREST WARRIOR ...",
+      "title": "The Harvester's Brand",
+      "text": "Andras's sigil burns in your palm. Cut your fallen captains free and seal his Rift before his 10,000-soul tithe opens the gate.",
       "theme": "arcane_void",
       "icon": "assets/250 WARRIOR ICONS (pack by batareya)/17.png",
-      "hold": 6.0,
+      "hold": 5.5,
       "enabled": true,
-      "description": "Prologue intro at game start"
+      "description": "Prologue awakening at Zone 1 start (0m)"
     },
     {
       "id": "event_first_kill",
@@ -22,11 +22,11 @@
       "distance": 850,
       "entity_id": null,
       "flag": "first_kill",
-      "title": "First Kill",
-      "text": "The first of many more in this unholy trench",
+      "title": "Andras, Marquis of Discord",
+      "text": "Every soul your scythe reaps feeds the 10,000-soul tithe. Carve through your captains, Harvester - only a Watch oath can break my cage.",
       "theme": "blood_bone",
       "icon": "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png",
-      "hold": 9.0,
+      "hold": 6.0,
       "enabled": true,
       "description": "First kill confirmation"
     },
@@ -36,13 +36,13 @@
       "distance": 1013,
       "entity_id": 10,
       "flag": "book_ponder",
-      "title": "The Runner Wonders",
-      "text": "What does this demon want with me...?",
+      "title": "Muster Roll of the Watch",
+      "text": "The names of Corporal Vane, Garrick, Solen, and Commander Kaelen are written here in ink that smells of ash...",
       "theme": "grimoire_leather",
       "icon": "assets/graphics/magic_book_single/magic_book.png",
-      "hold": 6.0,
-      "enabled": true,
-      "description": "Player reflection following the Sealed Book encounter"
+      "hold": 5.5,
+      "enabled": false,
+      "description": "Disabled redundant ponder popup to keep HUD uncluttered"
     },
     {
       "id": "event_sealed_book_encounter",
@@ -50,11 +50,11 @@
       "distance": 1013,
       "entity_id": 10,
       "flag": null,
-      "title": "Grimoire of the Ancients",
-      "text": "The Runes of mortal demies, yet power here it lies, here him who speaks to those who look into his eyes",
+      "title": "Chronicle of the Fourth Vanguard",
+      "text": "Left beside a cold watchfire, this field ledger records how the four captains locked Andras behind the Bleeding Tree.",
       "theme": "grimoire_leather",
-      "icon": "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png",
-      "hold": 7.0,
+      "icon": "assets/graphics/magic_book_single/magic_book.png",
+      "hold": 5.5,
       "enabled": true,
       "description": "Encounter with the Sealed Book (Entity 10)"
     },
@@ -64,13 +64,13 @@
       "distance": 1080,
       "entity_id": null,
       "flag": "first_encounter",
-      "title": "The Whispering Grimoire",
-      "text": "take a look inside human, are you brave enough?",
+      "title": "Whispers in the Brush",
+      "text": "Andras's voice echoes beneath your ribs.",
       "theme": "blood_bone",
       "icon": "assets/graphics/magic_book_single/magic_book.png",
-      "hold": 9.5,
-      "enabled": true,
-      "description": "First encounter with an enemy in Level 1"
+      "hold": 5.5,
+      "enabled": false,
+      "description": "Disabled redundant first-encounter chatter"
     },
     {
       "id": "event_forest_inquiry_1400m",
@@ -78,41 +78,41 @@
       "distance": 1400,
       "entity_id": null,
       "flag": null,
-      "title": "The Runner Questions",
-      "text": "What in God's name is this forest...?",
+      "title": "Vane's Distress Marks",
+      "text": "Deep hash-marks are gouged into the bark ahead.",
       "theme": "clean_minimalist",
       "icon": "assets/graphics/UI/PNG/Exclamation_Yellow.png",
-      "hold": 6.0,
-      "enabled": true,
-      "description": "Distance milestone inquiry at 1,400m"
+      "hold": 5.0,
+      "enabled": false,
+      "description": "Disabled redundant distance inquiry to prevent popup overload"
     },
     {
       "id": "event_boss_blood_zombie",
       "trigger_type": "entity",
-      "distance": 2558,
+      "distance": 4500,
       "entity_id": 14,
       "flag": null,
-      "title": "The Crimson Horror",
-      "text": "A hulking mass of gore and necrotic sinew blocks your path. Survive the onslaught!",
+      "title": "Corporal Vane, The Weeping Husk",
+      "text": "Clad in the tattered cloak of the Fourth Vanguard, Corporal Vane weeps crimson sap - his body puppeted by Andras's hunger!",
       "theme": "blood_bone",
       "icon": "assets/free-undead-loot-pixel-art-icons (2)/PNG/Transperent/Icon1.png",
       "hold": 8.0,
       "enabled": true,
-      "description": "Blood Zombie Boss Arena (Entity 14 @ 2,558m)"
+      "description": "Corporal Vane / Blood Zombie Boss Arena (Entity 14 @ 4,500m)"
     },
     {
       "id": "event_demon_time_unlocked",
       "trigger_type": "distance",
-      "distance": 2600,
+      "distance": 4600,
       "entity_id": null,
       "flag": null,
-      "title": "Demon Time Unlocked",
-      "text": "The veil tears! Press [Q] to invoke Demon Time. Reality slows while your dark fury multiplies.",
+      "title": "Ocular Prism: The Eye of Andras",
+      "text": "Vane's final memory awakens the prism! Press [V] to invoke Demon Time - fracturing time while revealing the echoes of the fallen.",
       "theme": "arcane_void",
       "icon": "assets/graphics/ui/relic_icon.png",
       "hold": 7.5,
       "enabled": true,
-      "description": "Demon Time mechanic unlock @ 2,600m"
+      "description": "Demon Time mechanic unlock"
     },
     {
       "id": "event_moonstone_keeper",
@@ -121,7 +121,7 @@
       "entity_id": 13,
       "flag": null,
       "title": "The Moonstone Keeper",
-      "text": "The celestial guardian watches in silent vigil. Do you seek passage or severance?",
+      "text": "Standing vigil among the Hollowed Graves, the Keeper weighs your soul: 'Do you still remember the faces of those you seek?'",
       "theme": "arcane_void",
       "icon": "assets/graphics/ui/relic_icon.png",
       "hold": 7.0,
@@ -131,16 +131,16 @@
     {
       "id": "event_gatekeeper_encounter",
       "trigger_type": "entity",
-      "distance": 12500,
+      "distance": 13500,
       "entity_id": 1,
       "flag": null,
-      "title": "The Iron Gatekeeper",
-      "text": "None pass beyond the Obsidian Threshold without paying the iron toll.",
+      "title": "Garrick, The Iron Bulwark",
+      "text": "Your shield-brother Garrick stands fused to the Obsidian Arch - still keeping his oath that nothing shall pass the line!",
       "theme": "gothic_gold",
       "icon": "assets/graphics/UI/PNG/Exclamation_Yellow.png",
-      "hold": 7.0,
+      "hold": 7.5,
       "enabled": true,
-      "description": "Gatekeeper encounter (Entity 1 @ 12,500m)"
+      "description": "Garrick / Gatekeeper encounter (Entity 1 @ 13,500m)"
     },
     {
       "id": "event_soul_quota_betrayal",
@@ -148,8 +148,8 @@
       "distance": 20000,
       "entity_id": null,
       "flag": "soul_quota",
-      "title": "Harvester's Tithe",
-      "text": "Ten thousand souls consumed. The harvest is complete, yet the shadows demand greater tribute.",
+      "title": "Andras's True Design",
+      "text": "Ten thousand restless echoes stir in your wake! Andras never meant to save your company - he is forging you into his final vessel.",
       "theme": "blood_bone",
       "icon": "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png",
       "hold": 7.5,
@@ -157,18 +157,32 @@
       "description": "10,000 Souls Harvested milestone"
     },
     {
+      "id": "event_pyromancer_solen",
+      "trigger_type": "entity",
+      "distance": 25500,
+      "entity_id": 25,
+      "flag": null,
+      "title": "Pyromancer Solen, The Ash Keeper",
+      "text": "At the heart of Candora's ruined shrine, Pyromancer Solen fights the hellfire consuming his robes - protecting one last Silver Tear for you!",
+      "theme": "gothic_gold",
+      "icon": "assets/graphics/ui/powerup_invincible.png",
+      "hold": 8.0,
+      "enabled": true,
+      "description": "Pyromancer Solen / FireWizard Boss (Entity 25 @ 25,500m)"
+    },
+    {
       "id": "event_fabricators_enforcer",
       "trigger_type": "entity",
       "distance": 34500,
       "entity_id": 3,
       "flag": null,
-      "title": "The Fabricator's Enforcer",
-      "text": "Clanking gears of malice screech in the dark. The final sentinel awakens to crush your escape.",
-      "theme": "clean_minimalist",
+      "title": "Commander Kaelen, The Hollowed Mentor",
+      "text": "Beneath the Bleeding Great Tree stands Commander Kaelen - the mentor who taught you the blade, now bound as Andras's Dark Ronin!",
+      "theme": "arcane_void",
       "icon": "assets/free-undead-loot-pixel-art-icons (2)/PNG/Transperent/Icon1.png",
-      "hold": 8.0,
+      "hold": 8.5,
       "enabled": true,
-      "description": "Fabricator's Enforcer (Entity 3 @ 34,500m)"
+      "description": "Commander Kaelen / DarkRonin Final Boss (Entity 3 @ 34,500m)"
     },
     {
       "id": "event_level_complete",
@@ -176,13 +190,13 @@
       "distance": 36000,
       "entity_id": null,
       "flag": null,
-      "title": "Extraction Achieved",
-      "text": "The catacomb collapses behind you. You emerge into the twilight, drenched in blood and glory.",
+      "title": "Threshold of the Great Tree",
+      "text": "The Bleeding Tree's roots part before you. The memories of the Fourth Vanguard - and the fate of your soul - converge at last.",
       "theme": "gothic_gold",
       "icon": "assets/graphics/ui/relic_icon.png",
       "hold": 9.0,
       "enabled": true,
-      "description": "Level 1 Extraction / Complete @ 36,000m"
+      "description": "Level 1 Complete @ 36,000m"
     }
   ]
 }

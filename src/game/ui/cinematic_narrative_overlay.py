@@ -171,6 +171,17 @@ class CinematicNarrativeOverlay:
                             except pg.error:
                                 pass
                         raw_frames = [img]
+                    m_single = re.search(r"_strip(\d+)\.png$", resolved_path, re.IGNORECASE)
+                    if m_single and len(raw_frames) == 1:
+                        n_f = max(1, int(m_single.group(1)))
+                        sheet = raw_frames[0]
+                        fw = sheet.get_width() // n_f
+                        fh = sheet.get_height()
+                        if fw > 0 and fh > 0:
+                            raw_frames = [
+                                sheet.subsurface(pg.Rect(idx_f * fw, 0, fw, fh)).copy()
+                                for idx_f in range(n_f)
+                            ]
                 elif os.path.isdir(resolved_path):
                     # Check for direct PNG files
                     direct_pngs = sorted(
@@ -236,14 +247,32 @@ class CinematicNarrativeOverlay:
                             )
 
                     if direct_pngs:
-                        for png_file in direct_pngs:
-                            img = pg.image.load(png_file)
+                        # If folder contains horizontal strip sheets (e.g. spr_RoninIdle_strip8.png), prefer the idle strip and slice it
+                        strip_files = [p for p in direct_pngs if re.search(r"_strip\d+\.png$", p, re.IGNORECASE)]
+                        if strip_files:
+                            idle_strips = [p for p in strip_files if "idle" in os.path.basename(p).lower()]
+                            chosen_strip = idle_strips[0] if idle_strips else strip_files[0]
+                            m_strip = re.search(r"_strip(\d+)\.png$", chosen_strip, re.IGNORECASE)
+                            n_f = max(1, int(m_strip.group(1))) if m_strip else 1
+                            sheet = pg.image.load(chosen_strip)
                             if pg.display.get_surface():
                                 try:
-                                    img = img.convert_alpha()
+                                    sheet = sheet.convert_alpha()
                                 except pg.error:
                                     pass
-                            raw_frames.append(img)
+                            fw = sheet.get_width() // n_f
+                            fh = sheet.get_height()
+                            for idx_f in range(n_f):
+                                raw_frames.append(sheet.subsurface(pg.Rect(idx_f * fw, 0, fw, fh)).copy())
+                        else:
+                            for png_file in direct_pngs:
+                                img = pg.image.load(png_file)
+                                if pg.display.get_surface():
+                                    try:
+                                        img = img.convert_alpha()
+                                    except pg.error:
+                                        pass
+                                raw_frames.append(img)
                     else:
                         # Fallback to AssetManager
                         frames = AssetManager.get_animation_frames(resolved_path)

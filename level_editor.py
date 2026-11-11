@@ -2517,6 +2517,15 @@ class App:
         cam_center = self.cam_x + 500.0
         gy = float(self.env_mgr.ground_y)
         init_scale = 1.0
+        anim_grid = None
+        fname_lower = os.path.basename(texture_path).lower()
+        if fname_lower in EnvironmentProp.SPRITESHEET_GRIDS:
+            cols, rows = EnvironmentProp.SPRITESHEET_GRIDS[fname_lower]
+            raw_tex = AssetManager.get_texture(texture_path)
+            cell_w = max(1, raw_tex.get_width() // cols)
+            cell_h = max(1, raw_tex.get_height() // rows)
+            slice_rect = [0, 0, cell_w, cell_h]
+            anim_grid = [cols, rows]
         slice_h = slice_rect[3] if slice_rect and len(slice_rect) >= 4 else 64
         target_layer = self.active_layer_filter
         target_ratio = 1.0 if target_layer in (3, 4, 6) else self.env_mgr.layer_stacks.get(target_layer, {}).get("scroll_ratio", 1.0)
@@ -2533,6 +2542,7 @@ class App:
             flip_y=False,
             is_ground=is_terrain,
             collision_type="solid" if is_terrain else "deco",
+            anim_grid=anim_grid,
         )
         self.env_mgr.props.append(new_prop)
         self.selected_prop_idx = len(self.env_mgr.props) - 1
@@ -2554,6 +2564,14 @@ class App:
                 is_ground=getattr(p, "is_ground", False),
                 collision_type=getattr(p, "collision_type", "deco"),
                 collision_offset_y=getattr(p, "collision_offset_y", 0.0),
+                in_front=getattr(p, "in_front", None),
+                anim_speed=getattr(p, "anim_speed", 0.1),
+                anim_grid=copy.deepcopy(getattr(p, "anim_grid", None)),
+                trap_hp=getattr(p, "trap_max_hp", 0.0),
+                trap_loop_frames=getattr(p, "trap_loop_frames", 0),
+                trap_hazard_range=copy.deepcopy(getattr(p, "trap_hazard_range", None)),
+                trap_telegraph_range=copy.deepcopy(getattr(p, "trap_telegraph_range", None)),
+                trap_reward_souls=getattr(p, "trap_reward_souls", 0),
             )
             self.env_mgr.props.append(cloned)
             self.selected_prop_idx = len(self.env_mgr.props) - 1
@@ -2977,26 +2995,7 @@ class App:
             self.surf.blit(self.sf.render(f"Scale / Size: {prop.scale:.1f}x", True, TXT2), (14, left_panel.y + 148))
 
             def _adj_pscale(delta: float):
-                prop.scale = max(0.2, round(prop.scale + delta, 1))
-                raw_texture = AssetManager.get_texture(prop.texture_path)
-                if prop.slice_rect and len(prop.slice_rect) == 4:
-                    rx, ry, rw, rh = prop.slice_rect
-                    rx = max(0, min(rx, raw_texture.get_width() - 1))
-                    ry = max(0, min(ry, raw_texture.get_height() - 1))
-                    rw = max(1, min(rw, raw_texture.get_width() - rx))
-                    rh = max(1, min(rh, raw_texture.get_height() - ry))
-                    sub_surf = raw_texture.subsurface(pg.Rect(rx, ry, rw, rh))
-                else:
-                    sub_surf = raw_texture
-
-                if prop.flip_x or prop.flip_y:
-                    sub_surf = pg.transform.flip(sub_surf, prop.flip_x, prop.flip_y)
-
-                target_w = max(1, int(sub_surf.get_width() * prop.scale))
-                target_h = max(1, int(sub_surf.get_height() * prop.scale))
-                prop.image = pg.transform.smoothscale(sub_surf, (target_w, target_h))
-                prop.width = prop.image.get_width()
-                prop.height = prop.image.get_height()
+                prop.set_scale(max(0.2, round(prop.scale + delta, 1)))
                 self.level_data["environment"] = self.env_mgr.to_config_dict()
 
             def _set_pscale(target: float):

@@ -1,10 +1,12 @@
 """
-Environment Manager — Data-driven manager for game backgrounds, sky layers, ground, and audio themes.
+Environment Manager  -  Data-driven manager for game backgrounds, sky layers, ground,
+animated props, environmental storytelling landmarks, and audio themes.
 """
 
 from __future__ import annotations
 
 import os
+import math
 from typing import List, Dict, Any, Optional, Tuple
 import pygame as pg
 
@@ -92,7 +94,12 @@ class ParallaxLayer:
 
 
 class EnvironmentProp:
-    """Represents a sliced prop or tileset object placed into the environment."""
+    """Represents a sliced prop, animated landmark, or tileset object placed into the environment."""
+
+    # Known multi-frame grid sprite sheets: lowercase filename -> (cols, rows)
+    SPRITESHEET_GRIDS: Dict[str, Tuple[int, int]] = {
+        "large skull.png": (10, 4),
+    }
 
     def __init__(
         self,
@@ -110,6 +117,20 @@ class EnvironmentProp:
         collision_offset_y: float = 0.0,
         in_front: Optional[bool] = None,
         anim_speed: float = 0.1,
+        anim_grid: Optional[List[int]] = None,  # [cols, rows] or [cols, rows, frame_count]
+        trap_hp: float = 0.0,
+        trap_loop_frames: int = 0,
+        trap_hazard_range: Optional[List[int]] = None,
+        trap_telegraph_range: Optional[List[int]] = None,
+        trap_reward_souls: int = 0,
+        lore_id: Optional[str] = None,
+        lore_title: Optional[str] = None,
+        lore_text: Optional[str] = None,
+        corruption_low: Optional[str] = None,
+        corruption_high: Optional[str] = None,
+        glow_color: Optional[List[int]] = None,
+        proximity_radius: float = 0.0,
+        ambient_sfx: Optional[str] = None,
     ) -> None:
         self.texture_path = texture_path
         self.slice_rect = slice_rect
@@ -124,13 +145,40 @@ class EnvironmentProp:
         self.is_ground = (collision_type in ("solid", "platform")) if is_ground is None else bool(is_ground)
         self.collision_offset_y = collision_offset_y
         self.in_front = in_front
-        self.anim_speed = anim_speed
+        self.anim_speed = float(anim_speed) if anim_speed else 0.1
+        self.anim_grid = list(anim_grid) if anim_grid else None
+        self.trap_max_hp = float(trap_hp) if trap_hp else 0.0
+        self.trap_hp = self.trap_max_hp
+        self.trap_loop_frames = int(trap_loop_frames) if trap_loop_frames else 0
+        self.trap_hazard_range = list(trap_hazard_range) if trap_hazard_range else None
+        self.trap_telegraph_range = list(trap_telegraph_range) if trap_telegraph_range else None
+        self.trap_reward_souls = int(trap_reward_souls) if trap_reward_souls else 0
+        self.trap_state: str = "active"  # "active" -> "dissolving" -> "destroyed"
+        self._trap_hurt_flash: float = 0.0
+        self._ground_scorch_heat: float = 0.0
+        self._fire_sparks: List[Dict[str, float]] = []
+        self._spark_spawn_accum: float = 0.0
         self.anim_timer = 0.0
         self.frame_idx = 0
         self.frames: List[pg.Surface] = []
+        self._frame_paths: List[str] = []
+
+        # Environmental storytelling & atmosphere metadata
+        self.lore_id = lore_id
+        self.lore_title = lore_title
+        self.lore_text = lore_text
+        self.corruption_low = corruption_low
+        self.corruption_high = corruption_high
+        self.glow_color = glow_color
+        self.proximity_radius = float(proximity_radius) if proximity_radius else 0.0
+        self.ambient_sfx = ambient_sfx
+        self._lore_triggered: bool = False
+        self._pulse_clock: float = float((int(pos_x) % 100) * 0.07)
+
+        tex_lower = (texture_path or "").lower()
+        self._is_fire_prop: bool = ("fireplace" in tex_lower or "torch" in tex_lower or "fire" in tex_lower)
 
         # Automatic frame sequence detection for animated props (e.g. fire/torch frames)
-        frame_paths: List[str] = []
         if texture_path:
             parent_dir = os.path.dirname(texture_path)
             base_name = os.path.basename(texture_path)
@@ -141,54 +189,244 @@ class EnvironmentProp:
                     if f.lower().endswith(".png")
                 ])
                 if len(candidates) > 1 and ("frame_" in base_name.lower() or parent_dir.endswith("_frames")):
-                    frame_paths = candidates
+                    self._frame_paths = candidates
 
-        def _process_surface(raw_tex: pg.Surface) -> pg.Surface:
-            if slice_rect and len(slice_rect) == 4:
-                rx, ry, rw, rh = slice_rect
-                rx = max(0, min(rx, raw_tex.get_width() - 1))
-                ry = max(0, min(ry, raw_tex.get_height() - 1))
-                rw = max(1, min(rw, raw_tex.get_width() - rx))
-                rh = max(1, min(rh, raw_tex.get_height() - ry))
-                sub_surf = raw_tex.subsurface(pg.Rect(rx, ry, rw, rh))
-            else:
-                sub_surf = raw_tex
+        self.rebuild_frames()
 
-            if flip_x or flip_y:
-                sub_surf = pg.transform.flip(sub_surf, flip_x, flip_y)
+    def _transform_surface(self, sub_surf: pg.Surface) -> pg.Surface:
+        """Apply configured flip and scale transformations to a frame surface."""
+        if self.flip_x or self.flip_y:
+            sub_surf = pg.transform.flip(sub_surf, self.flip_x, self.flip_y)
 
-            if scale != 1.0:
-                target_w = max(1, int(sub_surf.get_width() * scale))
-                target_h = max(1, int(sub_surf.get_height() * scale))
-                return pg.transform.smoothscale(sub_surf, (target_w, target_h))
-            return sub_surf
+        if self.scale != 1.0:
+            target_w = max(1, int(sub_surf.get_width() * self.scale))
+            target_h = max(1, int(sub_surf.get_height() * self.scale))
+            return pg.transform.smoothscale(sub_surf, (target_w, target_h))
+        return sub_surf
 
-        if frame_paths:
-            for fp in frame_paths:
+    def _slice_single_surface(self, raw_tex: pg.Surface, rect_spec: Optional[List[int]]) -> pg.Surface:
+        """Subsurface and transform a region of raw_tex."""
+        if rect_spec and len(rect_spec) == 4:
+            rx, ry, rw, rh = rect_spec
+            rx = max(0, min(rx, raw_tex.get_width() - 1))
+            ry = max(0, min(ry, raw_tex.get_height() - 1))
+            rw = max(1, min(rw, raw_tex.get_width() - rx))
+            rh = max(1, min(rh, raw_tex.get_height() - ry))
+            sub_surf = raw_tex.subsurface(pg.Rect(rx, ry, rw, rh))
+        else:
+            sub_surf = raw_tex
+        return self._transform_surface(sub_surf)
+
+    def _resolve_spritesheet_grid(self, raw_tex: pg.Surface) -> Optional[Tuple[int, int, int]]:
+        """Return (cols, rows, max_frames) if this prop is an animated grid spritesheet."""
+        rw, rh = raw_tex.get_size()
+        grid = self.anim_grid
+        if grid and len(grid) >= 2:
+            cols, rows = int(grid[0]), int(grid[1])
+            max_frames = int(grid[2]) if len(grid) >= 3 else cols * rows
+            if cols >= 1 and rows >= 1 and cols * rows > 1:
+                return cols, rows, max_frames
+
+        fname = os.path.basename(self.texture_path or "").lower()
+        if fname in self.SPRITESHEET_GRIDS:
+            cols, rows = self.SPRITESHEET_GRIDS[fname]
+            cell_w = rw // cols
+            cell_h = rh // rows
+            if cell_w > 0 and cell_h > 0:
+                # Only treat as animated sheet if slice_rect fits inside a single cell (or is unset)
+                if not self.slice_rect or (
+                    len(self.slice_rect) == 4
+                    and self.slice_rect[0] + self.slice_rect[2] <= cell_w
+                    and self.slice_rect[1] + self.slice_rect[3] <= cell_h
+                ):
+                    return cols, rows, cols * rows
+        return None
+
+    def rebuild_frames(self) -> None:
+        """Build or rebuild scaled animation frames and current display surface."""
+        self.frames = []
+        if self._frame_paths:
+            for fp in self._frame_paths:
                 try:
                     tex = AssetManager.get_texture(fp)
                     if tex and tex.get_width() > 0 and tex.get_height() > 0:
-                        self.frames.append(_process_surface(tex))
+                        self.frames.append(self._slice_single_surface(tex, self.slice_rect))
                 except Exception:
                     pass
 
+        if not self.frames:
+            raw_texture = AssetManager.get_texture(self.texture_path)
+            grid_info = self._resolve_spritesheet_grid(raw_texture)
+            if grid_info is not None:
+                cols, rows, max_frames = grid_info
+                tw, th = raw_texture.get_size()
+                cell_w = max(1, tw // cols)
+                cell_h = max(1, th // rows)
+                sub_rx, sub_ry, sub_rw, sub_rh = 0, 0, cell_w, cell_h
+                if self.slice_rect and len(self.slice_rect) == 4:
+                    rx, ry, rw_s, rh_s = self.slice_rect
+                    if 0 <= rx and 0 <= ry and rx + rw_s <= cell_w and ry + rh_s <= cell_h:
+                        sub_rx, sub_ry, sub_rw, sub_rh = rx, ry, rw_s, rh_s
+
+                count = 0
+                for r in range(rows):
+                    for c in range(cols):
+                        if count >= max_frames:
+                            break
+                        fx = c * cell_w + sub_rx
+                        fy = r * cell_h + sub_ry
+                        cell_rect = pg.Rect(fx, fy, min(sub_rw, tw - fx), min(sub_rh, th - fy))
+                        cell_sub = raw_texture.subsurface(cell_rect)
+                        if cell_sub.get_bounding_rect().width > 0:
+                            self.frames.append(self._transform_surface(cell_sub))
+                        count += 1
+
         if self.frames:
-            self.image = self.frames[0]
+            self.frame_idx = self.frame_idx % len(self.frames)
+            self.image = self.frames[self.frame_idx]
         else:
-            raw_texture = AssetManager.get_texture(texture_path)
-            self.image = _process_surface(raw_texture)
+            raw_texture = AssetManager.get_texture(self.texture_path)
+            self.image = self._slice_single_surface(raw_texture, self.slice_rect)
 
         self.width = self.image.get_width()
         self.height = self.image.get_height()
 
+    def set_scale(self, new_scale: float) -> None:
+        """Update prop scale and rebuild all animation frames cleanly."""
+        self.scale = max(0.2, float(new_scale))
+        self.rebuild_frames()
+
+    def is_destructible_trap(self) -> bool:
+        """Return True if this prop can currently be struck and banished in combat."""
+        return self.trap_max_hp > 0.0 and self.trap_state == "active"
+
+    def is_hazard_active(self) -> bool:
+        """Return True when this hazard prop's damaging window is active."""
+        if self.collision_type != "hazard" or self.trap_state != "active":
+            return False
+        if self.trap_hazard_range and len(self.trap_hazard_range) >= 2:
+            return int(self.trap_hazard_range[0]) <= self.frame_idx <= int(self.trap_hazard_range[1])
+        return True
+
+    def is_telegraph_active(self) -> bool:
+        """Return True right before the hazard eruption fires."""
+        if self.trap_state != "active":
+            return False
+        if self.trap_telegraph_range and len(self.trap_telegraph_range) >= 2:
+            return int(self.trap_telegraph_range[0]) <= self.frame_idx <= int(self.trap_telegraph_range[1])
+        return False
+
+    def get_world_hitbox(self, cam_x: float = 0.0) -> pg.Rect:
+        """Return screen-space hitbox tightened around the visible core of the prop."""
+        draw_x = int(self.pos_x - cam_x * self.parallax_ratio)
+        draw_y = int(self.pos_y)
+        if self.anim_grid or os.path.basename(self.texture_path or "").lower() in self.SPRITESHEET_GRIDS:
+            pad_x = int(self.width * 0.22)
+            pad_top = int(self.height * 0.08)
+            pad_bot = int(self.height * 0.06)
+            return pg.Rect(
+                draw_x + pad_x,
+                draw_y + pad_top,
+                max(12, self.width - pad_x * 2),
+                max(12, self.height - pad_top - pad_bot),
+            )
+        return pg.Rect(draw_x, draw_y, self.width, self.height)
+
+    def take_trap_damage(self, amount: float) -> bool:
+        """Apply damage to a destructible trap prop. Returns True if newly banished."""
+        if not self.is_destructible_trap() or amount <= 0:
+            return False
+        self.trap_hp = max(0.0, self.trap_hp - float(amount))
+        self._trap_hurt_flash = 0.16
+        if self.trap_hp <= 0.0:
+            self.trap_state = "dissolving"
+            if self.trap_loop_frames > 0 and self.trap_loop_frames < len(self.frames):
+                self.frame_idx = self.trap_loop_frames
+            else:
+                self.frame_idx = 0
+            self.anim_timer = 0.0
+            if self.frames:
+                self.image = self.frames[self.frame_idx]
+            return True
+        return False
+
     def update(self, dt: float = 0.0) -> None:
-        """Advance animated prop frame sequence."""
+        """Advance animated prop frame sequence, trap state machine, and pulse timer."""
+        if dt > 0:
+            self._pulse_clock += dt
+        if self._trap_hurt_flash > 0.0 and dt > 0:
+            self._trap_hurt_flash = max(0.0, self._trap_hurt_flash - dt)
+
+        if self.trap_state == "destroyed":
+            return
+
+        # Simulate ground-impact fire heat, lateral bouncing sparks, and rising ash wisps
+        is_eruption = self.is_hazard_active()
+        is_telegraph = self.is_telegraph_active()
+        if dt > 0 and self.trap_max_hp > 0:
+            target_heat = 1.0 if is_eruption else (0.45 if is_telegraph else 0.12)
+            lerp_rate = 8.0 if target_heat > self._ground_scorch_heat else 1.8
+            self._ground_scorch_heat += (target_heat - self._ground_scorch_heat) * min(1.0, dt * lerp_rate)
+
+            if is_eruption or is_telegraph:
+                spawn_hz = 48.0 if is_eruption else 14.0
+                self._spark_spawn_accum += dt * spawn_hz
+                while self._spark_spawn_accum >= 1.0 and len(self._fire_sparks) < 70:
+                    self._spark_spawn_accum -= 1.0
+                    seed = math.sin(self._pulse_clock * 31.7 + len(self._fire_sparks) * 1.91)
+                    seed2 = math.cos(self._pulse_clock * 19.3 + len(self._fire_sparks) * 2.37)
+                    is_smoke = (len(self._fire_sparks) % 5 == 0)
+                    spread = self.width * (0.34 if is_eruption else 0.18)
+                    dir_sign = 1.0 if seed >= 0 else -1.0
+                    self._fire_sparks.append({
+                        "ox": seed * spread * 0.45,
+                        "oy": -4.0 + abs(seed2) * 10.0,
+                        "vx": dir_sign * (45.0 + abs(seed2) * (170.0 if is_eruption else 65.0)),
+                        "vy": -(55.0 + abs(seed) * (135.0 if is_eruption else 60.0)),
+                        "life": 0.0,
+                        "max_life": 0.45 + abs(seed2) * 0.55,
+                        "size": 2.0 + abs(seed) * (4.0 if is_smoke else 2.5),
+                        "smoke": 1.0 if is_smoke else 0.0,
+                    })
+
+            if self._fire_sparks:
+                alive_sparks: List[Dict[str, float]] = []
+                for sp in self._fire_sparks:
+                    sp["life"] += dt
+                    if sp["life"] >= sp["max_life"]:
+                        continue
+                    if sp["smoke"] > 0.5:
+                        sp["vx"] *= max(0.0, 1.0 - 1.5 * dt)
+                        sp["vy"] -= 25.0 * dt  # smoke rises softly
+                    else:
+                        sp["vy"] += 380.0 * dt  # sparks arc & bounce off dirt
+                    sp["ox"] += sp["vx"] * dt
+                    sp["oy"] += sp["vy"] * dt
+                    if sp["smoke"] < 0.5 and sp["oy"] > 12.0:
+                        sp["oy"] = 12.0
+                        sp["vy"] = -abs(sp["vy"]) * 0.42
+                        sp["vx"] *= 0.72
+                    alive_sparks.append(sp)
+                self._fire_sparks = alive_sparks
+
         if len(self.frames) > 1 and dt > 0:
             self.anim_timer += dt
             if self.anim_timer >= self.anim_speed:
                 steps = int(self.anim_timer / self.anim_speed)
                 self.anim_timer -= steps * self.anim_speed
-                self.frame_idx = (self.frame_idx + steps) % len(self.frames)
+                if self.trap_state == "dissolving":
+                    next_idx = self.frame_idx + steps
+                    if next_idx >= len(self.frames):
+                        self.trap_state = "destroyed"
+                        return
+                    self.frame_idx = next_idx
+                else:
+                    loop_len = (
+                        self.trap_loop_frames
+                        if (0 < self.trap_loop_frames <= len(self.frames))
+                        else len(self.frames)
+                    )
+                    self.frame_idx = (self.frame_idx + steps) % loop_len
                 self.image = self.frames[self.frame_idx]
 
     def is_in_front(self) -> bool:
@@ -198,13 +436,217 @@ class EnvironmentProp:
         return self.layer_index >= 7
 
     def draw(self, surface: pg.Surface, cam_x: float = 0.0, cam_y: float = 0.0) -> None:
+        if self.trap_state == "destroyed":
+            return
+
         draw_x = int(self.pos_x - cam_x * self.parallax_ratio)
         draw_y = int(self.pos_y - cam_y)
         sw, sh = surface.get_size()
-        if draw_x + self.width < 0 or draw_x > sw or draw_y + self.height < 0 or draw_y > sh:
+        if draw_x + self.width < -60 or draw_x > sw + 60 or draw_y + self.height < -60 or draw_y > sh + 60:
             return
 
+        # Render subtle atmospheric glow around interactive lore landmarks, traps, & fire/shrine props
+        is_hazard_eruption = self.is_hazard_active()
+        is_telegraph = self.is_telegraph_active()
+        has_aura = (self.glow_color is not None) or bool(self.lore_text) or self._is_fire_prop or is_telegraph or is_hazard_eruption
+        if has_aura:
+            pulse = (math.sin(self._pulse_clock * 3.2) + 1.0) * 0.5
+            if is_hazard_eruption:
+                gr, gg, gb = 255, 95, 25
+            elif is_telegraph:
+                gr, gg, gb = 255, 175, 50
+            elif self.glow_color and len(self.glow_color) >= 3:
+                gr, gg, gb = int(self.glow_color[0]), int(self.glow_color[1]), int(self.glow_color[2])
+            elif self._is_fire_prop:
+                gr, gg, gb = 255, 165, 55
+            else:
+                gr, gg, gb = 140, 195, 255
+
+            radius = max(28, min(125, int(max(self.width, self.height) * (0.58 if is_hazard_eruption else 0.52))))
+            aura_size = radius * 2
+            aura_surf = pg.Surface((aura_size, aura_size), pg.SRCALPHA)
+            outer_alpha = int((45 if is_hazard_eruption else 22) + (35 if is_hazard_eruption else 26) * pulse)
+            inner_alpha = int((70 if is_hazard_eruption else 42) + (45 if is_hazard_eruption else 38) * pulse)
+            pg.draw.circle(aura_surf, (gr, gg, gb, outer_alpha), (radius, radius), radius)
+            pg.draw.circle(aura_surf, (min(255, gr + 30), min(255, gg + 30), min(255, gb + 30), inner_alpha), (radius, radius), int(radius * 0.55))
+
+            cx = draw_x + self.width // 2
+            cy = (draw_y + int(self.height * 0.25)) if "torch" in (self.texture_path or "").lower() else (draw_y + int(self.height * 0.58))
+            surface.blit(aura_surf, (cx - radius, cy - radius))
+
+        # ── AAA Ground-Impact Fire FX (behind sprite: charred crater + additive floor light) ──
+        has_ground_fire = self.trap_max_hp > 0 and (
+            self._ground_scorch_heat > 0.02 or is_hazard_eruption or is_telegraph
+        )
+        if has_ground_fire:
+            self._draw_ground_impact_base(surface, draw_x, draw_y, is_hazard_eruption, is_telegraph)
+
         surface.blit(self.image, (draw_x, draw_y))
+
+        # ── AAA Ground-Impact Fire FX (over seam: rolling ground flame licks & splash sparks) ──
+        if has_ground_fire:
+            self._draw_ground_impact_foreground(surface, draw_x, draw_y, is_hazard_eruption, is_telegraph)
+
+        # Strike hit flash for destructible traps
+        if self._trap_hurt_flash > 0.0:
+            flash_surf = self.image.copy()
+            flash_surf.fill((255, 200, 160, 120), special_flags=pg.BLEND_RGBA_ADD)
+            surface.blit(flash_surf, (draw_x, draw_y))
+
+        # Compact HP bar above damaged destructible trap
+        if self.trap_state == "active" and self.trap_max_hp > 0 and self.trap_hp < self.trap_max_hp:
+            bar_w = min(140, max(64, self.width // 2))
+            bar_h = 7
+            bx = draw_x + (self.width - bar_w) // 2
+            by = draw_y + max(0, int(self.height * 0.04)) - 12
+            pg.draw.rect(surface, (20, 12, 24), (bx - 1, by - 1, bar_w + 2, bar_h + 2), border_radius=3)
+            ratio = max(0.0, min(1.0, self.trap_hp / self.trap_max_hp))
+            pg.draw.rect(surface, (235, 65, 45), (bx, by, int(bar_w * ratio), bar_h), border_radius=2)
+
+        # Procedural flickering flame crown for Standing Torches that only have a static post sprite
+        if "standing torch" in (self.texture_path or "").lower() and len(self.frames) <= 1:
+            flicker = math.sin(self._pulse_clock * 9.5) * 2.5
+            flame_x = draw_x + self.width // 2 + int(flicker * 0.4)
+            flame_y = draw_y + max(4, int(self.height * 0.08))
+            flame_surf = pg.Surface((28, 28), pg.SRCALPHA)
+            pg.draw.circle(flame_surf, (255, 120, 20, 150), (14, 14), int(10 + abs(flicker)))
+            pg.draw.circle(flame_surf, (255, 210, 70, 220), (14, 14), 6)
+            pg.draw.circle(flame_surf, (255, 250, 200, 245), (14, 14), 3)
+            surface.blit(flame_surf, (flame_x - 14, flame_y - 14))
+
+    def _draw_ground_impact_base(
+        self,
+        surface: pg.Surface,
+        draw_x: int,
+        draw_y: int,
+        is_eruption: bool,
+        is_telegraph: bool,
+    ) -> None:
+        """Render pixel-matched charred ash bed, cracked embers, and soft additive light on dirt."""
+        cx = draw_x + self.width // 2
+        gy = draw_y + self.height
+        heat = max(self._ground_scorch_heat, 0.9 if is_eruption else (0.45 if is_telegraph else 0.12))
+        pulse = (math.sin(self._pulse_clock * 11.0) + 1.0) * 0.5
+
+        # 1. Soft quadratic radial additive light spill (feathers smoothly to 0 at edge -> zero hard ellipse rim)
+        if heat > 0.18:
+            lw_g = 64
+            lh_g = 18
+            low_glow = pg.Surface((lw_g, lh_g), pg.SRCALPHA)
+            gcx, gcy = lw_g * 0.5, lh_g * 0.5
+            for y in range(lh_g):
+                dy = (y - gcy) / max(1.0, lh_g * 0.48)
+                for x in range(lw_g):
+                    dx = (x - gcx) / max(1.0, lw_g * 0.48)
+                    d2 = dx * dx + dy * dy
+                    if d2 >= 1.0:
+                        continue
+                    falloff = (1.0 - d2) ** 2.2
+                    a = int(min(130, 125 * falloff * heat * (0.85 + 0.15 * pulse)))
+                    if a > 1:
+                        low_glow.set_at((x, y), (245, int(90 + 95 * falloff), int(15 + 30 * falloff), a))
+            target_glow_w = int(self.width * 1.45)
+            target_glow_h = 88
+            scaled_glow = pg.transform.smoothscale(low_glow, (target_glow_w, target_glow_h))
+            surface.blit(scaled_glow, (cx - target_glow_w // 2, gy - target_glow_h // 2 + 2), special_flags=pg.BLEND_RGBA_ADD)
+
+        # 2. Pixel-grid (1/3 scale -> 3x upscale) irregular charred dirt crater & glowing ember veins
+        px_scale = max(2, int(round(self.scale)))
+        lw = max(32, int(self.width * 1.08) // px_scale)
+        lh = 14
+        low_bed = pg.Surface((lw, lh), pg.SRCALPHA)
+        cy_l = lh // 2
+        cx_l = lw // 2
+        for x in range(lw):
+            nx = (x - cx_l) / float(max(1, lw * 0.48))
+            if abs(nx) > 1.0:
+                continue
+            noise = math.sin(x * 0.75 + 1.3) * 0.18 + math.cos(x * 1.9) * 0.12
+            span_y = max(1, int((1.0 - nx * nx + noise) * (lh * 0.42)))
+            for y in range(max(0, cy_l - span_y), min(lh, cy_l + span_y + 1)):
+                dy_n = abs(y - cy_l) / float(max(1, span_y))
+                edge_fade = max(0.0, 1.0 - (nx * nx * 0.7 + dy_n * dy_n * 0.7))
+                if edge_fade <= 0.05:
+                    continue
+                # Dark soot footprint on dirt
+                soot_a = int(min(185, (45 + 115 * heat) * edge_fade))
+                low_bed.set_at((x, y), (18, 11, 10, soot_a))
+                # Glowing magma cracks inside core of scorched dirt
+                if heat > 0.25 and edge_fade > 0.38 and ((x * 7 + y * 13) % 11 in (0, 3)):
+                    glow_a = int(min(220, 190 * heat * edge_fade * (0.7 + 0.3 * pulse)))
+                    low_bed.set_at((x, y), (245, 105 + int(85 * pulse), 25, glow_a))
+
+        scaled_bed = pg.transform.scale(low_bed, (lw * px_scale, lh * px_scale))
+        surface.blit(scaled_bed, (cx - (lw * px_scale) // 2, gy - (lh * px_scale) // 2 + 4))
+
+    def _draw_ground_impact_foreground(
+        self,
+        surface: pg.Surface,
+        draw_x: int,
+        draw_y: int,
+        is_eruption: bool,
+        is_telegraph: bool,
+    ) -> None:
+        """Mask flat tile seam with pixel-matched flame splashes, ground-crawling embers & sparks."""
+        cx = draw_x + self.width // 2
+        gy = draw_y + self.height
+        px_scale = max(2, int(round(self.scale)))
+
+        # 1. Pixel-art asymmetric flame splash skirt (3x nearest-neighbor scaled to match sprite!)
+        if is_eruption or is_telegraph or self._ground_scorch_heat > 0.28:
+            strength = 1.0 if is_eruption else max(0.32, self._ground_scorch_heat)
+            lw = max(36, int(self.width * 0.96) // px_scale)
+            lh = 16
+            skirt = pg.Surface((lw, lh), pg.SRCALPHA)
+            base_row = 7
+            t = self._pulse_clock
+            for x in range(lw):
+                nx = (x - lw * 0.5) / float(max(1, lw * 0.46))
+                if abs(nx) > 1.02:
+                    continue
+                envelope = max(0.0, 1.0 - nx * nx * 0.85)
+                # Multi-frequency asymmetric turbulence so flame heights never repeat uniformly
+                w1 = math.sin(x * 0.42 + t * 13.5)
+                w2 = math.cos(x * 0.95 - t * 18.0)
+                w3 = math.sin(x * 1.73 + t * 9.0)
+                up_h = int(max(0, (envelope * 5.2 + w1 * 1.6 + w2 * 1.1) * strength))
+                down_h = int(max(1, (envelope * 3.0 + abs(w3) * 1.8) * strength))
+                for y in range(max(0, base_row - up_h), min(lh, base_row + down_h + 1)):
+                    rel_h = (base_row + down_h - y) / float(max(1, up_h + down_h))
+                    edge_dist = min(y - (base_row - up_h), (base_row + down_h) - y)
+                    if edge_dist == 0 and ((x + int(t * 24)) % 3 == 0):
+                        continue  # ragged pixel edge dissolve
+                    if rel_h < 0.28 and envelope > 0.45 and is_eruption:
+                        col = (255, 245, 165, int(215 * strength))
+                    elif rel_h < 0.58:
+                        col = (255, 175, 40, int(195 * strength))
+                    else:
+                        col = (225, 72, 18, int(155 * strength))
+                    skirt.set_at((x, y), col)
+
+            scaled_skirt = pg.transform.scale(skirt, (lw * px_scale, lh * px_scale))
+            surface.blit(scaled_skirt, (cx - (lw * px_scale) // 2, gy - base_row * px_scale))
+
+        # 2. Pixel-crisp bouncing sparks and soft rising ash/smoke puffs
+        for sp in self._fire_sparks:
+            life_ratio = max(0.0, min(1.0, sp["life"] / sp["max_life"]))
+            sx = int(cx + sp["ox"])
+            sy = int(gy + sp["oy"])
+            alpha = int(235 * (1.0 - life_ratio))
+            if alpha <= 8:
+                continue
+            if sp["smoke"] > 0.5:
+                rad = max(3, int(sp["size"] * (1.2 + life_ratio * 1.4)))
+                sm_s = pg.Surface((rad * 2 + 2, rad * 2 + 2), pg.SRCALPHA)
+                pg.draw.circle(sm_s, (28, 18, 16, int(alpha * 0.42)), (rad + 1, rad + 1), rad)
+                surface.blit(sm_s, (sx - rad - 1, sy - rad - 1))
+            else:
+                sz = max(2, int(sp["size"] * (1.0 - life_ratio * 0.45)))
+                col = (255, 240, 155, alpha) if life_ratio < 0.35 else (255, 115, 25, alpha)
+                sp_s = pg.Surface((sz + 4, sz + 4), pg.SRCALPHA)
+                sp_s.fill((255, 85, 15, int(alpha * 0.35)))
+                pg.draw.rect(sp_s, col, (2, 2, sz, sz))
+                surface.blit(sp_s, (sx - 2, sy - 2))
 
     @staticmethod
     def auto_detect_offset_y(surface: pg.Surface) -> float:
@@ -223,7 +665,7 @@ class EnvironmentProp:
         return self.collision_offset_y
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        data: Dict[str, Any] = {
             "texture_path": self.texture_path,
             "slice_rect": self.slice_rect,
             "pos_x": self.pos_x,
@@ -238,6 +680,37 @@ class EnvironmentProp:
             "collision_offset_y": self.collision_offset_y,
             "in_front": self.is_in_front(),
         }
+        if self.anim_grid:
+            data["anim_grid"] = list(self.anim_grid)
+        if self.anim_speed != 0.1 or self.anim_grid:
+            data["anim_speed"] = self.anim_speed
+        if self.trap_max_hp > 0:
+            data["trap_hp"] = self.trap_max_hp
+        if self.trap_loop_frames > 0:
+            data["trap_loop_frames"] = self.trap_loop_frames
+        if self.trap_hazard_range:
+            data["trap_hazard_range"] = list(self.trap_hazard_range)
+        if self.trap_telegraph_range:
+            data["trap_telegraph_range"] = list(self.trap_telegraph_range)
+        if self.trap_reward_souls > 0:
+            data["trap_reward_souls"] = self.trap_reward_souls
+        if self.lore_id:
+            data["lore_id"] = self.lore_id
+        if self.lore_title:
+            data["lore_title"] = self.lore_title
+        if self.lore_text:
+            data["lore_text"] = self.lore_text
+        if self.corruption_low:
+            data["corruption_low"] = self.corruption_low
+        if self.corruption_high:
+            data["corruption_high"] = self.corruption_high
+        if self.glow_color:
+            data["glow_color"] = self.glow_color
+        if self.proximity_radius > 0:
+            data["proximity_radius"] = self.proximity_radius
+        if self.ambient_sfx:
+            data["ambient_sfx"] = self.ambient_sfx
+        return data
 
 
 DEFAULT_LAYER_NAMES = {
@@ -302,7 +775,7 @@ class EnvironmentManager:
         """Appends a new dynamic layer stack and returns the new layer index."""
         max_idx = max(self.layer_stacks.keys(), default=0)
         new_idx = max_idx + 1
-        default_ratio = 1.00  # Default to 1:1 ground scrolling ratio for ground & wall tiles
+        default_ratio = 1.00
         self.layer_stacks[new_idx] = {
             "name": f"L{new_idx}: Ground & Objects L{new_idx}",
             "texture_path": "",
@@ -516,9 +989,57 @@ class EnvironmentManager:
                     collision_type=col_type,
                     collision_offset_y=pdata.get("collision_offset_y", 0.0),
                     in_front=pdata.get("in_front", pdata.get("is_foreground", None)),
+                    anim_speed=pdata.get("anim_speed", 0.1),
+                    anim_grid=pdata.get("anim_grid"),
+                    trap_hp=pdata.get("trap_hp", 0.0),
+                    trap_loop_frames=pdata.get("trap_loop_frames", 0),
+                    trap_hazard_range=pdata.get("trap_hazard_range"),
+                    trap_telegraph_range=pdata.get("trap_telegraph_range"),
+                    trap_reward_souls=pdata.get("trap_reward_souls", 0),
+                    lore_id=pdata.get("lore_id"),
+                    lore_title=pdata.get("lore_title"),
+                    lore_text=pdata.get("lore_text"),
+                    corruption_low=pdata.get("corruption_low"),
+                    corruption_high=pdata.get("corruption_high"),
+                    glow_color=pdata.get("glow_color"),
+                    proximity_radius=pdata.get("proximity_radius", 0.0),
+                    ambient_sfx=pdata.get("ambient_sfx"),
                 ))
             except Exception:
                 pass
+
+    def check_prop_story_triggers(self, player_world_x: float, corruption: float = 0.0) -> List[Dict[str, Any]]:
+        """Evaluate proximity of player_world_x against untriggered story props.
+
+        Returns a list of triggered lore payload dicts so GameState can display
+        memory whispers and play spatial audio cues.
+        """
+        triggered: List[Dict[str, Any]] = []
+        for prop in self.props:
+            if prop._lore_triggered or not prop.lore_text:
+                continue
+            radius = prop.proximity_radius if prop.proximity_radius > 0 else 180.0
+            # Convert prop's pos_x into world distance space using its parallax_ratio
+            effective_ratio = prop.parallax_ratio if prop.parallax_ratio > 0 else 1.0
+            prop_world_center = (prop.pos_x + prop.width * 0.5) / effective_ratio
+            if abs(player_world_x - prop_world_center) <= radius:
+                prop._lore_triggered = True
+                base_text = prop.lore_text
+                if corruption >= 50.0 and prop.corruption_high:
+                    full_text = f"{base_text} {prop.corruption_high}"
+                elif corruption < 50.0 and prop.corruption_low:
+                    full_text = f"{base_text} {prop.corruption_low}"
+                else:
+                    full_text = base_text
+
+                triggered.append({
+                    "lore_id": prop.lore_id or f"prop_{int(prop.pos_x)}",
+                    "title": prop.lore_title or "Echo of the Fallen",
+                    "text": full_text,
+                    "ambient_sfx": prop.ambient_sfx,
+                    "is_fire": prop._is_fire_prop,
+                })
+        return triggered
 
     def get_ground_y_at(
         self,
@@ -526,13 +1047,12 @@ class EnvironmentManager:
         fallback_to_default: bool = True,
         current_y: Optional[float] = None,
     ) -> Optional[float]:
-        """Returns the top Y of the highest solid ground prop at world position x (or range x_min..x_max), or default ground_y if fallback_to_default is True and no solid prop contact line exists."""
+        """Returns the top Y of the highest solid ground prop at world position x."""
         if isinstance(x, (tuple, list)):
             x_min, x_max = float(x[0]), float(x[1])
         else:
             x_min, x_max = float(x), float(x)
 
-        # Quantize X range into 32px spatial buckets for fast per-frame cache lookup
         cy_bucket = int(current_y) // 32 if current_y is not None else -1
         cache_key = (int(x_min) // 32, int(x_max) // 32, fallback_to_default, cy_bucket)
         if cache_key in self._ground_y_cache:
@@ -541,7 +1061,6 @@ class EnvironmentManager:
         solid_ys = []
         for prop in self.props:
             if getattr(prop, "is_ground", False) and getattr(prop, "collision_type", "deco") in ("solid", "platform"):
-                # Physical ground props must be on ground/gameplay layers (3, 4, 6) with 1:1 world scroll ratio
                 if getattr(prop, "parallax_ratio", 1.0) != 1.0 or prop.layer_index not in (3, 4, 6):
                     continue
                 px = prop.pos_x
@@ -550,7 +1069,6 @@ class EnvironmentManager:
                     offset_y = getattr(prop, "collision_offset_y", 0.0)
                     surf_y = prop.pos_y + offset_y
                     if current_y is not None:
-                        # Only accept surfaces beneath or reachable from the entity's feet (with step-up tolerance of 32px)
                         if surf_y >= current_y - 32.0:
                             solid_ys.append(surf_y)
                     else:
@@ -582,11 +1100,7 @@ class EnvironmentManager:
         clear_bg: bool = True,
         foreground_pass: Optional[bool] = None,
     ) -> None:
-        """Draw sky followed by explicit layers in strict back-to-front depth order.
-        
-        If foreground_pass is False, renders background terrain (layers <= 6) and props where is_in_front() is False.
-        If foreground_pass is True, renders foreground layers (layers >= 7) and props where is_in_front() is True.
-        """
+        """Draw sky followed by explicit layers in strict back-to-front depth order."""
         if foreground_pass is True:
             clear_bg = False
             if min_layer is None:
@@ -660,12 +1174,6 @@ class EnvironmentManager:
             if os.path.exists(f"assets/graphics/Clouds 3/{i}.png")
         ] if self.sky else []
 
-        sky_layers = [
-            {"path": f"assets/graphics/Clouds 3/{i}.png", "speed": s}
-            for i, s in zip(range(1, 5), [0, 0, 20, 40])
-            if os.path.exists(f"assets/graphics/Clouds 3/{i}.png")
-        ] if self.sky else []
-
         return {
             "bg_music_track": self.bg_music_track,
             "ground_y": self.ground_y,
@@ -677,7 +1185,7 @@ class EnvironmentManager:
 
     @staticmethod
     def get_environment_folders() -> List[Dict[str, Any]]:
-        """Discovers all valid environment asset subfolders under assets/graphics (excluding UI, icons, player, enemies)."""
+        """Discovers all valid environment asset subfolders under assets/graphics."""
         exclude_keywords = [
             "250 WARRIOR ICONS", "MAGE ICONS", "free-undead-loot", "icon", "ICONS",
             "font", "KEYS", "UI", "ui", "PS4", "PC", "Gamepad", "gdb-gamepad",
@@ -742,5 +1250,3 @@ class EnvironmentManager:
             except Exception:
                 pass
         return thumbnails
-
-

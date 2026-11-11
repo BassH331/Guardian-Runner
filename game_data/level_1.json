@@ -1,10 +1,10 @@
 {
-    "level_name": "Level 1 - The Dark Forest",
+    "level_name": "Act I - The Elderwood & The Fallen Watch",
     "level_end_distance": 36000,
     "spawn_rate_min": 5000,
     "spawn_rate_max": 15000,
     "environment": {
-        "bg_music_track": "game_loop",
+        "bg_music_track": "zone_1_music",
         "ground_y": 568,
         "sky": {
             "enabled": true,
@@ -189,6 +189,57 @@
                 "is_ground": false,
                 "collision_type": "deco",
                 "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_fallen_wyvern_1",
+                "lore_title": "Carcass of the Sky-Drake",
+                "lore_text": "Commander Kaelen felled this rift-drake during the opening charge, buying the vanguard time to reach the treeline.",
+                "corruption_low": "Its scales still bear the clean silver scorch of Kaelen's blade.",
+                "corruption_high": "Black flies hum over the drake's ribs, drawn to the mark on your hand.",
+                "glow_color": [
+                    210,
+                    165,
+                    90
+                ],
+                "proximity_radius": 200.0
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
+                "slice_rect": [
+                    132,
+                    912,
+                    156,
+                    84
+                ],
+                "pos_x": 1813.8,
+                "pos_y": 438.5,
+                "scale": 0.7,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
+                "slice_rect": [
+                    680,
+                    848,
+                    220,
+                    72
+                ],
+                "pos_x": 2015.9,
+                "pos_y": 499.3,
+                "scale": 0.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
                 "in_front": false
             },
             {
@@ -199,8 +250,8 @@
                     388,
                     524
                 ],
-                "pos_x": 2062.4102564102564,
-                "pos_y": -29.111111111111114,
+                "pos_x": 2062.4,
+                "pos_y": -29.1,
                 "scale": 1.0,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -219,8 +270,8 @@
                     108,
                     116
                 ],
-                "pos_x": 2295.188034188034,
-                "pos_y": 459.88888888888886,
+                "pos_x": 2295.2,
+                "pos_y": 459.9,
                 "scale": 0.5,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -232,6 +283,38 @@
                 "in_front": false
             },
             {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Standing Torch.png",
+                "slice_rect": [
+                    0,
+                    3,
+                    13,
+                    78
+                ],
+                "pos_x": 2389.5,
+                "pos_y": 291.8,
+                "scale": 2.5,
+                "layer_index": 9,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_vane_watch_torch",
+                "lore_title": "Corporal Vane's Perimeter Torch",
+                "lore_text": "A Watch-torch still burning with oil and pine-resin. Corporal Vane stood triple-watch here the night the supply line was severed.",
+                "corruption_low": "The warm flame steadies your breathing against the forest chill.",
+                "corruption_high": "The flame bends away from your shadow as you pass.",
+                "glow_color": [
+                    255,
+                    180,
+                    60
+                ],
+                "proximity_radius": 200.0,
+                "ambient_sfx": "burning_village"
+            },
+            {
                 "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
                 "slice_rect": [
                     436,
@@ -239,8 +322,8 @@
                     100,
                     100
                 ],
-                "pos_x": 2438.709401709402,
-                "pos_y": 434.3333333333333,
+                "pos_x": 2438.7,
+                "pos_y": 434.3,
                 "scale": 0.7,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -272,24 +355,36 @@
                 "in_front": true
             },
             {
-                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Standing Torch.png",
+                "texture_path": "assets/graphics/Props/spr_FirePlace_strip_frames/frame_005.png",
                 "slice_rect": [
-                    0,
-                    3,
                     13,
-                    78
+                    27,
+                    41,
+                    37
                 ],
-                "pos_x": 2389.497435897436,
-                "pos_y": 291.8333333333333,
-                "scale": 2.5,
-                "layer_index": 9,
+                "pos_x": 5651.636752136752,
+                "pos_y": 273.16666666666663,
+                "scale": 1.4,
+                "layer_index": 6,
                 "parallax_ratio": 1.0,
                 "flip_x": false,
                 "flip_y": false,
                 "is_ground": false,
                 "collision_type": "deco",
                 "collision_offset_y": 0.0,
-                "in_front": false
+                "in_front": false,
+                "lore_id": "prop_vanguard_campfire_1",
+                "lore_title": "Ashes of the Vanguard Bivouac",
+                "lore_text": "Four bedrolls and a half-melted Watch kettle surround the embers. Here your squad shared their last meal before marching into the rift.",
+                "corruption_low": "You can almost hear Garrick's deep laugh and Solen's quiet hymn over the crackling wood.",
+                "corruption_high": "The hearth fire sputters low, chilled by the demonic aura clinging to your cloak.",
+                "glow_color": [
+                    255,
+                    175,
+                    65
+                ],
+                "proximity_radius": 220.0,
+                "ambient_sfx": "burning_village"
             },
             {
                 "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground1/Pale/statue.png",
@@ -299,8 +394,8 @@
                     244,
                     448
                 ],
-                "pos_x": 5802.794871794872,
-                "pos_y": 254.22222222222223,
+                "pos_x": 5664.0,
+                "pos_y": 256.0,
                 "scale": 0.5,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -310,86 +405,6 @@
                 "collision_type": "deco",
                 "collision_offset_y": 0.0,
                 "in_front": false
-            },
-            {
-                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
-                "slice_rect": [
-                    1684,
-                    616,
-                    88,
-                    92
-                ],
-                "pos_x": 2378.164102564103,
-                "pos_y": 462.3333333333333,
-                "scale": 0.5,
-                "layer_index": 7,
-                "parallax_ratio": 1.12,
-                "flip_x": false,
-                "flip_y": false,
-                "is_ground": false,
-                "collision_type": "deco",
-                "collision_offset_y": 0.0,
-                "in_front": true
-            },
-            {
-                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
-                "slice_rect": [
-                    680,
-                    848,
-                    220,
-                    72
-                ],
-                "pos_x": 2015.974358974359,
-                "pos_y": 499.33333333333326,
-                "scale": 0.5,
-                "layer_index": 6,
-                "parallax_ratio": 1.0,
-                "flip_x": false,
-                "flip_y": false,
-                "is_ground": false,
-                "collision_type": "deco",
-                "collision_offset_y": 0.0,
-                "in_front": false
-            },
-            {
-                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
-                "slice_rect": [
-                    132,
-                    912,
-                    156,
-                    84
-                ],
-                "pos_x": 1813.8076923076924,
-                "pos_y": 438.55555555555554,
-                "scale": 0.7,
-                "layer_index": 6,
-                "parallax_ratio": 1.0,
-                "flip_x": false,
-                "flip_y": false,
-                "is_ground": false,
-                "collision_type": "deco",
-                "collision_offset_y": 0.0,
-                "in_front": false
-            },
-            {
-                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground3/Bright/tree_face.png",
-                "slice_rect": [
-                    636,
-                    0,
-                    696,
-                    712
-                ],
-                "pos_x": 8391.367521367521,
-                "pos_y": -84.22222222222223,
-                "scale": 1.5,
-                "layer_index": 7,
-                "parallax_ratio": 1.12,
-                "flip_x": false,
-                "flip_y": false,
-                "is_ground": false,
-                "collision_type": "deco",
-                "collision_offset_y": 0.0,
-                "in_front": true
             },
             {
                 "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Wooden Shed.png",
@@ -399,8 +414,8 @@
                     116,
                     68
                 ],
-                "pos_x": 6064.649572649573,
-                "pos_y": 355.1111111111111,
+                "pos_x": 6064.6,
+                "pos_y": 355.1,
                 "scale": 2.0,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -419,8 +434,8 @@
                     49,
                     35
                 ],
-                "pos_x": 6065.75641025641,
-                "pos_y": 474.9444444444444,
+                "pos_x": 6065.8,
+                "pos_y": 474.9,
                 "scale": 1.0,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -439,8 +454,8 @@
                     49,
                     35
                 ],
-                "pos_x": 6255.978632478633,
-                "pos_y": 474.9444444444444,
+                "pos_x": 6256.0,
+                "pos_y": 474.9,
                 "scale": 1.0,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
@@ -452,16 +467,78 @@
                 "in_front": false
             },
             {
-                "texture_path": "assets/graphics/Props/spr_FirePlace_strip_frames/frame_005.png",
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground3/Bright/tree_face.png",
                 "slice_rect": [
-                    13,
-                    27,
-                    41,
-                    37
+                    636,
+                    0,
+                    696,
+                    712
                 ],
-                "pos_x": 5801.038461538462,
-                "pos_y": 284.2692307692308,
-                "scale": 1.0,
+                "pos_x": 8391.4,
+                "pos_y": -84.2,
+                "scale": 1.5,
+                "layer_index": 7,
+                "parallax_ratio": 1.12,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": true,
+                "lore_id": "prop_boundary_weeping_tree",
+                "lore_title": "The Weeping Boundary Oak",
+                "lore_text": "Beyond this hollowed trunk lie the graves of previous runners who accepted Andras's bargain and never returned.",
+                "corruption_low": "You grip your hilt tighter, vowing to bring your comrades' names back to the light.",
+                "corruption_high": "The carved face in the bark seems to nod in grim recognition of the mark on your palm.",
+                "glow_color": [
+                    180,
+                    120,
+                    220
+                ],
+                "proximity_radius": 240.0
+            },
+            {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Stacked Rocks.png",
+                "slice_rect": [
+                    0,
+                    0,
+                    49,
+                    35
+                ],
+                "pos_x": 9650.0,
+                "pos_y": 455.0,
+                "scale": 1.6,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone2_cairn",
+                "lore_title": "Cairn of the Shield-Brethren",
+                "lore_text": "Stacked river stones topped with a dented Star-Fire helmet. Garrick built this cairn alone while holding the rear.",
+                "corruption_low": "You place a small stone atop the pile in silent salute.",
+                "corruption_high": "The silver star on the helmet tarnishes as your shadow crosses it.",
+                "glow_color": [
+                    160,
+                    195,
+                    240
+                ],
+                "proximity_radius": 220.0
+            },
+            {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Standing Torch.png",
+                "slice_rect": [
+                    0,
+                    3,
+                    13,
+                    78
+                ],
+                "pos_x": 9730.0,
+                "pos_y": 310.0,
+                "scale": 2.4,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
                 "flip_x": false,
@@ -470,6 +547,374 @@
                 "collision_type": "deco",
                 "collision_offset_y": 0.0,
                 "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/bones.png",
+                "slice_rect": [
+                    680,
+                    848,
+                    220,
+                    72
+                ],
+                "pos_x": 12180.0,
+                "pos_y": 495.0,
+                "scale": 0.65,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/Props/spr_FirePlace_strip_frames/frame_000.png",
+                "slice_rect": [
+                    13,
+                    27,
+                    41,
+                    37
+                ],
+                "pos_x": 15400.0,
+                "pos_y": 455.0,
+                "scale": 1.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone2_scribe_fire",
+                "lore_title": "Scribe Orin's Watchfire",
+                "lore_text": "Charred pages of the vanguard muster roll flutter around a low fire. Orin tried to keep the names dry as the dark closed in.",
+                "corruption_low": "A few unburned pages still preserve the oaths of your company.",
+                "corruption_high": "The embers flare violet as your corrupted shadow falls across the ledger.",
+                "glow_color": [
+                    255,
+                    175,
+                    70
+                ],
+                "proximity_radius": 210.0,
+                "ambient_sfx": "burning_village"
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground3/Bright/tree_face.png",
+                "slice_rect": [
+                    636,
+                    0,
+                    696,
+                    712
+                ],
+                "pos_x": 17300.0,
+                "pos_y": -80.0,
+                "scale": 1.4,
+                "layer_index": 5,
+                "parallax_ratio": 0.75,
+                "flip_x": true,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground1/Pale/statue.png",
+                "slice_rect": [
+                    1048,
+                    72,
+                    244,
+                    448
+                ],
+                "pos_x": 19200.0,
+                "pos_y": 215.0,
+                "scale": 0.65,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone3_moon_shrine_1",
+                "lore_title": "Candora's Weeping Moon-Shrine",
+                "lore_text": "Silver moonlight pools at the feet of Candora's weathered effigy. Medic Lyra and Pyromancer Solen consecrated this ground against the rift.",
+                "corruption_low": "A cool, Merciful breeze washes over your brow - Candora still walks with you.",
+                "corruption_high": "The statue's silver eyes weep pale light, pleading for you to cast off Andras's hold.",
+                "glow_color": [
+                    125,
+                    205,
+                    255
+                ],
+                "proximity_radius": 230.0,
+                "ambient_sfx": "magic_sfx"
+            },
+            {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Standing Torch.png",
+                "slice_rect": [
+                    0,
+                    3,
+                    13,
+                    78
+                ],
+                "pos_x": 19140.0,
+                "pos_y": 310.0,
+                "scale": 2.4,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Standing Torch.png",
+                "slice_rect": [
+                    0,
+                    3,
+                    13,
+                    78
+                ],
+                "pos_x": 19380.0,
+                "pos_y": 310.0,
+                "scale": 2.4,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": true,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Wooden Shed.png",
+                "slice_rect": [
+                    0,
+                    0,
+                    116,
+                    68
+                ],
+                "pos_x": 22100.0,
+                "pos_y": 355.0,
+                "scale": 2.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/Props/spr_FirePlace_strip_frames/frame_000.png",
+                "slice_rect": [
+                    13,
+                    27,
+                    41,
+                    37
+                ],
+                "pos_x": 22360.0,
+                "pos_y": 452.0,
+                "scale": 1.6,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone3_solen_hearth",
+                "lore_title": "Pyromancer Solen's Sanctuary Hearth",
+                "lore_text": "Solen kept this sacred brazier burning for seven nights to guide lost Watchmen through the fog - until the rift turned his flames against him.",
+                "corruption_low": "Golden sparks rise gently from the hearth, recognizing an uncorrupted brother.",
+                "corruption_high": "The brazier crackles with urgent warning: Solen awaits ahead, consumed by the ash.",
+                "glow_color": [
+                    255,
+                    190,
+                    80
+                ],
+                "proximity_radius": 220.0,
+                "ambient_sfx": "burning_village"
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground1/Pale/statue.png",
+                "slice_rect": [
+                    1048,
+                    72,
+                    244,
+                    448
+                ],
+                "pos_x": 24600.0,
+                "pos_y": 215.0,
+                "scale": 0.65,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": true,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone3_altar_of_tears",
+                "lore_title": "Altar of the Silver Tear",
+                "lore_text": "Scorched prayer beads lie scattered across the steps. Ahead stands Pyromancer Solen, guarding the last Tear of Candora.",
+                "corruption_low": "May your blade grant Solen the peaceful rest he earned.",
+                "corruption_high": "Claim Candora's Tear from Solen - it may be your last chance to cleanse the demon's brand!",
+                "glow_color": [
+                    140,
+                    210,
+                    255
+                ],
+                "proximity_radius": 220.0,
+                "ambient_sfx": "bells"
+            },
+            {
+                "texture_path": "assets/graphics/Props/spr_FirePlace_strip_frames/frame_000.png",
+                "slice_rect": [
+                    13,
+                    27,
+                    41,
+                    37
+                ],
+                "pos_x": 31100.0,
+                "pos_y": 452.0,
+                "scale": 1.6,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone4_kaelen_vigil",
+                "lore_title": "Commander Kaelen's Final Vigil",
+                "lore_text": "Kaelen's scabbard is driven into the earth beside the dying fire. Scratched into the leather: 'If I fall to the Marquis, send my student to finish the watch.'",
+                "corruption_low": "Your hand steadies on your hilt. You will not let your mentor remain a puppet.",
+                "corruption_high": "The brand on your palm throbs violently - Andras is eager to see student and master collide.",
+                "glow_color": [
+                    255,
+                    140,
+                    80
+                ],
+                "proximity_radius": 240.0,
+                "ambient_sfx": "burning_village"
+            },
+            {
+                "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Standing Torch.png",
+                "slice_rect": [
+                    0,
+                    3,
+                    13,
+                    78
+                ],
+                "pos_x": 31190.0,
+                "pos_y": 308.0,
+                "scale": 2.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Bright/crypt.png",
+                "slice_rect": [
+                    364,
+                    20,
+                    388,
+                    524
+                ],
+                "pos_x": 33600.0,
+                "pos_y": -25.0,
+                "scale": 1.05,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "lore_id": "prop_zone4_bleeding_sanctum",
+                "lore_title": "Sanctum of the Bleeding Great Tree",
+                "lore_text": "Crimson sap weeps from the ancient canopy above the stone arch. Commander Kaelen stands waiting in the silence ahead.",
+                "corruption_low": "Remember every lesson he taught you. Free your Commander.",
+                "corruption_high": "The rift roars in your ears - the final vessel trial is at hand.",
+                "glow_color": [
+                    235,
+                    75,
+                    95
+                ],
+                "proximity_radius": 240.0,
+                "ambient_sfx": "bells"
+            },
+            {
+                "texture_path": "assets/graphics/Props/spr_Props_frames/frame_000.png",
+                "slice_rect": [
+                    143,
+                    118,
+                    61,
+                    25
+                ],
+                "pos_x": 11576.923076923078,
+                "pos_y": 543.0,
+                "scale": 4.0,
+                "layer_index": 1,
+                "parallax_ratio": 0.05,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": true,
+                "collision_type": "solid",
+                "collision_offset_y": 0.0,
+                "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Large Skull.png",
+                "slice_rect": [
+                    0,
+                    0,
+                    128,
+                    128
+                ],
+                "pos_x": 12201.0,
+                "pos_y": 184.0,
+                "scale": 3.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "collision_offset_y": 0.0,
+                "in_front": false,
+                "anim_grid": [
+                    10,
+                    4
+                ],
+                "anim_speed": 0.1,
+                "trap_hp": 45.0,
+                "trap_loop_frames": 30,
+                "trap_telegraph_range": [
+                    11,
+                    13
+                ],
+                "trap_hazard_range": [
+                    14,
+                    23
+                ],
+                "trap_reward_souls": 75
             }
         ]
     },
@@ -487,10 +932,10 @@
     },
     "spawn_zones": [
         {
-            "min_dist": 2025,
-            "max_dist": 11500,
+            "min_dist": 1800,
+            "max_dist": 8800,
             "max_skeletons": 3,
-            "delay": 4500,
+            "delay": 4200,
             "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
@@ -504,11 +949,11 @@
             }
         },
         {
-            "min_dist": 13000,
-            "max_dist": 20520,
-            "max_skeletons": 6,
-            "delay": 1486,
-            "required_kills": 11,
+            "min_dist": 9200,
+            "max_dist": 17500,
+            "max_skeletons": 4,
+            "delay": 3200,
+            "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
             "behaviour_map": {
@@ -521,10 +966,28 @@
             }
         },
         {
-            "min_dist": 25000,
-            "max_dist": 33000,
-            "max_skeletons": 5,
+            "min_dist": 18200,
+            "max_dist": 26500,
+            "max_skeletons": 4,
             "delay": 3000,
+            "required_kills": 0,
+            "tier": "minion",
+            "sprite_root": "assets/skeleton",
+            "behaviour_map": {
+                "Skeleton_01_White_Attack1": "attack",
+                "Skeleton_01_White_Attack2": "attack",
+                "Skeleton_01_White_Die": "death",
+                "Skeleton_01_White_Hurt": "hurt",
+                "Skeleton_01_White_Idle": "idle",
+                "Skeleton_01_White_Walk": "walk"
+            }
+        },
+        {
+            "min_dist": 27200,
+            "max_dist": 33800,
+            "max_skeletons": 5,
+            "delay": 2800,
+            "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
             "behaviour_map": {
@@ -562,39 +1025,47 @@
             "type": "npc",
             "params": {
                 "npc_type": "generic",
-                "title": "The Sealed Book",
-                "text": "The book pulses with a dark energy. Something awakens in the spiritual realm.",
-                "radius": 80,
+                "title": "Chronicle of the Fourth Vanguard",
+                "text": "The field ledger of your fallen company pulses with a faint ember. Every page smells of pine-smoke and iron.",
+                "radius": 90,
                 "sprite_dir": "assets/graphics/magic_book_single",
                 "scale": 1.12,
                 "is_magic_book": true,
                 "is_intro_npc": false,
                 "voice_line_id": "",
                 "combat_taunts": [
-                    "Flesh and bone walk these woods, yet you carry mere iron. Let us see how long your pulse lasts.",
-                    "The blood of the forest is on your hands. There is no turning back now, wanderer.",
-                    "Each strike feeds the tome. Your iron is merely our quill."
+                    "Read the names of the Fourth Vanguard before the ash claims them!",
+                    "Four officers marched ahead of you into the Elderwood - none have returned."
                 ],
-                "death_line": "The pages never close... they only wait for the next fool.",
+                "death_line": "Carry our names to the end of the woods...",
                 "dialogue": {
-                    "default": "The book pulses with a dark energy. Something awakens in the spiritual realm.",
+                    "default": "The field ledger of your fallen company pulses with a faint ember: Corporal Vane, Shield-Brother Garrick, Pyromancer Solen, and Commander Kaelen marched ahead into the rift.",
                     "corruption_variants": {
-                        "low": "The runes shimmer faintly, calling to something deep within.",
-                        "mid": "The ink flows thicker as you harvest the slain.",
-                        "high": "We are bound together in the black ash of discord."
+                        "low": "The silver Watch ink shimmers warmly - your comrades' memories still anchor your humanity.",
+                        "mid": "Ash smudges the margins where Andras's sigil touched the parchment.",
+                        "high": "At the bottom of the casualty roll, your own name is already being written in shadow."
                     }
                 }
             }
         },
         {
+            "id": 101,
+            "distance": 3200,
+            "type": "ambient_lore",
+            "params": {
+                "text": "Vane's Distress Cipher|Seven hash-marks are gouged into the bleeding bark ahead - Corporal Vane's signal that the vanguard was cut off."
+            }
+        },
+        {
             "id": 14,
-            "distance": 2558,
+            "distance": 4500,
             "type": "boss",
             "params": {
-                "title": "Blood Zombie",
+                "title": "Corporal Vane, The Weeping Husk",
                 "scale": 2.0,
                 "health": 120.0,
                 "tier": "boss",
+                "soul_value": 250,
                 "sprite_dir": "assets/graphics/bloodZombie",
                 "behaviour_map": {
                     "Attack1": "skip",
@@ -606,40 +1077,48 @@
             }
         },
         {
+            "id": 102,
+            "distance": 7400,
+            "type": "ambient_lore",
+            "params": {
+                "text": "The Shattered Rearguard|Broken Star-Fire shields line the ditch. Garrick held this narrow pass alone while the wounded fell back."
+            }
+        },
+        {
             "id": 13,
             "distance": 10500,
             "type": "npc",
             "params": {
                 "npc_type": "generic",
                 "title": "The Moonstone Keeper",
-                "text": "The dark flame cuts deep. Look inside: do you still remember who you were before you accepted my power, or just the blood?",
+                "text": "Garrick stood at the Obsidian Gate just ahead until his mortal heart gave out - and Andras locked him inside his own armor.",
                 "radius": 160,
                 "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
                 "scale": 2.0,
                 "voice_line_id": "moonstone_keeper_warning",
                 "combat_taunts": [
-                    "Steel yourself, runner. Truth is sharper than blades.",
-                    "Candora's light judges all who step across this grove."
+                    "Steel yourself, Guardian. Freeing a brother-in-arms requires a steady heart.",
+                    "Candora's moonlight judges all who step across these graves."
                 ],
-                "death_line": "The grove falls dark... may mercy find you...",
+                "death_line": "May silver grace guide your blade...",
                 "dialogue": {
-                    "default": "The dark flame cuts deep. Look inside: do you still remember who you were before you accepted my power, or just the blood?",
+                    "default": "Garrick stood at the Obsidian Gate just ahead until his mortal heart gave out - and Andras locked him inside his own armor. Do you still remember who you were before the pact?",
                     "corruption_variants": {
-                        "low": "Your heart still beats in human cadence. Hold onto it.",
-                        "mid": "Shadow clouds your aura, yet your eyes still seek dawn.",
-                        "high": "Only cold void remains in your chest. A pity."
+                        "low": "Your heart still beats in human cadence. Grant Garrick the honorable release of a Watchman.",
+                        "mid": "Shadow clouds your sword-arm, yet your eyes still grieve for your squad. Hold onto that grief.",
+                        "high": "Only cold void remains in your chest. If you strike Garrick down in hatred, you only feed the Marquis."
                     }
                 }
             }
         },
         {
             "id": 1,
-            "distance": 12500,
+            "distance": 13500,
             "type": "boss",
             "params": {
-                "title": "The Gatekeeper",
+                "title": "Garrick, The Iron Bulwark",
                 "scale": 2.63,
-                "health": 300.0,
+                "health": 260.0,
                 "tier": "elite",
                 "soul_value": 300,
                 "sprite_dir": "assets/graphics/green_monster",
@@ -655,16 +1134,123 @@
             }
         },
         {
+            "id": 21,
+            "distance": 16500,
+            "type": "npc",
+            "params": {
+                "npc_type": "generic",
+                "title": "Scribe Orin of the Watch",
+                "text": "I recorded every soul Andras hollowed from our company. Take this torn muster page - do not let the Citadel forget what we sacrificed.",
+                "radius": 160,
+                "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
+                "scale": 1.9,
+                "dialogue": {
+                    "default": "I am Scribe Orin of the Fourth Vanguard. Even in the dark, I keep the roll of our fallen brothers so their names are not swallowed by the rift.",
+                    "corruption_variants": {
+                        "low": "Your name is still unstained on my parchment, Guardian. Keep your blade clean.",
+                        "mid": "Soot is gathering around your entry in the ledger. Seek Candora's Moon-Shrines ahead to cleanse it.",
+                        "high": "The Marquis is already dictating your final title across the bottom of the page."
+                    }
+                }
+            }
+        },
+        {
+            "id": 103,
+            "distance": 19800,
+            "type": "ambient_lore",
+            "params": {
+                "text": "Sanctuary of the Silver Moon|White lilies bloom through the ash around Candora's ruined shrines. Ahead, Pyromancer Solen's sacred hearth has turned to wildfire."
+            }
+        },
+        {
+            "id": 22,
+            "distance": 21200,
+            "type": "npc",
+            "params": {
+                "npc_type": "generic",
+                "title": "Candora's Envoy",
+                "text": "Pyromancer Solen wept as the rift corrupted his sacred flame. When you free him, claim Candora's Silver Tear from his robes - it will purge Andras's venom from your soul.",
+                "radius": 160,
+                "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
+                "scale": 2.0,
+                "dialogue": {
+                    "default": "Candora sent me to find the last Guardian of the Fourth Vanguard. Pyromancer Solen awaits at the ruined altar ahead, fighting to keep one last Silver Tear pure for you.",
+                    "corruption_variants": {
+                        "low": "She still sees her starlight in you, Guardian. Solen's gift will make your spirit unbreakable.",
+                        "mid": "She grieves for the shadow creeping up your arm, but Solen's Silver Tear will wash the brand away.",
+                        "high": "You are nearly lost to the Marquis - only Solen's Tear can pull you back from the abyss now!"
+                    }
+                }
+            }
+        },
+        {
+            "id": 25,
+            "distance": 25500,
+            "type": "boss",
+            "params": {
+                "title": "Pyromancer Solen, The Ash Keeper",
+                "scale": 3.8,
+                "health": 220.0,
+                "tier": "elite",
+                "soul_value": 350,
+                "sprite_dir": "assets/wizard",
+                "behaviour_map": {
+                    "Attack": "attack",
+                    "Death": "death",
+                    "Idle": "idle",
+                    "Move": "walk",
+                    "Take Hit": "hurt"
+                }
+            }
+        },
+        {
+            "id": 104,
+            "distance": 28800,
+            "type": "ambient_lore",
+            "params": {
+                "text": "Trail of the First Vessel|Clean, lightning-fast sword cuts scar the ironwood trees ahead. Only Commander Kaelen's blade leaves a mark like that."
+            }
+        },
+        {
+            "id": 28,
+            "distance": 30200,
+            "type": "npc",
+            "params": {
+                "npc_type": "generic",
+                "title": "Echo of Lieutenant Marek",
+                "text": "Commander Kaelen ordered us to stay behind while he marched to the Bleeding Tree alone. He took Andras's full curse to buy your life - go free him!",
+                "radius": 160,
+                "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
+                "scale": 2.0,
+                "dialogue": {
+                    "default": "I was Kaelen's second-in-command. He knew Andras needed a master swordsman as his vessel, so he offered himself at the Bleeding Tree to spare you.",
+                    "corruption_variants": {
+                        "low": "You fought through the entire forest without losing your heart - just as Kaelen believed you would.",
+                        "mid": "This is the mile where the curse is heaviest. Remember Kaelen's teachings, not the demon's fury.",
+                        "high": "If you strike our Commander down while drunk on Andras's power, you will become the new Dark Ronin in his stead!"
+                    }
+                }
+            }
+        },
+        {
+            "id": 105,
+            "distance": 32600,
+            "type": "ambient_lore",
+            "params": {
+                "text": "The Bleeding Great Tree|The wind dies completely. Beneath the crimson canopy ahead, Commander Kaelen slowly draws his blade."
+            }
+        },
+        {
             "id": 3,
             "distance": 34500,
             "type": "boss",
             "params": {
-                "title": "The Fabricator's Enforcer",
-                "scale": 4.11,
-                "health": 100.0,
+                "title": "Commander Kaelen, The Hollowed Mentor",
+                "scale": 2.6,
+                "health": 260.0,
                 "tier": "boss",
                 "soul_value": "remaining",
-                "sprite_dir": "assets/wizard",
+                "sprite_dir": "assets/graphics/Ronin",
                 "behaviour_map": {
                     "Attack": "attack",
                     "Death": "death",
@@ -676,9 +1262,8 @@
         }
     ],
     "boss_sequence": [
-        "GreenMonster",
-        "Gatekeeper",
         "BloodZombie",
+        "Gatekeeper",
         "FireWizard",
         "DarkRonin"
     ],
