@@ -41,7 +41,7 @@
       "theme": "grimoire_leather",
       "icon": "assets/graphics/magic_book_single/magic_book.png",
       "hold": 5.5,
-      "enabled": false,
+      "enabled": true,
       "description": "Disabled redundant ponder popup to keep HUD uncluttered"
     },
     {
@@ -69,7 +69,7 @@
       "theme": "blood_bone",
       "icon": "assets/graphics/magic_book_single/magic_book.png",
       "hold": 5.5,
-      "enabled": false,
+      "enabled": true,
       "description": "Disabled redundant first-encounter chatter"
     },
     {
@@ -83,7 +83,7 @@
       "theme": "clean_minimalist",
       "icon": "assets/graphics/UI/PNG/Exclamation_Yellow.png",
       "hold": 5.0,
-      "enabled": false,
+      "enabled": true,
       "description": "Disabled redundant distance inquiry to prevent popup overload"
     },
     {

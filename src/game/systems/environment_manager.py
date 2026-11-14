@@ -99,6 +99,7 @@ class EnvironmentProp:
     # Known multi-frame grid sprite sheets: lowercase filename -> (cols, rows)
     SPRITESHEET_GRIDS: Dict[str, Tuple[int, int]] = {
         "large skull.png": (10, 4),
+        "memento mori skeleton.png": (4, 4),
     }
 
     def __init__(

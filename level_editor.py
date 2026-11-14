@@ -9,7 +9,7 @@ Stage flow:
   4  Review & Commit— diff view + transactional flock write with rollback
 """
 
-import os, sys, json, copy, math
+import os, sys, json, copy, math, re
 try:
     import fcntl
 except ImportError:
@@ -1183,13 +1183,63 @@ def _scale_from_registry(etype: str, npc_type: str = "", sprite_dir: str = "", f
 
 from v3x_zulfiqar_gideon import AssetManager
 
-def _load_preview(path: str, scale: float = 2.0) -> list[pg.Surface]:
+def _load_preview(path: str, scale: float = 2.0, max_box: tuple = (380, 140)) -> list[pg.Surface]:
     frames: list[pg.Surface] = []
-    if not os.path.exists(path): return frames
-    raw_frames = AssetManager.get_animation_frames(path)
+    if not path or not isinstance(path, str) or not path.strip():
+        return frames
+    try:
+        resolved = AssetManager.resolve_path(path) if hasattr(AssetManager, "resolve_path") else path
+        if not os.path.exists(resolved):
+            return frames
+    except Exception:
+        return frames
+
+    try:
+        raw_frames = AssetManager.get_animation_frames(path)
+    except Exception:
+        return frames
+
+    if not raw_frames:
+        return frames
+
+    # Filter out magenta/purple missing-texture placeholder blocks
+    valid_frames = []
     for img in raw_frames:
+        if not isinstance(img, pg.Surface):
+            continue
         w, h = img.get_size()
-        frames.append(pg.transform.scale(img, (int(w*scale), int(h*scale))))
+        if w <= 0 or h <= 0:
+            continue
+        try:
+            if (img.get_at((0, 0))[:3] == (255, 0, 255) and
+                img.get_at((w - 1, h - 1))[:3] == (255, 0, 255) and
+                img.get_at((w // 2, h // 2))[:3] == (255, 0, 255)):
+                continue  # Skip magenta placeholder
+        except Exception:
+            pass
+        valid_frames.append(img)
+
+    # 2D Grid Slicing Fallback for single unsliced square spritesheets (e.g. 128x128 Memento Mori Skeleton)
+    if len(valid_frames) == 1:
+        single = valid_frames[0]
+        sw, sh = single.get_size()
+        if sw == sh and sw >= 64 and sw % 32 == 0:
+            try:
+                sliced = AssetManager.slice_spritesheet(single, frame_width=32, frame_height=32)
+                if len(sliced) > 1:
+                    valid_frames = sliced
+            except Exception:
+                pass
+
+    for img in valid_frames:
+        w, h = img.get_size()
+        s = scale
+        if max_box:
+            fit_scale = min(max_box[0] / float(w), max_box[1] / float(h))
+            s = min(scale, fit_scale)
+        target_w = max(1, int(w * s))
+        target_h = max(1, int(h * s))
+        frames.append(pg.transform.scale(img, (target_w, target_h)))
     return frames
 
 
@@ -1484,17 +1534,17 @@ class SpritesheetSlicerModal:
         elif self.all_sheets:
             self._load_sheet(self.all_sheets[0])
 
-    def _discover_sheets(self) -> list[str]:
+    def _discover_sheets(self, root_dir: str = "assets") -> list[str]:
         results = []
         exclude_keywords = [
-            "Clouds", "intro_bg", "KEYS", "UI", "ui", "font", "PS4", "PC", "Analogue", "button", "KEYS_",
+            "Clouds", "intro_bg", "KEYS", "UI", "ui", "font", "PS4", "Analogue", "button", "KEYS_",
             "250 WARRIOR ICONS", "MAGE ICONS", "free-undead-loot", "icon", "ICONS", "Player", "player",
-            "skeleton", "Goblin", "Wizard_NPC", "Necromancer", "DarkFantasyEnemies", "Monsters", "audio",
-            "Sound", "VFX", "PIPOYA", "Explosion", "MiniBlood", "blood", "shadow_warrior", "Moon_knight"
+            "Goblin", "Wizard_NPC", "Necromancer", "DarkFantasyEnemies", "Monsters", "audio",
+            "Sound", "VFX", "PIPOYA", "Explosion", "MiniBlood", "shadow_warrior", "Moon_knight"
         ]
-        if os.path.exists("assets"):
-            for root, _, files in os.walk("assets"):
-                if any(ex.lower() in root.lower() for ex in exclude_keywords):
+        if os.path.exists(root_dir):
+            for root, _, files in os.walk(root_dir):
+                if any(re.search(rf'(?<![a-zA-Z0-9]){re.escape(ex)}(?![a-zA-Z0-9])', root, re.IGNORECASE) for ex in exclude_keywords):
                     continue
                 for f in files:
                     if f.lower().endswith((".png", ".jpg", ".jpeg")):
@@ -1506,22 +1556,42 @@ class SpritesheetSlicerModal:
         query = self.search_input.val.lower().strip()
         cat = self.selected_category
         filtered = []
+
+        prop_keywords = [
+            "prop", "chest", "rock", "object", "item", "building", "house", "tower", "sign",
+            "skeleton", "skull", "statue", "pillar", "altar", "torch", "decor", "bone",
+            "grave", "candle", "debris", "relic", "memento"
+        ]
+        tileset_keywords = [
+            "tile", "ground", "platform", "block", "floor", "sheet", "wall", "brick",
+            "lava", "blood", "road", "path"
+        ]
+        nature_keywords = [
+            "tree", "forest", "bush", "grass", "plant", "wood", "flower", "winter"
+        ]
+
         for s in self.all_sheets:
             s_lower = s.lower()
 
+            # Direct search query takes precedence across all sheets
+            if query:
+                if query in s_lower:
+                    filtered.append(s)
+                continue
+
+            # Category filtering
             if cat == "Active Theme" and self.active_folder:
                 if self.active_folder.lower() not in s_lower and os.path.basename(self.active_folder).lower() not in s_lower:
                     continue
-            elif cat == "Props" and not any(k in s_lower for k in ["prop", "chest", "rock", "object", "item", "building", "house", "tower", "sign"]):
+            elif cat == "Props" and not any(k in s_lower for k in prop_keywords):
                 continue
-            elif cat == "Tilesets" and not any(k in s_lower for k in ["tile", "ground", "platform", "block", "floor", "sheet"]):
+            elif cat == "Tilesets" and not any(k in s_lower for k in tileset_keywords):
                 continue
-            elif cat == "Nature" and not any(k in s_lower for k in ["tree", "forest", "bush", "grass", "plant", "wood", "flower", "winter"]):
+            elif cat == "Nature" and not any(k in s_lower for k in nature_keywords):
                 continue
 
-            if query and query not in s_lower:
-                continue
             filtered.append(s)
+
         return filtered if filtered else (self.all_sheets if not query and cat == "Active Theme" else [])
 
     def _open_file_explorer(self):
@@ -2046,8 +2116,53 @@ class AssetBrowserModal:
         if os.path.exists("assets/graphics"):
             for root, dirs, files in os.walk("assets/graphics"):
                 pngs = [f for f in files if f.lower().endswith(".png")]
-                if pngs and not any(d in root for d in ["Clouds", "background images", "UI", "KEYS", "pigeon", "snail"]):
-                    rel = os.path.relpath(root).replace("\\", "/")
+                if not pngs or any(d in root for d in ["Clouds", "background images", "UI", "KEYS", "pigeon", "snail"]):
+                    continue
+
+                rel = os.path.relpath(root).replace("\\", "/")
+
+                # Detect multi-sheet container folder (e.g. GandalfHardcore The Damned Enemies and NPCs)
+                is_container = False
+                if hasattr(AssetManager, "is_multi_sheet_directory"):
+                    try:
+                        is_container = AssetManager.is_multi_sheet_directory(root)
+                    except Exception:
+                        is_container = False
+                if not is_container and len(pngs) > 1 and any(d.endswith("_frames") for d in dirs):
+                    is_container = True
+
+                if is_container:
+                    # Unpack individual character sheets
+                    for png in pngs:
+                        if "_strip" in png.lower() or "frame_" in png.lower():
+                            continue
+                        name = os.path.splitext(png)[0]
+                        name_lower = name.lower()
+                        entity_path = f"{rel}/{png}"
+                        if any(item["path"] == entity_path for item in catalog):
+                            continue
+
+                        if any(k in name_lower for k in ["devil", "giant", "boss"]):
+                            cat = "Bosses"
+                            etype = "boss"
+                        elif any(k in name_lower for k in ["skeleton", "skull", "demon", "damned", "imp", "head", "flies", "enemy", "monster"]):
+                            cat = "Enemies"
+                            etype = "minion_zone"
+                        elif any(k in name_lower for k in ["prop", "statue", "chest", "rock", "tower", "altar", "pillar"]):
+                            cat = "Props"
+                            etype = "interaction"
+                        else:
+                            cat = "NPCs"
+                            etype = "npc"
+
+                        catalog.append({
+                            "title": name.replace("_", " ").title(),
+                            "path": entity_path,
+                            "type": etype,
+                            "category": cat,
+                            "scale": 2.0
+                        })
+                else:
                     if not any(item["path"] == rel for item in catalog):
                         basename = os.path.basename(rel)
                         cat = "Props" if any(k in rel.lower() for k in ["prop", "tower", "book", "icon", "totem"]) else "NPCs"
@@ -2067,6 +2182,16 @@ class AssetBrowserModal:
             frames = AssetManager.get_animation_frames(path)
             if frames:
                 orig = frames[0]
+                # Filter out magenta missing-texture block
+                try:
+                    tw, th = orig.get_size()
+                    if (orig.get_at((0, 0))[:3] == (255, 0, 255) and
+                        orig.get_at((tw - 1, th - 1))[:3] == (255, 0, 255) and
+                        orig.get_at((tw // 2, th // 2))[:3] == (255, 0, 255)):
+                        self._thumb_cache[path] = None
+                        return None
+                except Exception:
+                    pass
                 scaled = pg.transform.smoothscale(orig, (55, 55))
                 self._thumb_cache[path] = scaled
                 return scaled

@@ -906,15 +906,55 @@
                 "anim_speed": 0.1,
                 "trap_hp": 45.0,
                 "trap_loop_frames": 30,
-                "trap_telegraph_range": [
-                    11,
-                    13
-                ],
                 "trap_hazard_range": [
                     14,
                     23
                 ],
+                "trap_telegraph_range": [
+                    11,
+                    13
+                ],
                 "trap_reward_souls": 75
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Memento Mori Skeleton.png",
+                "slice_rect": [
+                    9,
+                    7,
+                    112,
+                    89
+                ],
+                "pos_x": 3796.136752136752,
+                "pos_y": 418.7222222222222,
+                "scale": 3.5,
+                "layer_index": 7,
+                "parallax_ratio": 1.12,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 0.0,
+                "in_front": true
+            },
+            {
+                "texture_path": "assets/sprite3.png",
+                "slice_rect": [
+                    30,
+                    15,
+                    70,
+                    93
+                ],
+                "pos_x": 2783.764186633039,
+                "pos_y": 404.6475409836065,
+                "scale": 1.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": false,
+                "flip_y": false,
+                "is_ground": false,
+                "collision_type": "deco",
+                "collision_offset_y": 0.0,
+                "in_front": false
             }
         ]
     },
@@ -933,7 +973,7 @@
     "spawn_zones": [
         {
             "min_dist": 1800,
-            "max_dist": 8800,
+            "max_dist": 3195,
             "max_skeletons": 3,
             "delay": 4200,
             "required_kills": 0,
@@ -1039,7 +1079,7 @@
                 ],
                 "death_line": "Carry our names to the end of the woods...",
                 "dialogue": {
-                    "default": "The field ledger of your fallen company pulses with a faint ember: Corporal Vane, Shield-Brother Garrick, Pyromancer Solen, and Commander Kaelen marched ahead into the rift.",
+                    "default": "The field ledger of your fallen company pulses with a faint ember. Every page smells of pine-smoke and iron.",
                     "corruption_variants": {
                         "low": "The silver Watch ink shimmers warmly - your comrades' memories still anchor your humanity.",
                         "mid": "Ash smudges the margins where Andras's sigil touched the parchment.",
@@ -1102,7 +1142,7 @@
                 ],
                 "death_line": "May silver grace guide your blade...",
                 "dialogue": {
-                    "default": "Garrick stood at the Obsidian Gate just ahead until his mortal heart gave out - and Andras locked him inside his own armor. Do you still remember who you were before the pact?",
+                    "default": "Garrick stood at the Obsidian Gate just ahead until his mortal heart gave out - and Andras locked him inside his own armor.",
                     "corruption_variants": {
                         "low": "Your heart still beats in human cadence. Grant Garrick the honorable release of a Watchman.",
                         "mid": "Shadow clouds your sword-arm, yet your eyes still grieve for your squad. Hold onto that grief.",
