@@ -17,9 +17,9 @@ from v3x_zulfiqar_gideon import EntityDied
 @pytest.fixture(scope="module", autouse=True)
 def init_pygame():
     pg.init()
-    pg.display.set_mode((1280, 720), pg.HIDDEN)
+    if pg.display.get_surface() is None:
+        pg.display.set_mode((1280, 720), pg.HIDDEN)
     yield
-    pg.quit()
 
 
 def test_skeleton_kills_give_zero_corruption():

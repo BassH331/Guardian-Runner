@@ -179,6 +179,9 @@ class GameState(PlayingState):
         self.hud_overlay = HUDOverlay(self.width, self.height,
                                       corruption_manager=self.corruption_manager,
                                       relic_manager=self.relic_manager)
+        self.hud_overlay.set_relic_config(self._storyline_cfg.get("relics", {}))
+        self._health_relic_charges: int = 3
+        self.hud_overlay.health_relic_charges = self._health_relic_charges
         self.player_ui = self.hud_overlay.player_ui
         self.objective_display = self.hud_overlay.objective_display
         self.notification_banner = self.hud_overlay.notification_banner
@@ -489,48 +492,24 @@ class GameState(PlayingState):
             self._intro_npc_done = True
     
     def _setup_triggers(self) -> None:
-        """Configure time-based and flag-based objective triggers."""
-
-        # First encounter trigger (The Whispering Grimoire)
+        """Configure concise narrative triggers tied to Andras's Harvester Pact."""
+        # First kill trigger reveals Andras's true motive (10,000 soul tithe to shatter his Rift prison)
         try:
             self.trigger_manager.add_trigger(
-                text="Look at the wretched thing slithering through the brush. "
-                     "Those who step into this forest change from their very first encounter... "
-                     "breathe it in, runner. The hunt has already marked you.",
-                title="The Whispering Grimoire",
-                trigger_type="flag",
-                flag_name="first_encounter",
-                icon_path="assets/graphics/magic_book_single/magic_book.png",
-            )
-        except TypeError:
-            self.trigger_manager.add_trigger(
-                text="Look at the wretched thing slithering through the brush. "
-                     "Those who step into this forest change from their very first encounter... "
-                     "breathe it in, runner. The hunt has already marked you.",
-                title="The Whispering Grimoire",
-                trigger_type="flag",
-                flag_name="first_encounter",
-            )
-
-        # First kill trigger (Grimoire of Andras taunt)
-        try:
-            self.trigger_manager.add_trigger(
-                text="Did you feel that snap of bone? How delicious. "
-                     "Those who step into this forest change from their very first kill... "
-                     "and the curse has already taken root in your blood. "
-                     "There is no turning back now, killer.",
-                title="Grimoire of Andras",
+                text="Every bone your scythe shatters feeds the 10,000-soul tithe. "
+                     "Carve through your fallen captains, Harvester - only a Star-Fire "
+                     "oath can break the seal on my cage beneath the Great Tree.",
+                title="Andras, Marquis of Discord",
                 trigger_type="flag",
                 flag_name="first_kill",
                 icon_path="assets/graphics/magic_book_single/magic_book.png",
             )
         except TypeError:
             self.trigger_manager.add_trigger(
-                text="Did you feel that snap of bone? How delicious. "
-                     "Those who step into this forest change from their very first kill... "
-                     "and the curse has already taken root in your blood. "
-                     "There is no turning back now, killer.",
-                title="Grimoire of Andras",
+                text="Every bone your scythe shatters feeds the 10,000-soul tithe. "
+                     "Carve through your fallen captains, Harvester - only a Star-Fire "
+                     "oath can break the seal on my cage beneath the Great Tree.",
+                title="Andras, Marquis of Discord",
                 trigger_type="flag",
                 flag_name="first_kill",
             )
@@ -553,6 +532,7 @@ class GameState(PlayingState):
         self.world_manager.register_handler("npc", self._handle_npc_spawn)
         self.world_manager.register_handler("enemy_wave", self._handle_enemy_wave)
         self.world_manager.register_handler("boss", self._handle_boss_spawn)
+        self.world_manager.register_handler("ambient_lore", self.world_system._handle_ambient_lore)
 
     def _handle_interaction_spawn(self, params: dict) -> None:
         """Handler for 'interaction' events."""
@@ -721,47 +701,28 @@ class GameState(PlayingState):
         # Wire up boss's in-game taunts directly to SideNotification & The Eye Live Bridge
         boss.taunt_callback = lambda text, t=title: self._dispatch_in_combat_taunt(text, t)
 
-        # Check if this boss is the Blood Zombie for her dedicated cutscene & saucy taunts
-        from src.game.entities.bloo_zombie import BloodZombie
-        is_blood_zombie = (
-            "blood" in title.lower()
-            or isinstance(boss, BloodZombie)
-            or type(boss).__name__ == "BloodZombie"
+        # Switch to high-stakes Boss Combat Music (or Final Boss Music for Commander Kaelen / DarkRonin)
+        class_name = type(boss).__name__
+        stripped_title = title.removeprefix("The ").strip()
+        _enc_key = (
+            stripped_title
+            if stripped_title in self.boss_encounter_manager._dialogue_config
+            else (title if title in self.boss_encounter_manager._dialogue_config else class_name)
         )
-        if is_blood_zombie:
-            # Blood Zombie Mini Short Cutscene before the battle begins
-            if hasattr(self, "cinematic_narrative_overlay"):
-                boss.ai_frozen = True
-                cutscene_event = {
-                    "speaker_name": "Blood Zombie",
-                    "avatar_sprite": "assets/graphics/bloodZombie/Idle",
-                    "dialogue_text": (
-                        "The one you didn't belong here, mortal... "
-                        "The bark of the great one, you thief!! You shall die!!"
-                    ),
-                    "option_1_label": "[SPACE] Draw Blade",
-                    "option_1_buff": {"start_blood_zombie_combat": True}
-                }
+        sounds_dict = getattr(self.audio_manager, "master_audio_config", {}).get("sounds", {})
+        is_final = self.boss_encounter_manager.is_final_boss(_enc_key) or class_name == "DarkRonin"
+        boss_track = "final_boss_music" if (is_final and "final_boss_music" in sounds_dict) else (
+            "boss_combat_music" if "boss_combat_music" in sounds_dict else None
+        )
+        if boss_track and self.audio_manager:
+            self._current_bg_music_track = boss_track
+            self.audio_manager.play_music(boss_track, loop=True)
 
-                def _on_blood_zombie_cutscene_dismiss(buff):
-                    boss.ai_frozen = False
+        # Notify whisperer system so Andras / Moon Knight can react
+        self.whisperer_system.notify_boss_spawn(_enc_key)
 
-                self.cinematic_narrative_overlay.activate(cutscene_event, _on_blood_zombie_cutscene_dismiss)
-
-        else:
-            # Notify whisperer system so Andras / Moon Knight can react (Sub-task 3)
-            self.whisperer_system.notify_boss_spawn(title)
-
-            # Begin boss encounter sequence — pre-fight dialogue, AI freeze (Sub-task 4)
-            # Resolve the config key the same way _emit_relic_drops does.
-            stripped_title = title.removeprefix("The ").strip()
-            class_name = type(boss).__name__
-            _enc_key = (
-                stripped_title
-                if stripped_title in self.boss_encounter_manager._dialogue_config
-                else class_name
-            )
-            self.boss_encounter_manager.begin_encounter(_enc_key, boss)
+        # Begin boss encounter sequence — pre-fight dialogue, corruption scaling, and AI freeze
+        self.boss_encounter_manager.begin_encounter(_enc_key, boss)
 
         # Kick off a non-blocking fetch for a cloud-aggregated difficulty
         # recommendation. The boss spawns off-screen with several seconds of
@@ -916,23 +877,121 @@ class GameState(PlayingState):
 
     def _show_ambient_lore(self, text: str, duration: float = 8.5) -> None:
         """Callback used by WorldManager to display ambient lore notifications."""
-        popup = self.popup_scene_manager.get_popup("event_book_ponder") if hasattr(self, "popup_scene_manager") else None
-        if popup:
-            if popup.get("enabled", True) and hasattr(self, "hud_overlay") and hasattr(self.hud_overlay, "side_notification"):
-                self.hud_overlay.side_notification.show(
-                    popup.get("text", text),
-                    popup.get("title", "The Grimoire Whispers"),
-                    icon=popup.get("icon", "assets/graphics/magic_book_single/magic_book.png"),
-                    hold=popup.get("hold", max(duration, 8.5)),
-                    theme=popup.get("theme", "grimoire_leather"),
+        if not text:
+            return
+        if "|" in text:
+            title_part, body_part = text.split("|", 1)
+            title = title_part.strip() or "Echo of the Elderwood"
+            body = body_part.strip()
+        else:
+            title = "Echo of the Elderwood"
+            body = text.strip()
+
+        target_notif = getattr(self, "side_notification", None) or (
+            getattr(self.hud_overlay, "side_notification", None) if hasattr(self, "hud_overlay") else None
+        )
+        if target_notif is not None:
+            try:
+                target_notif.show(
+                    body,
+                    title,
+                    icon="assets/graphics/magic_book_single/magic_book.png",
+                    hold=max(duration, 7.5),
+                    theme="grimoire_leather",
                 )
-        elif hasattr(self, "hud_overlay") and hasattr(self.hud_overlay, "side_notification"):
-            self.hud_overlay.side_notification.show(
-                text,
-                "The Grimoire Whispers",
-                icon="assets/graphics/magic_book_single/magic_book.png",
-                hold=max(duration, 8.5),
-            )
+            except TypeError:
+                target_notif.show(body, title, hold=max(duration, 7.5))
+
+    def _get_story_zone_index(self, dist: Optional[float] = None) -> int:
+        """Return 0..3 corresponding to the 4 Visual Story Zones across 0..36,000px."""
+        d = float(self.world_distance if dist is None else dist)
+        if d < 9000.0:
+            return 0
+        if d < 18000.0:
+            return 1
+        if d < 27000.0:
+            return 2
+        return 3
+
+    def _get_zone_music_track(self, zone_idx: Optional[int] = None) -> str:
+        """Resolve the music track key for the given Story Zone."""
+        z = self._get_story_zone_index() if zone_idx is None else zone_idx
+        sounds_dict = getattr(self.audio_manager, "master_audio_config", {}).get("sounds", {})
+        zone_keys = ["zone_1_music", "zone_2_music", "zone_3_music", "zone_4_music"]
+        if 0 <= z < len(zone_keys) and zone_keys[z] in sounds_dict:
+            return zone_keys[z]
+        seq = getattr(self.audio_manager, "master_audio_config", {}).get("boss_music_sequence", ["game_loop"])
+        if seq:
+            cand = seq[min(z, len(seq) - 1)]
+            if cand in sounds_dict:
+                return cand
+        return "game_loop" if "game_loop" in sounds_dict else "background_music"
+
+    def _update_story_zones_and_props(self) -> None:
+        """Handle 4-Zone music/banner progression, corruption undertones, and interactive prop lore."""
+        # 1. Story Zone Transitions (0-9000, 9000-18000, 18000-27000, 27000-36000)
+        curr_zone = self._get_story_zone_index()
+        last_zone = getattr(self, "_active_story_zone", 0)
+        if curr_zone != last_zone:
+            self._active_story_zone = curr_zone
+            zone_banners = {
+                1: ("ACT II: THE HOLLOWED GRAVES", "Look for the cairns of your fallen company."),
+                2: ("ACT III: CANDORA'S MOON-SHRINES", "Silver light lingers among the ruined altars."),
+                3: ("ACT IV: THE BLEEDING THRESHOLD", "Commander Kaelen awaits beneath the Great Tree."),
+            }
+            if curr_zone in zone_banners:
+                banner_title, _ = zone_banners[curr_zone]
+                self.notification_banner.show(banner_title, notification="yellow")
+            if not self._is_boss_active() and self.audio_manager:
+                next_track = self._get_zone_music_track(curr_zone)
+                if next_track != getattr(self, "_current_bg_music_track", None):
+                    self._current_bg_music_track = next_track
+                    self.audio_manager.play_music(next_track, loop=True)
+
+        # 2. Corruption-Driven Dark Undertones (33% and 66% crossings)
+        corr = float(self.corruption_manager.value) if hasattr(self, "corruption_manager") else 0.0
+        corr_band = 2 if corr >= 66.0 else (1 if corr >= 33.0 else 0)
+        last_corr_band = getattr(self, "_last_audio_corruption_band", 0)
+        if corr_band > last_corr_band:
+            self._last_audio_corruption_band = corr_band
+            if self.audio_manager:
+                sounds_dict = getattr(self.audio_manager, "master_audio_config", {}).get("sounds", {})
+                undertone_key = "corruption_drone" if "corruption_drone" in sounds_dict else "night_sounds"
+                try:
+                    self.audio_manager.play_sound(undertone_key, volume=0.28 if corr_band == 1 else 0.42)
+                except Exception:
+                    pass
+        elif corr_band < last_corr_band:
+            self._last_audio_corruption_band = corr_band
+
+        # Prop proximity cues (audio aura; keep popups clean unless no popup is active)
+        player_sprite = self.player.sprite if hasattr(self, "player") else None
+        if player_sprite and hasattr(self.environment_manager, "check_prop_story_triggers"):
+            player_world_x = float(player_sprite.rect.centerx + self.world_distance)
+            triggered_props = self.environment_manager.check_prop_story_triggers(player_world_x, corr)
+            for p_lore in triggered_props:
+                sfx = p_lore.get("ambient_sfx")
+                if sfx and self.audio_manager:
+                    try:
+                        self.audio_manager.play_sound(sfx, volume=0.30)
+                    except Exception:
+                        pass
+                if (
+                    hasattr(self, "side_notification")
+                    and self.side_notification
+                    and not self.side_notification.is_active
+                ):
+                    theme = "gothic_gold" if p_lore.get("is_fire") else "grimoire_leather"
+                    try:
+                        self.side_notification.show(
+                            p_lore["text"],
+                            p_lore["title"],
+                            icon="assets/graphics/magic_book_single/magic_book.png",
+                            hold=5.5,
+                            theme=theme,
+                        )
+                    except TypeError:
+                        self.side_notification.show(p_lore["text"], p_lore["title"])
 
     # ─────────────────────────────────────────────────────────────────────────
     # State Lifecycle
@@ -1137,6 +1196,42 @@ class GameState(PlayingState):
             elif event.key == pg.K_l:
                 from src.game.effects.lightning_effect import LightningEffect
                 LightningEffect.get_instance().trigger(duration=1.0)
+            elif event.key == pg.K_h:
+                self._try_activate_health_relic()
+        elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            slot_r = getattr(self.hud_overlay, "health_relic_slot_rect", None)
+            popup_r = getattr(self.hud_overlay, "health_relic_popup_rect", None)
+            if (slot_r and slot_r.collidepoint(event.pos)) or (popup_r and popup_r.collidepoint(event.pos)):
+                self._try_activate_health_relic()
+
+    def _try_activate_health_relic(self) -> bool:
+        """Consume 1 Ruby Elixir charge to restore +60 HP + 1.5s invincibility when HP <= 30%."""
+        player_sprite = self.player.sprite if hasattr(self, "player") else None
+        if not player_sprite or self._health_relic_charges <= 0:
+            return False
+        cur_hp = float(getattr(player_sprite, "health", 0.0))
+        max_hp = float(getattr(player_sprite, "max_health", 100.0)) or 100.0
+        if cur_hp <= 0.0 or cur_hp > max_hp * 0.30:
+            return False
+
+        self._health_relic_charges -= 1
+        player_sprite._health = min(int(max_hp), int(cur_hp + 60.0))
+        player_sprite._invincibility_timer = max(
+            float(getattr(player_sprite, "_invincibility_timer", 0.0)), 1.5
+        )
+        self.hud_overlay.health_relic_charges = self._health_relic_charges
+        self.player_ui.current_health = player_sprite.health
+        self.player_ui.max_health = player_sprite.max_health
+        self.hud_overlay.trigger_heal_showcase()
+        VisualEffectManager.spawn_hit_vfx(
+            player_sprite.rect.centerx, player_sprite.rect.centery, target_entity=player_sprite
+        )
+        if self.audio_manager:
+            try:
+                self.audio_manager.play_sound("reveal", volume=0.65)
+            except Exception:
+                pass
+        return True
     
     # ─────────────────────────────────────────────────────────────────────────
     # Entity Spawning
@@ -1295,15 +1390,11 @@ class GameState(PlayingState):
 
             # ── Dynamic Boss Music Transition ────────────────────────
             self._boss_defeat_count += 1
-            sounds_dict = getattr(self.audio_manager, "master_audio_config", {}).get("sounds", {})
-            seq = getattr(self.audio_manager, "master_audio_config", {}).get("boss_music_sequence", ["game_loop", "game_loop_2"])
-            if seq:
-                idx = min(self._boss_defeat_count, len(seq) - 1)
-                next_track = seq[idx]
-                if next_track in sounds_dict:
-                    self._current_bg_music_track = next_track
-                    self.audio_manager.play_music(next_track, loop=True)
-                    print(f"[GameState] Boss defeated! Switched music track to '{next_track}' (Stage {idx + 1})")
+            next_track = self._get_zone_music_track()
+            if self.audio_manager and next_track:
+                self._current_bg_music_track = next_track
+                self.audio_manager.play_music(next_track, loop=True)
+                print(f"[GameState] Boss defeated! Restored zone music track '{next_track}'")
             # ─────────────────────────────────────────────────────────
 
             if getattr(enemy, "tier", "boss") == "boss":
@@ -1566,8 +1657,9 @@ class GameState(PlayingState):
         if self.world_distance > self.max_distance_reached:
             self.max_distance_reached = self.world_distance
 
-        # Update world events (distance-triggered)
+        # Update world events (distance-triggered) and 4-Zone story/prop/music progression
         self.world_manager.update(self.world_distance)
+        self._update_story_zones_and_props()
 
         # Check level endpoint
         if not self._level_complete and self.world_distance >= self._level_end_distance:
@@ -1670,27 +1762,6 @@ class GameState(PlayingState):
                 enemies=list(self.obstacle_group),
                 boss=getattr(self, "_current_boss", None),
             )
-
-        # Distance milestone: Forest inquiry @ 1400m
-        if not getattr(self, "_forest_inquiry_shown", False) and self.world_distance >= 1400:
-            self._forest_inquiry_shown = True
-            forest_popup = self.popup_scene_manager.get_popup("event_forest_inquiry_1400m") if hasattr(self, "popup_scene_manager") else None
-            if forest_popup:
-                if forest_popup.get("enabled", True):
-                    self.side_notification.show(
-                        forest_popup.get("text", "What in God's name is this forest...?"),
-                        forest_popup.get("title", "The Runner Questions"),
-                        icon=forest_popup.get("icon", "assets/graphics/UI/PNG/Exclamation_Yellow.png"),
-                        hold=forest_popup.get("hold", 6.0),
-                        theme=forest_popup.get("theme", "clean_minimalist"),
-                    )
-            else:
-                self.side_notification.show(
-                    "What in God's name is this forest...?",
-                    "The Runner Questions",
-                    icon="assets/graphics/UI/PNG/Exclamation_Yellow.png",
-                    hold=6.0,
-                )
 
         self.ambient_group.update(dt * world_scale, effective_scroll)
         self.interaction_group.update(dt, effective_scroll)
@@ -1859,6 +1930,8 @@ class GameState(PlayingState):
         
         # Sync UI with player state
         self.player_ui.current_health = player_sprite.health
+        self.player_ui.max_health = player_sprite.max_health
+        self.hud_overlay.health_relic_charges = getattr(self, "_health_relic_charges", 3)
         self.player_ui.distance = self.max_distance_reached
         self.player_ui.current_mana = player_sprite.mana
         self.player_ui.max_mana = player_sprite.max_mana

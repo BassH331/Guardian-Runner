@@ -137,7 +137,7 @@ class EndingState(State):
         """SPACE or ENTER skips the *current* phase only."""
         skip = (
             (event.type == pg.KEYDOWN and event.key in (pg.K_SPACE, pg.K_RETURN))
-            or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6, 7))
+            or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 2, 6, 7))
         )
         if skip:
             self._advance_phase()

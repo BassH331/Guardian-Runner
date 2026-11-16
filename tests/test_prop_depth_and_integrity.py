@@ -193,8 +193,18 @@ def test_atomic_file_write_creates_backup(tmp_path):
 def test_cia_confidentiality_no_tracked_tokens():
     """Verify that no sensitive credential files or tokens are tracked in git index."""
     import subprocess
+    import shutil
+    git_bin = shutil.which("git")
+    if not git_bin:
+        for candidate in [r"C:\Program Files\Git\cmd\git.exe", r"C:\Program Files (x86)\Git\cmd\git.exe"]:
+            if os.path.exists(candidate):
+                git_bin = candidate
+                break
+    if not git_bin:
+        git_bin = "git"
+
     res = subprocess.run(
-        ["git", "ls-files"],
+        [git_bin, "ls-files"],
         capture_output=True,
         text=True,
         cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),

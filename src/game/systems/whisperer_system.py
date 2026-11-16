@@ -1,15 +1,9 @@
 """
-WhispererSystem — Reactive bark dialogue for Andras and Moon Knight.
+WhispererSystem  -  Reactive bark dialogue for Andras and Moon Knight.
 
 Subscribes to EntityDied, DamageReceived, and RelicDropped events.
 Selects the appropriate speaker and bark based on the player's current
-corruption level, then fires it to CinematicNarrativeOverlay.show_bark().
-
-Design rules:
-  - One global 8-second cooldown shared by both speakers.
-  - All bark strings live in storyline_config.json under "whisperer_barks".
-  - Never hardcodes dialogue text in Python.
-  - Does NOT call TTS or any audio synthesis.
+corruption level, then fires it to SideNotification (or CinematicNarrativeOverlay).
 """
 
 from __future__ import annotations
@@ -28,22 +22,13 @@ if TYPE_CHECKING:
 
 
 class WhispererSystem:
-    """Selects and fires contextual bark lines from Andras and Moon Knight.
+    """Selects and fires contextual bark lines from Andras and Moon Knight."""
 
-    Args:
-        event_bus:          Shared ``EventBus`` instance.
-        corruption_manager: ``CorruptionManager`` instance (Sub-task 1).
-        config:             Full ``storyline_config.json`` data dict.
-        overlay:            ``CinematicNarrativeOverlay`` instance used to
-                            display the bark text.
-    """
+    # Enabled so Andras and the Moon Knight react to psychological milestones
+    # via non-blocking SideNotification cards.
+    ENABLED: bool = True
 
-    # Set to False to silence all Andras / Moon Knight ambient bark pop-ups.
-    # Cutscenes and boss encounter dialogues are handled separately and are
-    # unaffected by this flag.
-    ENABLED: bool = False
-
-    COOLDOWN: float = 45.0  # Calibrated 45-second pacing window between ambient combat chatter
+    COOLDOWN: float = 55.0  # Calibrated quiet pacing between rare psychological echoes
 
     def __init__(
         self,
@@ -75,7 +60,7 @@ class WhispererSystem:
         event_bus.subscribe(DamageReceived, self._on_damage_received)
         event_bus.subscribe(RelicDropped, self._on_relic_dropped)
 
-        # Threshold tracking — detect corruption crossing a band boundary
+        # Threshold tracking  -  detect corruption crossing a band boundary
         self._last_threshold: int = self._get_current_threshold()
 
     # ── Threshold helper ──────────────────────────────────────────────────────
@@ -96,17 +81,8 @@ class WhispererSystem:
     # ── Event handlers ────────────────────────────────────────────────────────
 
     def _on_entity_died(self, event) -> None:
-        """Trigger an on_kill bark when a non-player entity dies (ambient, gated)."""
-        entity = getattr(event, "entity", None)
-        if entity is None:
-            return
-        # Identify player deaths by checking for the Player class
-        from src.game.entities.player import Player
-        if isinstance(entity, Player):
-            return
-        # Controlled 15% probability subjected to 45s cooldown
-        if random.random() < 0.15:
-            self._try_bark("on_kill", force=False)
+        """Suppress random minion-kill popup chatter so combat stays uncluttered."""
+        return
 
     def _on_damage_received(self, event) -> None:
         """Trigger an on_near_death bark when the player drops below 20% HP (high priority)."""
@@ -128,11 +104,7 @@ class WhispererSystem:
     # ── Per-frame update ──────────────────────────────────────────────────────
 
     def update(self, dt: float) -> None:
-        """Tick the cooldown timer and detect corruption threshold crossings.
-
-        Args:
-            dt: Delta time in seconds since last frame.
-        """
+        """Tick the cooldown timer and detect corruption threshold crossings."""
         if self._cooldown_remaining > 0:
             self._cooldown_remaining -= dt
 
@@ -152,11 +124,7 @@ class WhispererSystem:
     # ── Public API ────────────────────────────────────────────────────────────
 
     def notify_boss_spawn(self, boss_name: str) -> None:
-        """Called by GameState when a boss spawns.
-
-        Args:
-            boss_name: String name of the boss (used for future extensions).
-        """
+        """Called by GameState when a boss spawns."""
         boss_cfg = self._boss_dialogue_config.get(boss_name, {})
         use_watsonx = boss_cfg.get("watsonx_taunt", False) and self._watsonx_client is not None
         if use_watsonx:
@@ -185,10 +153,7 @@ class WhispererSystem:
     # ── Internal bark selection ───────────────────────────────────────────────
 
     def _try_bark(self, trigger: str, force: bool = False) -> None:
-        """Attempt to fire a bark for the given trigger.
-
-        If force is True, bypasses ambient cooldown for critical psychological milestones.
-        """
+        """Attempt to fire a bark for the given trigger."""
         if not force and self._cooldown_remaining > 0:
             return
         corruption = self._corruption_manager.value
@@ -199,26 +164,16 @@ class WhispererSystem:
         self._fire(speaker, bark)
 
     def _pick_speaker(self, corruption: float) -> Speaker:
-        """Choose which voice speaks based on the corruption level.
-
-        - Above 60: Andras dominant.
-        - Below 40: Moon Knight dominant.
-        - 40–60: weighted random, Andras more likely as corruption rises.
-        """
+        """Choose which voice speaks based on the corruption level."""
         if corruption > 60:
             return Speaker.ANDRAS
         if corruption < 40:
             return Speaker.MOON_KNIGHT
-        # 40–60 range: linear weight from 0.0 (all Moon Knight) to 1.0 (all Andras)
         andras_weight = (corruption - 40) / 20.0
         return Speaker.ANDRAS if random.random() < andras_weight else Speaker.MOON_KNIGHT
 
     def _pick_bark(self, speaker: Speaker, trigger: str, corruption: float) -> Optional[str]:
-        """Select a random valid bark text from the pool.
-
-        Filters by corruption_range so only contextually appropriate lines
-        are shown.  Returns ``None`` if no valid bark exists.
-        """
+        """Select a random valid bark text from the pool."""
         speaker_key = "andras" if speaker == Speaker.ANDRAS else "moon_knight"
         pool: list[dict] = self._barks.get(speaker_key, {}).get(trigger, [])
         valid = [
@@ -226,35 +181,33 @@ class WhispererSystem:
             for b in pool
             if b["corruption_range"][0] <= corruption <= b["corruption_range"][1]
         ]
+        if not valid and pool:
+            valid = [b["text"] for b in pool]
         if not valid:
             return None
         return random.choice(valid)
 
     def _fire(self, speaker: Speaker, text: str) -> None:
-        """Display the bark and reset the cooldown.
-
-        When ``WhispererSystem.ENABLED`` is ``False`` (the default) this method
-        is a deliberate no-op — the cooldown is still advanced so the internal
-        state machine stays consistent, but nothing is shown to the player.
-        Re-enable by setting ``WhispererSystem.ENABLED = True``.
-        """
+        """Display the bark and reset the cooldown."""
         self._cooldown_remaining = self.COOLDOWN
         if not self.ENABLED:
             return
-        # Prefer non-blocking side notification so gameplay is not constantly interrupted
         if getattr(self, "_side_notification", None) is not None:
-            speaker_label = "Andras" if speaker == Speaker.ANDRAS else "Moon Knight"
+            speaker_label = "Andras, Marquis of Discord" if speaker == Speaker.ANDRAS else "The Moon Knight (Candora's Envoy)"
             icon = (
                 "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png"
                 if speaker == Speaker.ANDRAS
                 else "assets/graphics/UI/PNG/Exclamation_Yellow.png"
             )
-            self._side_notification.show(text, speaker_label, icon=icon, hold=8.0)
+            theme = "blood_bone" if speaker == Speaker.ANDRAS else "arcane_void"
+            try:
+                self._side_notification.show(text, speaker_label, icon=icon, hold=7.5, theme=theme)
+            except TypeError:
+                self._side_notification.show(text, speaker_label, icon=icon, hold=7.5)
             return
 
         if self._overlay is None:
             return
-        # Use show_bark() only as fallback when side_notification is absent
         show_fn = getattr(self._overlay, "show_bark", None)
         if show_fn is not None:
             show_fn(text, speaker=speaker)

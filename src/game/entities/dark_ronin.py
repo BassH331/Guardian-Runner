@@ -1,8 +1,8 @@
 """
-DarkRonin enemy module — High-speed elite warrior enemy with dash-slash combat AI.
+DarkRonin enemy & final boss module  -  High-speed warrior with dash-slash combat AI.
 
-Features a state-machine AI with high mobility, rapid forward dash strikes,
-and heavy melee blade attacks using the Ronin sprite assets.
+Used both for elite Ronin encounters and for the final boss encounter:
+Commander Kaelen, The First Vessel (your former mentor in the Star-Fire Watch).
 """
 
 from __future__ import annotations
@@ -10,14 +10,21 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Final, Optional
+from typing import TYPE_CHECKING, Final, Optional, Callable
 
 import pygame as pg
 
 from v3x_zulfiqar_gideon import AssetManager, Actor, AttackConfig
 from src.game.audio.entity_audio_mixin import EntityAudioMixin
 from .hitbox_registry import HitboxRegistry
-from src.game.ai import PerceptionSystem, AlertLevel, SquadTokenManager, SquadCoordinator, SquadRole, UtilityCombatEngine, TacticalAction
+from src.game.ai import (
+    PerceptionSystem,
+    AlertLevel,
+    SquadTokenManager,
+    SquadCoordinator,
+    UtilityCombatEngine,
+    TacticalAction,
+)
 
 if TYPE_CHECKING:
     from src.game.entities.player import Player
@@ -25,7 +32,7 @@ if TYPE_CHECKING:
 
 class DarkRoninState(Enum):
     """Enumeration of all possible Dark Ronin behavioral states."""
-    
+
     DEATH = 0
     HURT = 10
     ATTACK = 20
@@ -44,7 +51,7 @@ class StateConfig:
 
 class DarkRonin(EntityAudioMixin, Actor):
     """
-    High-mobility elite Dark Ronin minion with high-speed dash strikes.
+    High-mobility Dark Ronin warrior / final boss (Commander Kaelen) with high-speed dash strikes.
     """
 
     hit_vfx_type: Final[str] = "dark_shadow"
@@ -77,25 +84,41 @@ class DarkRonin(EntityAudioMixin, Actor):
         player: Player,
         audio_manager=None,
         move_speed: float = 4.0,
+        tier: str = "elite",
+        sprite_root: Optional[str] = None,
+        behaviour_map: Optional[dict] = None,
+        custom_scale: Optional[float] = None,
+        custom_health: Optional[float] = None,
+        **kwargs,
     ) -> None:
         super().__init__(x, y)
 
         self._player: Player = player
         self.state_configs = self.STATE_CONFIGS
         self.move_speed: float = move_speed
+        self.tier: str = tier
+        self.sprite_root: str = sprite_root or os.path.join("assets", "graphics", "Ronin")
+        self._base_path: str = self.sprite_root
+        self.behaviour_map = behaviour_map
+        self.ai_frozen: bool = False
+        self.taunt_callback: Optional[Callable[[str, str], None]] = None
 
-        self._health: float = 35.0
-        self._max_health: float = 35.0
+        default_hp = 220.0 if tier == "boss" else 35.0
+        hp = float(custom_health) if custom_health is not None else default_hp
+        self._health: float = hp
+        self._max_health: float = hp
         self._direction: int = -1  # -1 = facing left, 1 = facing right
         self._state: Enum = DarkRoninState.IDLE
+        self.state: Enum = DarkRoninState.IDLE
         self.animation_index: float = 0.0
 
         # Dash strike cooldown & range parameters
-        self.dash_cooldown_ms: int = 4000
+        self.dash_cooldown_ms: int = 3200 if tier == "boss" else 4000
         self.last_dash_time: int = -self.dash_cooldown_ms
 
         # Load hitbox margins
         self.margins = HitboxRegistry.get_margins("dark_ronin")
+        self._scale_override: Optional[float] = float(custom_scale) if custom_scale is not None else None
 
         # Load animations from assets/graphics/Ronin
         self.animations: dict[Enum, list[pg.Surface]] = {}
@@ -117,17 +140,30 @@ class DarkRonin(EntityAudioMixin, Actor):
         self.perception = PerceptionSystem(
             vision_range=1500.0,
             hearing_range=800.0,
-            reaction_delay_sec=0.15,
+            reaction_delay_sec=0.12 if tier == "boss" else 0.15,
         )
         self.utility_engine = UtilityCombatEngine(
             has_dash_evasion=True,
             has_block_anim=False,
             preferred_spacing=65.0,
         )
-        SquadTokenManager.get_instance().register_enemy(id(self), "elite")
+        SquadTokenManager.get_instance().register_enemy(id(self), "boss" if tier == "boss" else "elite")
 
         # Audio setup
         self._init_entity_audio_config(audio_manager, "skeleton")
+
+    def apply_corruption_scaling(self, corruption_value: float) -> None:
+        """Scale HP and speed when player corruption is high (>66)."""
+        if not getattr(self, "is_boss", False) and self.tier != "boss":
+            return
+        if corruption_value > 66:
+            self._max_health *= 1.10
+            self._health = self._max_health
+            self.move_speed *= 1.05
+
+    @property
+    def is_dead(self) -> bool:
+        return self._state == DarkRoninState.DEATH or self._health <= 0.0
 
     @property
     def is_invincible(self) -> bool:
@@ -147,6 +183,7 @@ class DarkRonin(EntityAudioMixin, Actor):
 
     def _load_animations(self) -> None:
         """Load animation frames from assets/graphics/Ronin."""
+        import re
         base_dir = os.path.join("assets", "graphics", "Ronin")
         file_mapping = {
             DarkRoninState.IDLE: "spr_RoninIdle_strip8.png",
@@ -157,14 +194,30 @@ class DarkRonin(EntityAudioMixin, Actor):
             DarkRoninState.DEATH: "spr_RoninDeath_strip16.png",
         }
 
-        scale = self.margins.scale
+        scale = self._scale_override if self._scale_override is not None else self.margins.scale
         for state, file_name in file_mapping.items():
             file_path = os.path.join(base_dir, file_name)
             raw_frames = AssetManager.get_animation_frames(file_path)
+            if not raw_frames and os.path.exists(file_path):
+                try:
+                    raw_frames = [pg.image.load(file_path).convert_alpha()]
+                except Exception:
+                    raw_frames = []
+            m = re.search(r"_strip(\d+)\.png$", file_name, re.IGNORECASE)
+            if m and len(raw_frames) == 1:
+                n_frames = max(1, int(m.group(1)))
+                sheet = raw_frames[0]
+                fw = sheet.get_width() // n_frames
+                fh = sheet.get_height()
+                if fw > 0 and fh > 0:
+                    raw_frames = [
+                        sheet.subsurface(pg.Rect(i * fw, 0, fw, fh)).copy()
+                        for i in range(n_frames)
+                    ]
             scaled_frames = []
             for frame in raw_frames:
-                w = int(frame.get_width() * scale)
-                h = int(frame.get_height() * scale)
+                w = max(1, int(frame.get_width() * scale))
+                h = max(1, int(frame.get_height() * scale))
                 scaled_frames.append(pg.transform.smoothscale(frame, (w, h)))
             self.animations[state] = scaled_frames if scaled_frames else [pg.Surface((32, 32))]
 
@@ -204,10 +257,23 @@ class DarkRonin(EntityAudioMixin, Actor):
             self._update_animation()
             return
 
+        # Freeze AI during pre-fight boss encounter dialogue
+        if getattr(self, "ai_frozen", False):
+            # Walk onto screen if spawned off-screen right so the player can see Kaelen during dialogue
+            surf = pg.display.get_surface()
+            screen_w = surf.get_width() if surf else 1280
+            if self.rect.centerx > screen_w - 220:
+                self._direction = -1
+                self.set_state(DarkRoninState.CHASE)
+                self.rect.x -= int(max(3.5, self.move_speed))
+            else:
+                self.set_state(DarkRoninState.IDLE)
+            self._update_animation()
+            return
+
         # AI Behavior with Perception and Utility Engine
         player_sprite = getattr(self._player, "sprite", self._player)
         if player_sprite and hasattr(player_sprite, "rect"):
-            # Update perception
             facing_left = (self._direction == -1)
             alert = self.perception.update(dt_sec, self.rect, facing_left, player_sprite)
 
@@ -221,7 +287,7 @@ class DarkRonin(EntityAudioMixin, Actor):
                     self._direction = 1 if dist_x > 0 else -1
 
                 has_token = SquadTokenManager.get_instance().request_attack_token(id(self))
-                can_attack = (abs_dist <= 65)
+                can_attack = (abs_dist <= 75)
 
                 action = self.utility_engine.evaluate_action(
                     enemy_rect=self.rect,
@@ -232,10 +298,10 @@ class DarkRonin(EntityAudioMixin, Actor):
                 )
 
                 # Melee attack takes precedence when in range
-                if (action in (TacticalAction.PUNISH_WHIFF, TacticalAction.ATTACK) or abs_dist <= 65) and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
+                if (action in (TacticalAction.PUNISH_WHIFF, TacticalAction.ATTACK) or abs_dist <= 75) and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
                     self.set_state(DarkRoninState.ATTACK)
                 elif (
-                    (action == TacticalAction.DASH_EVADE or 120 <= abs_dist <= 280)
+                    (action == TacticalAction.DASH_EVADE or 120 <= abs_dist <= 300)
                     and current_time - self.last_dash_time >= self.dash_cooldown_ms
                     and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE)
                 ):
@@ -261,8 +327,17 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         # Handle Dash Movement
         if self._state == DarkRoninState.DASH_STRIKE:
-            dash_velocity = 8.0
+            dash_velocity = 8.5
             self.rect.x += int(self._direction * dash_velocity)
+
+        # Keep boss inside arena bounds once engaged
+        if getattr(self, "is_boss", False):
+            surf = pg.display.get_surface()
+            screen_w = surf.get_width() if surf else 1280
+            if self.rect.left < 20:
+                self.rect.left = 20
+            if self.rect.right > screen_w - 20 and not getattr(self, "ai_frozen", False):
+                self.rect.right = min(self.rect.right, screen_w + 180)
 
         self._update_animation()
 
@@ -289,7 +364,7 @@ class DarkRonin(EntityAudioMixin, Actor):
         else:
             self.image = raw_image
 
-    def take_damage(self, amount: float) -> bool:
+    def take_damage(self, amount: float, knockback: object = None) -> bool:
         """Apply damage unless dead."""
         if self._is_invincible or self._state == DarkRoninState.DEATH:
             return False
@@ -324,8 +399,8 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         idx = int(self.animation_index)
         if idx in config.hit_frames:
-            hitbox_w = 90
-            hitbox_h = 70
+            hitbox_w = 100 if getattr(self, "is_boss", False) else 90
+            hitbox_h = 80 if getattr(self, "is_boss", False) else 70
             if self._direction == -1:
                 hx = self.rect.left - hitbox_w + 20
             else:
@@ -360,11 +435,11 @@ class DarkRonin(EntityAudioMixin, Actor):
     def draw(self, surface: pg.Surface) -> None:
         """Render DarkRonin onto target surface."""
         surface.blit(self.image, self.rect)
-        if self._health < self._max_health and self._state != DarkRoninState.DEATH:
+        if not getattr(self, "is_boss", False) and self._health < self._max_health and self._state != DarkRoninState.DEATH:
             self._draw_health_bar(surface)
 
     def _draw_health_bar(self, surface: pg.Surface) -> None:
-        """Render the health bar above DarkRonin."""
+        """Render the health bar above DarkRonin when spawned as a minion."""
         bar_width: int = 50
         bar_height: int = 6
         bar_x: int = self.rect.centerx - bar_width // 2

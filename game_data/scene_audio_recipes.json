@@ -1,0 +1,61 @@
+{
+  "scene_recipes": [
+    {
+      "id": "scene_dark_forest_awakening",
+      "title": "\ud83c\udf32 Scene 1: The Dark Forest Awakening (Exploration & Dread)",
+      "target_feeling": "Lonely, damp, watchful. The player should feel the cool midnight mist, hear their boots pressing into damp earth, and sense unseen eyes in the canopy.",
+      "ambient_bed_primary": "assets/audio/Free Fantasy SFX Pack By TomMusic/WAV Files/BGS Loops/Forest Night/Forest Night.wav",
+      "ambient_bed_secondary": "assets/audio/Free Fantasy SFX Pack By TomMusic/WAV Files/BGS Loops/Forest Night/Forest Night Rain.wav",
+      "music_track": "assets/audio/1 Exploration TomMusic.ogg",
+      "recommended_bend_preset": "grounded_forest_step",
+      "how_to_mix": [
+        "1. Set 'Forest Night.wav' as your continuous room-tone bed at 40% volume.",
+        "2. Layer 'Forest Night Rain.wav' or 'dark-forest.ogg' at 25% volume with Low-Pass at 2400 Hz for damp air.",
+        "3. Bend footsteps ('Dirt Chain Run 1..5') with Pitch -1.5st and Low-Pass 2600 Hz so they thud into the soil instead of clicking.",
+        "4. Trigger 'Wendigo sounds.mp3' or 'DeepOne_Rumble.mp3' pitched down -4st with 45% Forest Reverb at rare intervals."
+      ]
+    },
+    {
+      "id": "scene_burning_village_prologue",
+      "title": "\ud83d\udd25 Scene 2: Memories of the Burning Village (Tragedy & Fury)",
+      "target_feeling": "Suffocating heat, grief, and irreversible doom. The fire should roar in the chest while distant bells toll.",
+      "ambient_bed_primary": "assets/audio/Burning Fire.mp3",
+      "ambient_bed_secondary": "assets/audio/Free Fantasy SFX Pack By TomMusic/WAV Files/SFX/Torch/Torch Loop.wav",
+      "music_track": "assets/audio/Abyssal Horror SFX Vol.1/Abyssal Horror/Abyssal_Descent.mp3",
+      "recommended_bend_preset": "distant_fog_omen",
+      "how_to_mix": [
+        "1. Pitch 'Burning Fire.mp3' down -2st so it sounds like a massive roaring structure fire rather than a small campfire.",
+        "2. Layer 'Torch Loop.wav' unbent at 35% volume for close-up snapping embers.",
+        "3. Bend 'Ominous Bells of Doom.mp3' with Pitch -3st + Void Reverb (50%) when transitioning between comic panels."
+      ]
+    },
+    {
+      "id": "scene_whispering_grimoire_pact",
+      "title": "\ud83d\udc41\ufe0f Scene 3: The Whispering Grimoire & Andras Pact (Unholy Intimacy)",
+      "target_feeling": "Time slows down; the forest recedes into a suffocating void where only Andras's bargain and the pulsing runes exist.",
+      "ambient_bed_primary": "assets/audio/Abyssal Horror SFX Vol.1/Abyssal Horror/Abyssal_Descent1.mp3",
+      "ambient_bed_secondary": "assets/audio/Be Not Afraid UI/--Unholy/Souls/Unholy UI - Souls (4).wav",
+      "music_track": "assets/audio/Magical Light Aura Sound Effect.mp3",
+      "recommended_bend_preset": "abyssal_demonic_pact",
+      "how_to_mix": [
+        "1. Duck forest ambience by 70% (low-pass at 600 Hz) as soon as the Grimoire opens.",
+        "2. Bring in 'Abyssal_Descent1.mp3' pitched down -4st as a sub-bass void bed.",
+        "3. Use 'Unholy UI - Souls (1..16)' pitched -3st for rune levitation and 'BNA_UI13_Long.wav' for pact confirmation."
+      ]
+    },
+    {
+      "id": "scene_blood_zombie_horde_clash",
+      "title": "\ud83e\ude78 Scene 4: Blood Zombie & Skeleton Horde Clash (Visceral Weight)",
+      "target_feeling": "Relentless iron, bone, and sinew. Every scythe swing feels heavy and dangerous; every hit cracks bone or tears armor.",
+      "ambient_bed_primary": "assets/audio/Free Fantasy SFX Pack By TomMusic/WAV Files/BGS Loops/Forest Night/Forest Night Storm.wav",
+      "ambient_bed_secondary": "assets/audio/dark-forest.ogg",
+      "music_track": "assets/audio/Combat Pack - vol 1/2. One Last Day on Earth - 110bpm - LOOP 52s.wav",
+      "recommended_bend_preset": "heavy_scythe_weight",
+      "how_to_mix": [
+        "1. Drive the encounter with 'One Last Day on Earth (110 BPM)' or escalate to 'Time For a Revenge (157 BPM)'.",
+        "2. Bend player scythe swings ('whoosh-cinematic' or 'Sword Attack 1..3') down -4st with 35% Drive.",
+        "3. Stack 'blade_hit_07.wav' + 'bone_breaking_03.wav' (delayed 15ms, pitched -2st) for Skeleton hits, and 'guts_and_gore_19.wav' for Blood Zombie hits."
+      ]
+    }
+  ]
+}
