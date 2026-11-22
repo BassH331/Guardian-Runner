@@ -3,6 +3,8 @@
     "graphics_quality": "high",
     "master_volume": 0.5,
     "music_volume": 0.4,
-    "sfx_volume": 0.65,
-    "sound_volumes": {}
+    "sfx_volume": 0.35,
+    "sound_volumes": {},
+    "telemetry_enabled": true,
+    "ai_director_enabled": false
 }

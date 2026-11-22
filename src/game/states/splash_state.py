@@ -52,8 +52,14 @@ class SplashState(State):
         )
 
     def handle_event(self, event):
-        if event.type == pg.KEYDOWN:
-            pass
+        if self.state in ("FADE_IN", "WAIT") and self.loading_timer >= 0.3:
+            skip = (
+                (event.type == pg.KEYDOWN and event.key in (pg.K_SPACE, pg.K_RETURN, pg.K_ESCAPE))
+                or (event.type == pg.MOUSEBUTTONDOWN and event.button == 1)
+                or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 7))
+            )
+            if skip and self.next_state is not None:
+                self.state = "FADE_OUT"
 
     def update(self, dt):
         dt_sec = dt / 1000.0 if dt > 0.5 else dt

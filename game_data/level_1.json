@@ -421,10 +421,16 @@
                 "parallax_ratio": 1.0,
                 "flip_x": false,
                 "flip_y": false,
-                "is_ground": false,
-                "collision_type": "deco",
-                "collision_offset_y": 0.0,
-                "in_front": false
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 8.0,
+                "in_front": false,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ]
             },
             {
                 "texture_path": "assets/Pixel Art Tiles and Backgrounds - Mountains/Decoration/Stacked Rocks.png",
@@ -707,10 +713,16 @@
                 "parallax_ratio": 1.0,
                 "flip_x": false,
                 "flip_y": false,
-                "is_ground": false,
-                "collision_type": "deco",
-                "collision_offset_y": 0.0,
-                "in_front": false
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 8.0,
+                "in_front": false,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    28,
+                    22
+                ]
             },
             {
                 "texture_path": "assets/graphics/Props/spr_FirePlace_strip_frames/frame_000.png",
@@ -955,8 +967,1417 @@
                 "collision_type": "deco",
                 "collision_offset_y": 0.0,
                 "in_front": false
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/double_barrels.png",
+                "pos_x": 1360.0,
+                "pos_y": 495.0,
+                "scale": 2.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 2.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ],
+                "shadow_outline_color": [
+                    34,
+                    46,
+                    36
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/felled_logs.png",
+                "pos_x": 1510.0,
+                "pos_y": 491.6,
+                "scale": 2.4,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 3.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ],
+                "shadow_outline_color": [
+                    34,
+                    46,
+                    36
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/single_barrel.png",
+                "pos_x": 3255.0,
+                "pos_y": 477.2,
+                "scale": 2.6,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 2.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ],
+                "shadow_outline_color": [
+                    34,
+                    46,
+                    36
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/z1_abandoned_cabin.png",
+                "pos_x": 3310.0,
+                "pos_y": 216.0,
+                "scale": 1.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 114.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "glow_color": [
+                    90,
+                    215,
+                    110
+                ],
+                "proximity_radius": 210.0,
+                "lore_id": "prop_zone1_watch_cabin",
+                "lore_title": "Abandoned Elderwood Watch-Cabin",
+                "lore_text": "Rot-blackened cedar shudders under mossy tiles. Fourth Vanguard scouts once watched this bend before the creeping mist took them."
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/pot_frames.png",
+                "pos_x": 6660.0,
+                "pos_y": 494.0,
+                "scale": 2.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    2,
+                    2
+                ],
+                "anim_speed": 0.08,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 2,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 15,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/supply_wagon.png",
+                "pos_x": 6840.0,
+                "pos_y": 463.5,
+                "scale": 2.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 4.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ],
+                "shadow_outline_color": [
+                    34,
+                    46,
+                    36
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon Mine.png",
+                "pos_x": 7140.0,
+                "pos_y": 466.40000000000003,
+                "scale": 1.8,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    7,
+                    2
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 25,
+                "proximity_explode": true,
+                "explode_radius": 95.0,
+                "explode_damage": 20.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    230,
+                    232,
+                    224
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/mossy_boulder.png",
+                "pos_x": 7880.0,
+                "pos_y": 458.0,
+                "scale": 2.1,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 6.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ],
+                "shadow_outline_color": [
+                    34,
+                    46,
+                    36
+                ]
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/pot_frames.png",
+                "pos_x": 8720.0,
+                "pos_y": 494.0,
+                "scale": 2.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    2,
+                    2
+                ],
+                "anim_speed": 0.08,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 2,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 15,
+                "cast_shadow": true,
+                "shadow_color": [
+                    40,
+                    46,
+                    26
+                ],
+                "tint_color": [
+                    222,
+                    232,
+                    214
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/double_barrels.png",
+                "pos_x": 9160.0,
+                "pos_y": 495.0,
+                "scale": 2.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 2.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/obsidian_spikes.png",
+                "pos_x": 9950.0,
+                "pos_y": 480.0,
+                "scale": 1.25,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "trap_hp": 0.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    210,
+                    206,
+                    228
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/dungeon_crate.png",
+                "pos_x": 10120.0,
+                "pos_y": 460.2,
+                "scale": 1.9,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 4.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/z2_cursed_wagon.png",
+                "pos_x": 10920.0,
+                "pos_y": 370.0,
+                "scale": 1.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 24.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    228,
+                    226,
+                    244
+                ],
+                "lore_id": "prop_zone2_cursed_wagon",
+                "lore_title": "Shattered Watch Supply Wagon",
+                "lore_text": "Iron-rimmed wheels locked into mud by severed skulls. Vaulting onto its strapped war-chests keeps you clear of road-level cursed mines."
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon Mine.png",
+                "pos_x": 11360.0,
+                "pos_y": 466.40000000000003,
+                "scale": 1.8,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    7,
+                    2
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 25,
+                "proximity_explode": true,
+                "explode_radius": 95.0,
+                "explode_damage": 20.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    225,
+                    222,
+                    238
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/Large Statue 2.png",
+                "pos_x": 11680.0,
+                "pos_y": 290.0,
+                "scale": 1.35,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "deco",
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/felled_logs.png",
+                "pos_x": 12660.0,
+                "pos_y": 489.6,
+                "scale": 2.4,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 3.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/statue_frames.png",
+                "pos_x": 12940.0,
+                "pos_y": 368.8,
+                "scale": 1.7,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.1,
+                "trap_hp": 35.0,
+                "trap_loop_frames": 6,
+                "trap_telegraph_range": [
+                    2,
+                    3
+                ],
+                "trap_hazard_range": [
+                    4,
+                    5
+                ],
+                "trap_reward_souls": 25,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/obsidian_spikes.png",
+                "pos_x": 14298.0,
+                "pos_y": 482.0,
+                "scale": 1.25,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "trap_hp": 0.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    210,
+                    206,
+                    228
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/scaffold_bridge.png",
+                "pos_x": 14250.0,
+                "pos_y": 403.2,
+                "scale": 2.2,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 5.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/pot_frames.png",
+                "pos_x": 14760.0,
+                "pos_y": 494.0,
+                "scale": 2.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    2,
+                    2
+                ],
+                "anim_speed": 0.08,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 2,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 20,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/mossy_boulder.png",
+                "pos_x": 15850.0,
+                "pos_y": 458.0,
+                "scale": 2.1,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 6.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    212,
+                    214,
+                    238
+                ],
+                "shadow_outline_color": [
+                    36,
+                    34,
+                    52
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon Mine.png",
+                "pos_x": 16090.0,
+                "pos_y": 466.40000000000003,
+                "scale": 1.8,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    7,
+                    2
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 25,
+                "proximity_explode": true,
+                "explode_radius": 95.0,
+                "explode_damage": 20.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    34,
+                    34,
+                    42
+                ],
+                "tint_color": [
+                    225,
+                    222,
+                    238
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/dungeon_crate.png",
+                "pos_x": 18240.0,
+                "pos_y": 460.4,
+                "scale": 1.8,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 4.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/z3_collapsed_outpost.png",
+                "pos_x": 18380.0,
+                "pos_y": 132.0,
+                "scale": 1.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 168.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ],
+                "glow_color": [
+                    110,
+                    210,
+                    175
+                ],
+                "proximity_radius": 220.0,
+                "lore_id": "prop_zone3_collapsed_outpost",
+                "lore_title": "Collapsed Two-Story Watch-Outpost",
+                "lore_text": "Sprint straight under its skull archway or vault onto the charred 2nd-floor beam to strike airborne Demon Eyes."
+            },
+            {
+                "texture_path": "assets/graphics/RedMoonTower/baal_alter_00.png",
+                "pos_x": 20250.0,
+                "pos_y": 305.5,
+                "scale": 1.5,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "deco",
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    235,
+                    195,
+                    190
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/totem/totem/totem.png",
+                "pos_x": 20480.0,
+                "pos_y": 357.6,
+                "scale": 0.95,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.11,
+                "trap_hp": 45.0,
+                "trap_loop_frames": 6,
+                "trap_telegraph_range": [
+                    1,
+                    2
+                ],
+                "trap_hazard_range": [
+                    3,
+                    5
+                ],
+                "trap_reward_souls": 35,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    240,
+                    200,
+                    195
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/obsidian_spikes.png",
+                "pos_x": 20760.0,
+                "pos_y": 480.0,
+                "scale": 1.25,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "trap_hp": 0.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/blacksmith_forge.png",
+                "pos_x": 22920.0,
+                "pos_y": 383.2,
+                "scale": 2.2,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 10.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/lava_mound.png",
+                "pos_x": 23350.0,
+                "pos_y": 499.2,
+                "scale": 1.9,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "deco",
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/Fire sheet.png",
+                "pos_x": 23372.0,
+                "pos_y": 475.6,
+                "scale": 2.2,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 0.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    1,
+                    5
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/scaffold_bridge.png",
+                "pos_x": 23320.0,
+                "pos_y": 403.2,
+                "scale": 2.2,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 5.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/statue_frames.png",
+                "pos_x": 23900.0,
+                "pos_y": 368.8,
+                "scale": 1.7,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.1,
+                "trap_hp": 35.0,
+                "trap_loop_frames": 6,
+                "trap_telegraph_range": [
+                    2,
+                    3
+                ],
+                "trap_hazard_range": [
+                    4,
+                    5
+                ],
+                "trap_reward_souls": 25,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ],
+                "shadow_outline_color": [
+                    48,
+                    28,
+                    24
+                ]
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/pot_frames.png",
+                "pos_x": 24180.0,
+                "pos_y": 494.0,
+                "scale": 2.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    2,
+                    2
+                ],
+                "anim_speed": 0.08,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 2,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 25,
+                "cast_shadow": true,
+                "shadow_color": [
+                    48,
+                    32,
+                    24
+                ],
+                "tint_color": [
+                    238,
+                    206,
+                    198
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/obsidian_spikes.png",
+                "pos_x": 26360.0,
+                "pos_y": 476.8,
+                "scale": 1.3,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "trap_hp": 0.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon Mine.png",
+                "pos_x": 26640.0,
+                "pos_y": 463.8,
+                "scale": 1.85,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    7,
+                    2
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 30,
+                "proximity_explode": true,
+                "explode_radius": 95.0,
+                "explode_damage": 22.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/dungeon_crate.png",
+                "pos_x": 27140.0,
+                "pos_y": 456.2,
+                "scale": 1.9,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 4.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    225,
+                    180,
+                    175
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/z4_obsidian_stronghold.png",
+                "pos_x": 27280.0,
+                "pos_y": 216.0,
+                "scale": 1.0,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 46.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ],
+                "glow_color": [
+                    255,
+                    95,
+                    45
+                ],
+                "proximity_radius": 240.0,
+                "lore_id": "prop_zone4_obsidian_gatehouse",
+                "lore_title": "Hell-Scorched Obsidian Gatehouse",
+                "lore_text": "Basalt bricks glow with magma fissures where the Rift tears open beneath the Elderwood. Take the upper rampart to avoid Rift ambushers."
+            },
+            {
+                "texture_path": "assets/graphics/totem/totem/totem.png",
+                "pos_x": 28180.0,
+                "pos_y": 357.6,
+                "scale": 0.95,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.11,
+                "trap_hp": 45.0,
+                "trap_loop_frames": 6,
+                "trap_telegraph_range": [
+                    1,
+                    2
+                ],
+                "trap_hazard_range": [
+                    3,
+                    5
+                ],
+                "trap_reward_souls": 40,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    240,
+                    195,
+                    195
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/lava_mound.png",
+                "pos_x": 28420.0,
+                "pos_y": 499.2,
+                "scale": 1.9,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "deco",
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/Blue fire sheet.png",
+                "pos_x": 28442.0,
+                "pos_y": 475.6,
+                "scale": 2.2,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 0.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    1,
+                    5
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/RedMoonTower/baal_alter_00.png",
+                "pos_x": 29380.0,
+                "pos_y": 294.0,
+                "scale": 1.6,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "deco",
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Old Demon covered.png",
+                "pos_x": 29620.0,
+                "pos_y": 356.4,
+                "scale": 2.9,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "flip_x": true,
+                "is_ground": false,
+                "collision_type": "deco",
+                "anim_grid": [
+                    7,
+                    1
+                ],
+                "anim_speed": 0.14,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ],
+                "glow_color": [
+                    220,
+                    85,
+                    65
+                ],
+                "proximity_radius": 220.0,
+                "lore_id": "prop_zone4_rift_crone",
+                "lore_title": "The Hollow Crone of the Rift",
+                "lore_text": "Her iron shepherd's crook scrapes against obsidian glass. 'Another Watchman wearing Kaelen's steel... only ash answers the Horn now.'"
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/obsidian_spikes.png",
+                "pos_x": 31675.0,
+                "pos_y": 482.0,
+                "scale": 1.25,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "trap_hp": 0.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/BespokeProps/sliced/scaffold_bridge.png",
+                "pos_x": 31620.0,
+                "pos_y": 396.8,
+                "scale": 2.3,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": true,
+                "collision_type": "platform",
+                "collision_offset_y": 5.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    215,
+                    175,
+                    170
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
+            },
+            {
+                "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon Mine.png",
+                "pos_x": 31980.0,
+                "pos_y": 463.8,
+                "scale": 1.85,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    7,
+                    2
+                ],
+                "anim_speed": 0.14,
+                "trap_hp": 15.0,
+                "trap_loop_frames": 6,
+                "trap_hazard_range": [
+                    99,
+                    99
+                ],
+                "trap_reward_souls": 30,
+                "proximity_explode": true,
+                "explode_radius": 95.0,
+                "explode_damage": 22.0,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    242,
+                    204,
+                    196
+                ]
+            },
+            {
+                "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/statue_frames.png",
+                "pos_x": 32200.0,
+                "pos_y": 364.0,
+                "scale": 1.75,
+                "layer_index": 6,
+                "parallax_ratio": 1.0,
+                "is_ground": false,
+                "collision_type": "hazard",
+                "anim_grid": [
+                    6,
+                    1
+                ],
+                "anim_speed": 0.1,
+                "trap_hp": 35.0,
+                "trap_loop_frames": 6,
+                "trap_telegraph_range": [
+                    2,
+                    3
+                ],
+                "trap_hazard_range": [
+                    4,
+                    5
+                ],
+                "trap_reward_souls": 35,
+                "cast_shadow": true,
+                "shadow_color": [
+                    38,
+                    16,
+                    16
+                ],
+                "tint_color": [
+                    235,
+                    195,
+                    195
+                ],
+                "shadow_outline_color": [
+                    44,
+                    18,
+                    18
+                ]
             }
-        ]
+        ],
+        "zone_tints": [
+            {
+                "name": "Zone 2: Twilight Woods Dusk",
+                "min_x": 9200.0,
+                "max_x": 17800.0,
+                "fade": 700.0,
+                "color": [
+                    16,
+                    12,
+                    26,
+                    48
+                ]
+            },
+            {
+                "name": "Zone 3: Ashen Ember Woods",
+                "min_x": 18200.0,
+                "max_x": 25400.0,
+                "fade": 700.0,
+                "color": [
+                    45,
+                    14,
+                    10,
+                    56
+                ]
+            }
+        ],
+        "rift_zone": {
+            "enabled": true,
+            "start_x": 25600.0,
+            "fade_width": 900.0
+        }
     },
     "soul_harvest": {
         "starting_souls": 8500,
@@ -972,10 +2393,10 @@
     },
     "spawn_zones": [
         {
-            "min_dist": 1800,
-            "max_dist": 3195,
+            "min_dist": 1700,
+            "max_dist": 3950,
             "max_skeletons": 3,
-            "delay": 4200,
+            "delay": 3800,
             "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
@@ -986,28 +2407,86 @@
                 "Skeleton_01_White_Hurt": "hurt",
                 "Skeleton_01_White_Idle": "idle",
                 "Skeleton_01_White_Walk": "walk"
-            }
+            },
+            "variants": [
+                {
+                    "weight": 3,
+                    "enemy_name": "Forest Skeleton",
+                    "tier": "minion",
+                    "sprite_root": "assets/skeleton",
+                    "behaviour_map": {
+                        "Skeleton_01_White_Attack1": "attack",
+                        "Skeleton_01_White_Attack2": "attack",
+                        "Skeleton_01_White_Die": "death",
+                        "Skeleton_01_White_Hurt": "hurt",
+                        "Skeleton_01_White_Idle": "idle",
+                        "Skeleton_01_White_Walk": "walk"
+                    },
+                    "health": 50.0
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Risen Vanguard Husk",
+                    "tier": "minion",
+                    "sprite_root": "assets/graphics/SkeletonZombie",
+                    "behaviour_map": {
+                        "Attack": "attack",
+                        "Chase": "walk",
+                        "Hurt": "hurt",
+                        "Idle": "idle"
+                    },
+                    "scale": 2.6,
+                    "health": 60.0,
+                    "speed": 2.4
+                },
+                {
+                    "weight": 1,
+                    "enemy_name": "Plague Flies",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Plague Flies.png",
+                    "sheet_grid": [
+                        4,
+                        1
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            4
+                        ],
+                        "walk": [
+                            0,
+                            4
+                        ],
+                        "attack": [
+                            0,
+                            4
+                        ],
+                        "death": [
+                            0,
+                            4
+                        ]
+                    },
+                    "scale": 1.9,
+                    "health": 25.0,
+                    "speed": 3.1,
+                    "is_flying": true,
+                    "hover_y": 430,
+                    "tint_color": [
+                        222,
+                        232,
+                        214
+                    ],
+                    "shadow_outline_color": [
+                        34,
+                        46,
+                        36
+                    ]
+                }
+            ]
         },
         {
-            "min_dist": 9200,
-            "max_dist": 17500,
-            "max_skeletons": 4,
-            "delay": 3200,
-            "required_kills": 0,
-            "tier": "minion",
-            "sprite_root": "assets/skeleton",
-            "behaviour_map": {
-                "Skeleton_01_White_Attack1": "attack",
-                "Skeleton_01_White_Attack2": "attack",
-                "Skeleton_01_White_Die": "death",
-                "Skeleton_01_White_Hurt": "hurt",
-                "Skeleton_01_White_Idle": "idle",
-                "Skeleton_01_White_Walk": "walk"
-            }
-        },
-        {
-            "min_dist": 18200,
-            "max_dist": 26500,
+            "min_dist": 5000,
+            "max_dist": 12900,
             "max_skeletons": 4,
             "delay": 3000,
             "required_kills": 0,
@@ -1020,12 +2499,115 @@
                 "Skeleton_01_White_Hurt": "hurt",
                 "Skeleton_01_White_Idle": "idle",
                 "Skeleton_01_White_Walk": "walk"
-            }
+            },
+            "variants": [
+                {
+                    "weight": 3,
+                    "enemy_name": "Shrouded Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Male Damned covered.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.8,
+                    "health": 65.0,
+                    "speed": 2.4,
+                    "tint_color": [
+                        212,
+                        214,
+                        238
+                    ],
+                    "shadow_outline_color": [
+                        36,
+                        34,
+                        52
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Bloated Blight-Bomber",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Bloated Damned.png",
+                    "sheet_grid": [
+                        8,
+                        3
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            2,
+                            6
+                        ]
+                    },
+                    "scale": 2.85,
+                    "health": 55.0,
+                    "speed": 2.8,
+                    "explode_on_proximity": true,
+                    "explode_trigger_range": 92,
+                    "explode_radius": 135,
+                    "explode_damage": 24.0,
+                    "tint_color": [
+                        212,
+                        214,
+                        238
+                    ],
+                    "shadow_outline_color": [
+                        36,
+                        34,
+                        52
+                    ]
+                },
+                {
+                    "weight": 1,
+                    "enemy_name": "Risen Vanguard Husk",
+                    "tier": "minion",
+                    "sprite_root": "assets/graphics/SkeletonZombie",
+                    "behaviour_map": {
+                        "Attack": "attack",
+                        "Chase": "walk",
+                        "Hurt": "hurt",
+                        "Idle": "idle"
+                    },
+                    "scale": 2.6,
+                    "health": 65.0,
+                    "speed": 2.5
+                }
+            ]
         },
         {
-            "min_dist": 27200,
-            "max_dist": 33800,
-            "max_skeletons": 5,
+            "min_dist": 14100,
+            "max_dist": 24900,
+            "max_skeletons": 4,
             "delay": 2800,
             "required_kills": 0,
             "tier": "minion",
@@ -1037,7 +2619,331 @@
                 "Skeleton_01_White_Hurt": "hurt",
                 "Skeleton_01_White_Idle": "idle",
                 "Skeleton_01_White_Walk": "walk"
-            }
+            },
+            "variants": [
+                {
+                    "weight": 3,
+                    "enemy_name": "Burning Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Burning Damned.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.85,
+                    "health": 80.0,
+                    "speed": 2.65,
+                    "tint_color": [
+                        238,
+                        206,
+                        198
+                    ],
+                    "shadow_outline_color": [
+                        48,
+                        28,
+                        24
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Ashen Imp",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Imp.png",
+                    "sheet_grid": [
+                        10,
+                        5
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            10
+                        ],
+                        "walk": [
+                            2,
+                            8
+                        ],
+                        "attack": [
+                            3,
+                            5
+                        ],
+                        "death": [
+                            4,
+                            6
+                        ]
+                    },
+                    "scale": 2.9,
+                    "health": 60.0,
+                    "speed": 3.4,
+                    "tint_color": [
+                        238,
+                        206,
+                        198
+                    ],
+                    "shadow_outline_color": [
+                        48,
+                        28,
+                        24
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Flying Demon Eye",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon eye.png",
+                    "sheet_grid": [
+                        7,
+                        2
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            7
+                        ],
+                        "walk": [
+                            0,
+                            7
+                        ],
+                        "attack": [
+                            1,
+                            6
+                        ],
+                        "death": [
+                            1,
+                            6
+                        ]
+                    },
+                    "scale": 2.3,
+                    "health": 40.0,
+                    "speed": 3.2,
+                    "is_flying": true,
+                    "hover_y": 405,
+                    "explode_on_proximity": true,
+                    "explode_trigger_range": 78,
+                    "explode_radius": 115,
+                    "explode_damage": 18.0,
+                    "tint_color": [
+                        238,
+                        206,
+                        198
+                    ],
+                    "shadow_outline_color": [
+                        48,
+                        28,
+                        24
+                    ]
+                }
+            ]
+        },
+        {
+            "min_dist": 26200,
+            "max_dist": 33900,
+            "max_skeletons": 5,
+            "delay": 2500,
+            "required_kills": 0,
+            "tier": "minion",
+            "sprite_root": "assets/skeleton",
+            "behaviour_map": {
+                "Skeleton_01_White_Attack1": "attack",
+                "Skeleton_01_White_Attack2": "attack",
+                "Skeleton_01_White_Die": "death",
+                "Skeleton_01_White_Hurt": "hurt",
+                "Skeleton_01_White_Idle": "idle",
+                "Skeleton_01_White_Walk": "walk"
+            },
+            "variants": [
+                {
+                    "weight": 3,
+                    "enemy_name": "Twisted Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Twisted Damned.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.95,
+                    "health": 95.0,
+                    "speed": 2.95,
+                    "tint_color": [
+                        242,
+                        204,
+                        196
+                    ],
+                    "shadow_outline_color": [
+                        44,
+                        18,
+                        18
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Bloated Rift-Bomber",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Bloated Damned.png",
+                    "sheet_grid": [
+                        8,
+                        3
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            2,
+                            6
+                        ]
+                    },
+                    "scale": 3.0,
+                    "health": 75.0,
+                    "speed": 3.1,
+                    "explode_on_proximity": true,
+                    "explode_trigger_range": 96,
+                    "explode_radius": 145,
+                    "explode_damage": 28.0,
+                    "tint_color": [
+                        242,
+                        204,
+                        196
+                    ],
+                    "shadow_outline_color": [
+                        44,
+                        18,
+                        18
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Flying Rift Demon Eye",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon eye.png",
+                    "sheet_grid": [
+                        7,
+                        2
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            7
+                        ],
+                        "walk": [
+                            0,
+                            7
+                        ],
+                        "attack": [
+                            1,
+                            6
+                        ],
+                        "death": [
+                            1,
+                            6
+                        ]
+                    },
+                    "scale": 2.4,
+                    "health": 50.0,
+                    "speed": 3.45,
+                    "is_flying": true,
+                    "hover_y": 395,
+                    "explode_on_proximity": true,
+                    "explode_trigger_range": 82,
+                    "explode_radius": 120,
+                    "explode_damage": 22.0,
+                    "tint_color": [
+                        242,
+                        204,
+                        196
+                    ],
+                    "shadow_outline_color": [
+                        44,
+                        18,
+                        18
+                    ]
+                },
+                {
+                    "weight": 1,
+                    "enemy_name": "Blue-Flame Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Burning Damned blue.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.95,
+                    "health": 95.0,
+                    "speed": 3.0,
+                    "tint_color": [
+                        225,
+                        225,
+                        245
+                    ],
+                    "shadow_outline_color": [
+                        34,
+                        24,
+                        48
+                    ]
+                }
+            ]
         }
     ],
     "bat_spawn": {

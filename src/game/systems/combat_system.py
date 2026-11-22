@@ -92,6 +92,8 @@ class CombatSystem:
                     except Exception:
                         pass
                 if banished:
+                    if getattr(prop, "proximity_explode", False):
+                        self._detonate_mine_blast(prop_hitbox, float(getattr(prop, "explode_radius", 110.0)), 35.0)
                     reward = int(getattr(prop, "trap_reward_souls", 75) or 75)
                     if hasattr(self.game, "total_souls"):
                         self.game.total_souls += reward
@@ -307,45 +309,92 @@ class CombatSystem:
         if trigger_flash:
             trigger_flash()
 
+    def _detonate_mine_blast(self, origin_rect: pg.Rect, explode_radius: float, enemy_damage: float) -> None:
+        """Apply radial Demon Mine blast damage and knockback to nearby enemies."""
+        blast_rect = pg.Rect(
+            origin_rect.centerx - int(explode_radius),
+            origin_rect.centery - int(explode_radius),
+            int(explode_radius * 2),
+            int(explode_radius * 2),
+        )
+        for obstacle in list(getattr(self.game, "obstacle_group", [])):
+            if not hasattr(obstacle, "rect") or not hasattr(obstacle, "take_damage"):
+                continue
+            if blast_rect.colliderect(obstacle.rect):
+                kb_dir = -1.0 if obstacle.rect.centerx < origin_rect.centerx else 1.0
+                try:
+                    obstacle.take_damage(enemy_damage, (kb_dir * 10.0, -5.0))
+                except TypeError:
+                    obstacle.take_damage(enemy_damage)
+
     def check_environmental_hazards(self) -> None:
-        """Detect collision between Player and environmental hazard props (e.g. spikes, traps)."""
+        """Detect collision between Player and environmental hazard props (e.g. spikes, mines, traps)."""
         player_sprite = self.game.player.sprite
-        if not player_sprite or player_sprite.is_invincible or getattr(player_sprite, "health", 1) <= 0:
+        if not player_sprite or getattr(player_sprite, "health", 1) <= 0:
             return
 
+        world_dist = float(getattr(self.game, "world_distance", 0.0))
         for prop in self.game.environment_manager.props:
-            if getattr(prop, "collision_type", "solid") == "hazard":
-                if hasattr(prop, "is_hazard_active") and not prop.is_hazard_active():
-                    continue
-                if hasattr(prop, "get_world_hitbox"):
-                    prop_rect = prop.get_world_hitbox(self.game.world_distance)
-                else:
-                    draw_x = int(prop.pos_x - self.game.world_distance * prop.parallax_ratio)
-                    draw_y = int(prop.pos_y)
-                    prop_rect = pg.Rect(draw_x, draw_y, prop.width, prop.height)
+            if getattr(prop, "collision_type", "solid") != "hazard":
+                continue
 
-                if player_sprite.rect.colliderect(prop_rect):
-                    damage = 15.0
+            # Proximity Demon Mine triggers on closeness (and chains onto nearby enemies!)
+            if getattr(prop, "proximity_explode", False) and hasattr(prop, "check_proximity_trigger"):
+                if not player_sprite.is_invincible and prop.check_proximity_trigger(player_sprite.rect, world_dist):
+                    prop_rect = prop.get_world_hitbox(world_dist) if hasattr(prop, "get_world_hitbox") else pg.Rect(int(prop.pos_x - world_dist), int(prop.pos_y), prop.width, prop.height)
+                    damage = float(getattr(prop, "explode_damage", 20.0))
                     damage_applied = player_sprite.take_damage(damage)
                     if damage_applied:
                         kb_dir = -1 if player_sprite.rect.centerx < prop_rect.centerx else 1
-                        self._apply_knockback_to_player(player_sprite, kb_dir * 8.0)
+                        self._apply_knockback_to_player(player_sprite, kb_dir * 11.0)
                         VisualEffectManager.spawn_hit_vfx(
                             player_sprite.rect.centerx,
                             player_sprite.rect.centery,
                             entity=player_sprite,
                             target_entity=player_sprite,
                         )
-                        if self.game.tracker.enabled:
-                            self.game.tracker.log_event("damage_received", {
-                                "attacker": f"HazardSpike_{os.path.basename(prop.texture_path)}",
-                                "attacker_is_boss": False,
-                                "damage": damage,
-                                "health_remaining": player_sprite.health,
-                                "world_distance": float(self.game.world_distance),
-                            })
-                        print(f"[HAZARD SPIKE] Player hit environmental hazard '{os.path.basename(prop.texture_path)}'! Dealt {damage} damage.")
-                        break
+                    self._detonate_mine_blast(prop_rect, float(getattr(prop, "explode_radius", 110.0)), 35.0)
+                    if getattr(self.game, "audio_manager", None):
+                        try:
+                            self.game.audio_manager.play_sound("skeleton_death", volume=0.65)
+                        except Exception:
+                            pass
+                    break
+                continue
+
+            if player_sprite.is_invincible:
+                continue
+            if hasattr(prop, "is_hazard_active") and not prop.is_hazard_active():
+                continue
+            if hasattr(prop, "get_world_hitbox"):
+                prop_rect = prop.get_world_hitbox(world_dist)
+            else:
+                draw_x = int(prop.pos_x - world_dist * prop.parallax_ratio)
+                draw_y = int(prop.pos_y)
+                prop_rect = pg.Rect(draw_x, draw_y, prop.width, prop.height)
+
+            if player_sprite.rect.colliderect(prop_rect):
+                damage = 15.0
+                damage_applied = player_sprite.take_damage(damage)
+                if damage_applied:
+                    kb_dir = -1 if player_sprite.rect.centerx < prop_rect.centerx else 1
+                    self._apply_knockback_to_player(player_sprite, kb_dir * 8.0)
+                    VisualEffectManager.spawn_hit_vfx(
+                        player_sprite.rect.centerx,
+                        player_sprite.rect.centery,
+                        entity=player_sprite,
+                        target_entity=player_sprite,
+                    )
+                    if self.game.tracker.enabled:
+                        self.game.tracker.log_event("damage_received", {
+                            "attacker": f"HazardSpike_{os.path.basename(prop.texture_path)}",
+                            "attacker_is_boss": False,
+                            "damage": damage,
+                            "health_remaining": player_sprite.health,
+                            "world_distance": world_dist,
+                        })
+                    print(f"[HAZARD SPIKE] Player hit environmental hazard '{os.path.basename(prop.texture_path)}'! Dealt {damage} damage.")
+                    break
 
         if hasattr(self.game, 'score'):
             self.game.score = max(0, self.game.score - 5)

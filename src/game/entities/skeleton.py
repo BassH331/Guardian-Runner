@@ -186,6 +186,7 @@ class Skeleton(BaseEnemy):
     }
 
     hit_vfx_type: str = "bone_sparks"
+    _SHEET_ANIM_CACHE: dict[tuple, dict] = {}
 
     def __init__(
         self,
@@ -198,13 +199,36 @@ class Skeleton(BaseEnemy):
         custom_scale: Optional[float] = None,
         custom_health: Optional[float] = None,
         audio_manager=None,
+        spritesheet_path: Optional[str] = None,
+        sheet_grid: Optional[Sequence[int]] = None,
+        row_map: Optional[dict[str, Sequence[int]]] = None,
+        tint_color: Optional[Sequence[int]] = None,
+        shadow_outline_color: Optional[Sequence[int]] = None,
+        custom_speed: Optional[float] = None,
+        explode_on_proximity: bool = False,
+        explode_trigger_range: int = 85,
+        explode_radius: int = 110,
+        explode_damage: float = 20.0,
+        is_flying: bool = False,
+        hover_y: Optional[int] = None,
+        enemy_name: Optional[str] = None,
     ) -> None:
         super().__init__(x, y)
-        
+
         self._player: Player = player
-        self.state_configs = self.STATE_CONFIGS
+        self.state_configs = dict(self.STATE_CONFIGS)
         self.tier = tier
-        
+        self.enemy_name: Optional[str] = enemy_name
+        self.explode_on_proximity: bool = bool(explode_on_proximity)
+        self.explode_trigger_range: int = int(explode_trigger_range)
+        self.explode_radius: int = int(explode_radius)
+        self.explode_damage: float = float(explode_damage)
+        self._explode_fuse_started: bool = False
+        self.is_flying: bool = bool(is_flying)
+        self._hover_y: Optional[int] = int(hover_y) if hover_y is not None else None
+        self._flight_clock: float = random.uniform(0.0, 6.28)
+        self._custom_hit_frames: Optional[frozenset[int]] = None
+
         # Load margins and scale first
         if self.tier == "boss":
             margins_key = "boss"
@@ -218,7 +242,7 @@ class Skeleton(BaseEnemy):
                 import os
                 folder_name = os.path.basename(sprite_root.rstrip("/"))
                 margins_key = f"skeleton_{folder_name.lower()}"
-        
+
         margins = HitboxRegistry.get_margins(margins_key)
         # If margins for custom skeleton/boss are missing, fall back to default
         if margins.scale == 1.0 and margins.ground_offset == 0:
@@ -226,84 +250,94 @@ class Skeleton(BaseEnemy):
                 margins = HitboxRegistry.get_margins("boss")
             else:
                 margins = HitboxRegistry.get_margins("skeleton")
-            
-        # Determine scale: registry priority -> custom_scale priority -> default margins scale
+
+        # Determine scale: custom_scale priority when spritesheet_path is given, else registry priority -> margins scale
         registry_scale = None
-        try:
-            if HitboxRegistry.has_custom_margins(margins_key):
-                registry_scale = margins.scale
-        except Exception:
-            pass
+        if not spritesheet_path:
+            try:
+                if HitboxRegistry.has_custom_margins(margins_key):
+                    registry_scale = margins.scale
+            except Exception:
+                pass
 
         self.scale = registry_scale if registry_scale is not None else (custom_scale if custom_scale is not None else margins.scale)
         self._scale_is_explicit = (registry_scale is not None or custom_scale is not None)
-        
-        # 1. Load default animations
-        self.animations[SkeletonState.IDLE] = self._load_frames(
-            "assets/skeleton/Skeleton_01_White_Idle/skeleton-idle_{}.png", 8
-        )
-        self.animations[SkeletonState.CHASE] = self._load_frames(
-            "assets/skeleton/Skeleton_01_White_Walk/skeleton-walk_{:02d}.png", 10
-        )
-        self._attack1_frames = self._load_frames(
-            "assets/skeleton/Skeleton_01_White_Attack1/skeleton-atk2_{:02d}.png", 10
-        )
-        self.animations[SkeletonState.ATTACK] = self._attack1_frames
-        # Handle secondary attack animation implicitly or add it to state machine
-        self._attack2_frames = self._load_frames(
-            "assets/skeleton/Skeleton_01_White_Attack2/skeleton-atk1_{}.png", 9
-        )
-        self.animations[SkeletonState.HURT] = self._load_frames(
-            "assets/skeleton/Skeleton_01_White_Hurt/skeleton-hurt_{}.png", 5
-        )
-        self.animations[SkeletonState.DEATH] = self._load_frames(
-            "assets/skeleton/Skeleton_01_White_Die/skeleton-death_{:02d}.png", 13
-        )
-        
-        # 2. Overwrite with dynamic sprites if provided
-        if sprite_root and behaviour_map:
-            import os
-            tag_to_folders = {}
-            for sub, tag in behaviour_map.items():
-                if tag == "skip":
-                    continue
-                tag_to_folders.setdefault(tag, []).append(os.path.join(sprite_root, sub))
-                
-            def load_from_folders(folders: list[str]) -> list[pg.Surface]:
-                frames = []
-                for f in folders:
-                    raw = AssetManager.get_animation_frames(f)
-                    for frame in raw:
-                        w = int(frame.get_width() * self.scale)
-                        h = int(frame.get_height() * self.scale)
-                        frames.append(pg.transform.scale(frame, (w, h)))
-                return frames
-                
-            self.natively_facing_left: bool = bool(sprite_root and "skeletonzombie" in sprite_root.lower())
 
-            if "idle" in tag_to_folders:
-                self.animations[SkeletonState.IDLE] = load_from_folders(tag_to_folders["idle"])
-            if "walk" in tag_to_folders or "chase" in tag_to_folders:
-                walk_folders = tag_to_folders.get("walk", []) + tag_to_folders.get("chase", [])
-                self.animations[SkeletonState.CHASE] = load_from_folders(walk_folders)
-            if "attack" in tag_to_folders:
-                attack_folders = tag_to_folders["attack"]
-                if len(attack_folders) >= 2:
-                    self._attack1_frames = load_from_folders([attack_folders[0]])
-                    self._attack2_frames = load_from_folders([attack_folders[1]])
-                    self.animations[SkeletonState.ATTACK] = self._attack1_frames
-                else:
-                    self._attack1_frames = load_from_folders(attack_folders)
-                    self._attack2_frames = self._attack1_frames
-                    self.animations[SkeletonState.ATTACK] = self._attack1_frames
-            if "hurt" in tag_to_folders:
-                self.animations[SkeletonState.HURT] = load_from_folders(tag_to_folders["hurt"])
-            if "death" in tag_to_folders:
-                self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["death"])
-            elif "die" in tag_to_folders:
-                self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["die"])
-            elif "hurt" in tag_to_folders:
-                self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["hurt"])
+        # 1. Load animations (spritesheet path takes priority if configured)
+        if spritesheet_path and sheet_grid and row_map:
+            self._load_spritesheet_animations(
+                spritesheet_path=spritesheet_path,
+                sheet_grid=sheet_grid,
+                row_map=row_map,
+                tint_color=tint_color,
+                shadow_outline_color=shadow_outline_color,
+            )
+            self.natively_facing_left = False
+        else:
+            self.animations[SkeletonState.IDLE] = self._load_frames(
+                "assets/skeleton/Skeleton_01_White_Idle/skeleton-idle_{}.png", 8
+            )
+            self.animations[SkeletonState.CHASE] = self._load_frames(
+                "assets/skeleton/Skeleton_01_White_Walk/skeleton-walk_{:02d}.png", 10
+            )
+            self._attack1_frames = self._load_frames(
+                "assets/skeleton/Skeleton_01_White_Attack1/skeleton-atk2_{:02d}.png", 10
+            )
+            self.animations[SkeletonState.ATTACK] = self._attack1_frames
+            self._attack2_frames = self._load_frames(
+                "assets/skeleton/Skeleton_01_White_Attack2/skeleton-atk1_{}.png", 9
+            )
+            self.animations[SkeletonState.HURT] = self._load_frames(
+                "assets/skeleton/Skeleton_01_White_Hurt/skeleton-hurt_{}.png", 5
+            )
+            self.animations[SkeletonState.DEATH] = self._load_frames(
+                "assets/skeleton/Skeleton_01_White_Die/skeleton-death_{:02d}.png", 13
+            )
+
+            # 2. Overwrite with dynamic folder sprites if provided
+            if sprite_root and behaviour_map:
+                import os
+                tag_to_folders = {}
+                for sub, tag in behaviour_map.items():
+                    if tag == "skip":
+                        continue
+                    tag_to_folders.setdefault(tag, []).append(os.path.join(sprite_root, sub))
+
+                def load_from_folders(folders: list[str]) -> list[pg.Surface]:
+                    frames = []
+                    for f in folders:
+                        raw = AssetManager.get_animation_frames(f)
+                        for frame in raw:
+                            w = int(frame.get_width() * self.scale)
+                            h = int(frame.get_height() * self.scale)
+                            frames.append(pg.transform.scale(frame, (w, h)))
+                    return frames
+
+                self.natively_facing_left: bool = bool(sprite_root and "skeletonzombie" in sprite_root.lower())
+
+                if "idle" in tag_to_folders:
+                    self.animations[SkeletonState.IDLE] = load_from_folders(tag_to_folders["idle"])
+                if "walk" in tag_to_folders or "chase" in tag_to_folders:
+                    walk_folders = tag_to_folders.get("walk", []) + tag_to_folders.get("chase", [])
+                    self.animations[SkeletonState.CHASE] = load_from_folders(walk_folders)
+                if "attack" in tag_to_folders:
+                    attack_folders = tag_to_folders["attack"]
+                    if len(attack_folders) >= 2:
+                        self._attack1_frames = load_from_folders([attack_folders[0]])
+                        self._attack2_frames = load_from_folders([attack_folders[1]])
+                        self.animations[SkeletonState.ATTACK] = self._attack1_frames
+                    else:
+                        self._attack1_frames = load_from_folders(attack_folders)
+                        self._attack2_frames = self._attack1_frames
+                        self.animations[SkeletonState.ATTACK] = self._attack1_frames
+                if "hurt" in tag_to_folders:
+                    self.animations[SkeletonState.HURT] = load_from_folders(tag_to_folders["hurt"])
+                if "death" in tag_to_folders:
+                    self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["death"])
+                elif "die" in tag_to_folders:
+                    self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["die"])
+                elif "hurt" in tag_to_folders:
+                    self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["hurt"])
                 
         # 3. Apply Tier Scaling (Health, Speed, Size)
         damage_scale = 1.0
@@ -417,7 +451,7 @@ class Skeleton(BaseEnemy):
             self.teleport_cooldown = 3.0 if self.tier == "boss" else (3.5 if self.tier == "elite" else 4.5)
             self.teleport_reaction_delay = 0.06 if self.tier == "boss" else 0.10
 
-        self._teleport_defense_enabled: bool = True
+        self._teleport_defense_enabled: bool = (not self.explode_on_proximity and not self.is_flying)
         self._teleport_cooldown_timer: float = 0.0
         self._teleport_reaction_timer: float = 0.0
         self._teleport_vanish_timer: float = 0.0
@@ -430,7 +464,7 @@ class Skeleton(BaseEnemy):
 
         # Combo attack coordination state
         self._combo_count: int = 0
-        self._max_combo: int = 2 if self.tier == "minion" else 3
+        self._max_combo: int = 0 if self.explode_on_proximity else (2 if self.tier == "minion" else 3)
         self._last_attack_type: int = 1
 
         # Load bone dust VFX frames (scaled up to cover entire skeleton stature)
@@ -448,41 +482,60 @@ class Skeleton(BaseEnemy):
 
         if custom_health is not None:
             self._max_health = custom_health
+        if custom_speed is not None:
+            self._speed = float(custom_speed)
         self._health: float = self._max_health
-        
+
+        atk_hit_frames = self._custom_hit_frames if self._custom_hit_frames is not None else self.ATTACK_1_CONFIG.hit_frames
+        atk_damage = self.explode_damage if self.explode_on_proximity else (self.ATTACK_1_CONFIG.base_damage * damage_scale)
+        atk_kb = (12.0 if self.explode_on_proximity else self.ATTACK_1_CONFIG.knockback_force * knockback_scale)
+
         self.attack1_config = AttackConfig(
-            hit_frames=self.ATTACK_1_CONFIG.hit_frames,
-            base_damage=self.ATTACK_1_CONFIG.base_damage * damage_scale,
-            knockback_force=self.ATTACK_1_CONFIG.knockback_force * knockback_scale,
+            hit_frames=atk_hit_frames,
+            base_damage=atk_damage,
+            knockback_force=atk_kb,
         )
         self.attack2_config = AttackConfig(
-            hit_frames=self.ATTACK_2_CONFIG.hit_frames,
-            base_damage=self.ATTACK_2_CONFIG.base_damage * damage_scale,
-            knockback_force=self.ATTACK_2_CONFIG.knockback_force * knockback_scale,
+            hit_frames=atk_hit_frames if self._custom_hit_frames is not None else self.ATTACK_2_CONFIG.hit_frames,
+            base_damage=atk_damage if self.explode_on_proximity else (self.ATTACK_2_CONFIG.base_damage * damage_scale),
+            knockback_force=atk_kb if self.explode_on_proximity else (self.ATTACK_2_CONFIG.knockback_force * knockback_scale),
         )
-        
+
+        # Tune ATTACK speed slightly brisker for custom spritesheets / proximity detonators
+        if spritesheet_path:
+            self.state_configs[SkeletonState.ATTACK] = StateConfig(
+                0.11 if self.explode_on_proximity else 0.13,
+                loops=False,
+                next_state=SkeletonState.IDLE,
+                interruptible=False,
+            )
+
         # Initial setup
         self.set_state(SkeletonState.IDLE)
         if self.state in self.animations:
             self.image = self.animations[self.state][0]
         self.rect: pg.Rect = self.image.get_rect(midbottom=(x, y))
-        
-        # Hitbox adjustment - loaded dynamically via the central HitboxRegistry
-        self.adjust_hitbox_sides(left=margins.left, right=margins.right, top=margins.top, bottom=margins.bottom)
-        
+
+        # Tight pre-trimmed hitboxes for spritesheet Damned enemies vs registry margins for folder enemies
+        if spritesheet_path:
+            self.adjust_hitbox_sides(left=4, right=4, top=6, bottom=0)
+        else:
+            self.adjust_hitbox_sides(left=margins.left, right=margins.right, top=margins.top, bottom=margins.bottom)
+
         # Movement and physics
         self._gravity: float = 0.0
         self._knockback_vel_x: float = 0.0
-        # Load dynamic ground offset from HitboxRegistry using the active display surface height
         surf = pg.display.get_surface()
         height = surf.get_height() if surf else 720
         self._ground_y: Optional[int] = height - margins.ground_offset
-        
+
         # AI configuration & perception components
         if not hasattr(self, "_detection_range"):
             self._detection_range = 3000 if self.tier == "boss" else 1000
         if not hasattr(self, "_attack_range"):
-            self._attack_range = 60
+            self._attack_range = self.explode_trigger_range if self.explode_on_proximity else 60
+        elif self.explode_on_proximity:
+            self._attack_range = self.explode_trigger_range
         if not hasattr(self, "_vertical_tolerance"):
             self._vertical_tolerance = 500 if self.tier == "boss" else 100
         self.spawn_zone: Optional[dict] = None
@@ -490,7 +543,7 @@ class Skeleton(BaseEnemy):
         self.perception = PerceptionSystem(
             vision_range=float(self._detection_range),
             hearing_range=650.0,
-            reaction_delay_sec=0.18,
+            reaction_delay_sec=0.14 if self.explode_on_proximity else 0.18,
         )
         self.utility_engine = UtilityCombatEngine(
             has_dash_evasion=False,
@@ -506,6 +559,138 @@ class Skeleton(BaseEnemy):
         # Audio trigger system (non-fatal; gracefully skipped if audio_manager is None)
         _entity_audio_key = "skeleton_boss" if self.tier == "boss" else ("skeleton_zombie" if (sprite_root and "zombie" in (sprite_root or "").lower()) else "skeleton_minion")
         self._init_entity_audio_config(audio_manager, _entity_audio_key)
+
+    def _load_spritesheet_animations(
+        self,
+        spritesheet_path: str,
+        sheet_grid: Sequence[int],
+        row_map: dict[str, Sequence[int]],
+        tint_color: Optional[Sequence[int]] = None,
+        shadow_outline_color: Optional[Sequence[int]] = None,
+    ) -> None:
+        """Load, outline-soften, union-trim, and cache row animations from a grid spritesheet."""
+        cache_key = (
+            spritesheet_path,
+            int(sheet_grid[0]),
+            int(sheet_grid[1]),
+            tuple((k, tuple(v)) for k, v in sorted(row_map.items())),
+            round(self.scale, 2),
+            tuple(tint_color) if tint_color else None,
+            tuple(shadow_outline_color) if shadow_outline_color else None,
+            self.explode_on_proximity,
+        )
+        cached = Skeleton._SHEET_ANIM_CACHE.get(cache_key)
+        if cached is not None:
+            for k, frames in cached["anims"].items():
+                self.animations[k] = frames
+            self._attack1_frames = cached["atk1"]
+            self._attack2_frames = cached["atk2"]
+            self._custom_hit_frames = cached["hit_frames"]
+            return
+
+        raw = AssetManager.get_texture(spritesheet_path)
+        cols, rows = max(1, int(sheet_grid[0])), max(1, int(sheet_grid[1]))
+        cw = max(1, raw.get_width() // cols)
+        ch = max(1, raw.get_height() // rows)
+
+        def extract_row(row_idx: int, count: int) -> list[pg.Surface]:
+            out = []
+            for c in range(min(count, cols)):
+                cell = raw.subsurface(pg.Rect(c * cw, row_idx * ch, cw, ch))
+                if cell.get_bounding_rect(min_alpha=10).width > 0:
+                    out.append(cell)
+            return out
+
+        raw_rows: dict[str, list[pg.Surface]] = {}
+        for key, spec in row_map.items():
+            r_idx = int(spec[0])
+            cnt = int(spec[1]) if len(spec) > 1 else cols
+            if 0 <= r_idx < rows:
+                raw_rows[key] = extract_row(r_idx, cnt)
+
+        # Compute union crop rect across body rows (idle + walk) so feet stay locked flush on ground_y
+        body_cells = raw_rows.get("idle", []) + raw_rows.get("walk", []) + raw_rows.get("chase", [])
+        if not body_cells:
+            body_cells = [f for fs in raw_rows.values() for f in fs]
+        if body_cells:
+            union_rect = body_cells[0].get_bounding_rect(min_alpha=10)
+            for cell in body_cells[1:]:
+                br = cell.get_bounding_rect(min_alpha=10)
+                if br.width > 0 and br.height > 0:
+                    union_rect = union_rect.union(br) if union_rect.width > 0 else br
+            if union_rect.width <= 0 or union_rect.height <= 0:
+                union_rect = pg.Rect(0, 0, cw, ch)
+        else:
+            union_rect = pg.Rect(0, 0, cw, ch)
+
+        def process_cell(cell: pg.Surface, keep_full_width: bool = False) -> pg.Surface:
+            if keep_full_width:
+                # For explosive bursts that expand past idle width, trim only empty margins below feet
+                sub = cell.subsurface(pg.Rect(0, max(0, union_rect.top - 8), cw, min(ch - max(0, union_rect.top - 8), union_rect.bottom - max(0, union_rect.top - 8) + 4))).copy()
+            else:
+                sub = cell.subsurface(union_rect).copy()
+
+            if shadow_outline_color and len(shadow_outline_color) >= 3:
+                sr, sg, sb = int(shadow_outline_color[0]), int(shadow_outline_color[1]), int(shadow_outline_color[2])
+                for py in range(sub.get_height()):
+                    for px in range(sub.get_width()):
+                        r, g, b, a = sub.get_at((px, py))
+                        if a < 10:
+                            continue
+                        lum = (r + g + b) / 3.0
+                        if lum < 42.0:
+                            t = 1.0 - (lum / 42.0)
+                            sub.set_at((px, py), (
+                                max(0, min(255, int(r * (1.0 - t) + sr * t))),
+                                max(0, min(255, int(g * (1.0 - t) + sg * t))),
+                                max(0, min(255, int(b * (1.0 - t) + sb * t))),
+                                a,
+                            ))
+            if tint_color and len(tint_color) >= 3:
+                ts = pg.Surface(sub.get_size(), pg.SRCALPHA)
+                ts.fill((int(tint_color[0]), int(tint_color[1]), int(tint_color[2]), 255))
+                sub.blit(ts, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+
+            tw = max(1, int(sub.get_width() * self.scale))
+            th = max(1, int(sub.get_height() * self.scale))
+            return pg.transform.scale(sub, (tw, th))
+
+        idle_frames = [process_cell(c) for c in (raw_rows.get("idle") or raw_rows.get("walk") or body_cells[:1])]
+        walk_raw = raw_rows.get("walk") or raw_rows.get("chase") or raw_rows.get("idle") or body_cells[:1]
+        walk_frames = [process_cell(c) for c in walk_raw]
+        atk_raw = raw_rows.get("attack") or walk_raw
+        atk_frames = [process_cell(c, keep_full_width=self.explode_on_proximity) for c in atk_raw]
+        if self.explode_on_proximity and len(atk_frames) >= 2:
+            # Hold frame 0 (swollen telegraph) briefly so player can jump, dash, or slash before blast!
+            atk_frames = [atk_frames[0], atk_frames[0], atk_frames[0]] + atk_frames[1:]
+            custom_hf = frozenset({3, 4})
+        else:
+            mid = max(1, len(atk_frames) // 2)
+            custom_hf = frozenset({mid - 1, mid} if len(atk_frames) >= 4 else {max(0, len(atk_frames) - 1)})
+
+        hurt_raw = raw_rows.get("hurt") or [idle_frames[0]]
+        hurt_frames = [process_cell(c) if c.get_size() == (cw, ch) else c for c in (raw_rows.get("hurt") or [])] or [idle_frames[0]]
+        death_raw = raw_rows.get("death") or raw_rows.get("die") or atk_raw
+        death_frames = [process_cell(c, keep_full_width=True) for c in death_raw]
+
+        anims = {
+            SkeletonState.IDLE: idle_frames,
+            SkeletonState.CHASE: walk_frames,
+            SkeletonState.ATTACK: atk_frames,
+            SkeletonState.HURT: hurt_frames,
+            SkeletonState.DEATH: death_frames,
+        }
+        Skeleton._SHEET_ANIM_CACHE[cache_key] = {
+            "anims": anims,
+            "atk1": atk_frames,
+            "atk2": atk_frames,
+            "hit_frames": custom_hf,
+        }
+        for k, frames in anims.items():
+            self.animations[k] = frames
+        self._attack1_frames = atk_frames
+        self._attack2_frames = atk_frames
+        self._custom_hit_frames = custom_hf
 
         
     def _load_frames(
@@ -606,6 +791,14 @@ class Skeleton(BaseEnemy):
         """Return the attack hitbox based on skeleton facing and position."""
         if not self.should_deal_damage():
             return None
+        if self.explode_on_proximity:
+            rad = max(40, int(self.explode_radius))
+            return pg.Rect(
+                self.rect.centerx - rad,
+                self.rect.centery - rad // 2,
+                rad * 2,
+                rad,
+            )
         hitbox_w = self._scaled_hitbox_w
         hitbox_h = self._scaled_hitbox_h
         if self.facing_left:
@@ -618,6 +811,8 @@ class Skeleton(BaseEnemy):
     def update(self, dt: Optional[float] = None, scroll_speed: int = 0) -> None:
         if dt is None: dt = 1.0 / 60.0
         dt_sec = dt if dt < 1.0 else dt / 1000.0
+        if self.is_flying:
+            self._flight_clock += dt_sec
 
         self.rect.x -= scroll_speed
         if getattr(self, "_teleport_arrival_pending", False):
@@ -658,6 +853,10 @@ class Skeleton(BaseEnemy):
 
         # Check for immediate follow-up attack / combo chaining when attack finishes
         just_finished_attack = was_in_attack and (self.state != SkeletonState.ATTACK)
+        if just_finished_attack and self.explode_on_proximity and self._explode_fuse_started:
+            SquadTokenManager.get_instance().unregister_enemy(id(self))
+            self.kill()
+            return
         if just_finished_attack and self._player and not getattr(self._player, "is_dead", False):
             player_rect = getattr(self._player, "rect", None)
             if player_rect:
@@ -747,15 +946,36 @@ class Skeleton(BaseEnemy):
 
         # 1. Update Perception (Vision Cone & Audio Detection)
         alert = self.perception.update(dt_sec, self.rect, self.facing_left, self._player)
-        if alert == AlertLevel.UNAWARE:
+        if alert == AlertLevel.UNAWARE and not self.explode_on_proximity:
             self.set_state(SkeletonState.IDLE)
             return
 
         if self.state == SkeletonState.ATTACK:
             return
 
+        # Flying enemies steer smoothly at hover altitude toward player
+        if self.is_flying:
+            base_y = self._hover_y if self._hover_y is not None else max(240, player_rect.centery - 28)
+            target_y = base_y + int(math.sin(self._flight_clock * 4.5) * 14.0)
+            dy = target_y - self.rect.centery
+            self.rect.y += max(-3, min(3, dy))
+            if self._ground_y is not None and self.rect.bottom > self._ground_y - 52:
+                self.rect.bottom = self._ground_y - 52
+
         edge_x, dist_y = self._get_edge_distance_to_player(player_rect)
         dist_x = abs(self.rect.centerx - player_rect.centerx)
+
+        # Chasing proximity exploders (Bloated Damned / Demon Eye): relentlessly close distance and swell-detonate
+        if self.explode_on_proximity:
+            if edge_x <= self.explode_trigger_range and dist_y <= max(self._vertical_tolerance, 115):
+                self.facing_left = (self.rect.centerx > player_rect.centerx)
+                self._explode_fuse_started = True
+                self._begin_attack(force_anim=1)
+                return
+            self.set_state(SkeletonState.CHASE)
+            self._chase_player(player_rect)
+            return
+
         in_melee_reach = (edge_x <= max(60, self._attack_range) and dist_y < self._vertical_tolerance)
 
         # 2. Check Attack Token & Squad Coordinator Pincer Signals
@@ -1078,14 +1298,16 @@ class Skeleton(BaseEnemy):
 
     def _apply_gravity(self) -> None:
         """Apply gravitational acceleration and ground collision."""
+        if self.is_flying:
+            self._gravity = 0.0
+            return
         self._gravity += 1.0
         self.rect.y += int(self._gravity)
-        
+
         # Ground collision
         if self._ground_y is not None and self.rect.bottom >= self._ground_y:
             self.rect.bottom = self._ground_y
             self._gravity = 0.0
-    
 
     # ─────────────────────────────────────────────────────────────────────────
     # Rendering
@@ -1099,6 +1321,14 @@ class Skeleton(BaseEnemy):
             surface: Target surface for rendering.
         """
         if self._teleport_vanish_timer <= 0.0:
+            # Visual warning glow while swelling before proximity detonation
+            if self.explode_on_proximity and self.state == SkeletonState.ATTACK and self.current_frame_index < 3:
+                rad = max(36, int(self.explode_radius * 0.65))
+                warn = pg.Surface((rad * 2, rad * 2), pg.SRCALPHA)
+                alpha = 95 if (self.current_frame_index % 2 == 0) else 55
+                pg.draw.circle(warn, (255, 200, 45, alpha), (rad, rad), rad)
+                pg.draw.circle(warn, (255, 110, 30, alpha + 35), (rad, rad), int(rad * 0.55))
+                surface.blit(warn, (self.rect.centerx - rad, self.rect.centery - rad))
             super().draw(surface)
 
         # Draw active VFX (bone dust shatter/re-assembly)

@@ -32,7 +32,7 @@ def _load_collision_map_from_config() -> Dict[str, str]:
     """
     try:
         if os.path.exists(_MASTER_AUDIO_CONFIG_PATH):
-            with open(_MASTER_AUDIO_CONFIG_PATH, "r") as f:
+            with open(_MASTER_AUDIO_CONFIG_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
             collision_map = data.get("collision_map")
             if isinstance(collision_map, dict) and collision_map:

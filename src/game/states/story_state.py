@@ -9,6 +9,7 @@ atmospheric backdrop, multi-beat narrative progression, and pulsing continue pro
 from __future__ import annotations
 
 import math
+import os
 from typing import Optional
 import pygame as pg
 
@@ -21,38 +22,34 @@ class StoryState(State):
     """Atmospheric prologue state displaying the core pitch in NPC-dialogue style."""
 
     _PROLOGUE_TEXT = (
-        "Beneath the Elderwood's Bleeding Tree lies the Rift-Gate - Andras's prison, "
-        "locked by the Star-Fire Oaths of your Citadel. When the Fourth Vanguard marched "
-        "in to reinforce the seal, Andras trapped your captains inside twisted armor "
-        "when they refused to yield. Now he has burned his Harvester's brand into your "
-        "palm: use his scythe to break your brothers' wards and shatter his cage from "
-        "within - or claim their Star-Fire Oaths and collapse the Rift forever."
+        "Beneath the Elderwood lies the Oathstone - the prison holding Andras, "
+        "Marquis of Discord, behind the Watch's Star-Fire Seal. When the seal cracked, "
+        "the Fourth Vanguard marched in. Only young Dain survived when Garrick shoved him "
+        "clear - and Andras burned a mark into his palm. Dain reached the Citadel to warn "
+        "the Watch, then turned right back around alone."
     )
 
     _PROLOGUE_CHAPTERS = [
         (
-            "I. THE PRISON BENEATH THE TREES",
-            "Far beneath the Bleeding Great Tree, Andras, Marquis of Discord, sits chained "
-            "behind the Citadel's Star-Fire Seal. No demon can break a Watch-forged ward "
-            "from the inside - only a living Guardian carrying the Citadel's oath can "
-            "unlock the Rift-Gate and loose hell upon the towns you swore to protect.",
+            "I. THE CITADEL & THE WOUND",
+            "Beneath the Elderwood lies the Oathstone - the prison holding Andras, "
+            "Marquis of Discord, behind the Watch's Star-Fire Seal. When the seal cracked, "
+            "the Fourth Vanguard marched in. With them rode young Dain, already hollowed by "
+            "a quiet betrayal at home - carrying a note he was never meant to find.",
         ),
         (
-            "II. THE HARVESTER'S BARGAIN",
-            "When your Fourth Vanguard marched in to seal the fissure, Andras offered each "
-            "dying officer strength to survive - hoping desperation would make them open "
-            "the gate. Corporal Vane, Garrick, Solen, and Commander Kaelen refused, locking "
-            "their twisted forms around the four thresholds to keep him caged. In fury, "
-            "Andras spared YOU - burning a Harvest sigil into your palm so your blade "
-            "would reap 10,000 souls and cut down the wardens for him.",
+            "II. THE FOUR GATES",
+            "Four captains - Vane, Garrick, Solen, and Commander Kaelen - spread along "
+            "the road to hold the four Watch-gates. In the ambush, Garrick shoved Dain "
+            "clear and bought his breath. Andras let the boy escape, burning his mark "
+            "into Dain's palm - knowing only a bitter Watchman can open the Oathstone.",
         ),
         (
-            "III. THE GUARDIAN'S DEFIANCE",
-            "The brand burns closer to your heart every hour you wait, and the forest seals "
-            "the road home behind you. You march forward for one reason: to free Vane, "
-            "Garrick, Solen, and Kaelen from the Marquis's living armor, gather Candora's "
-            "Silver Tear to burn off his key, and collapse the Rift on Andras's skull "
-            "instead of opening it for him.",
+            "III. THE RETURN ALONE",
+            "Dain reached the Citadel to warn the Watch of what fell in the dark - "
+            "then turned right back around alone. Why he walks back into the Elderwood "
+            "with his scythe is yours to uncover: out of anger at everything he lost, "
+            "or to save his brothers and his people.",
         ),
     ]
 
@@ -163,6 +160,15 @@ class StoryState(State):
         # Voiceover for prologue narration  -  disabled until WAV assets are recorded.
         self._voiceover = VoiceoverManager()
 
+        # Intro video playback state (active only when text is None and intro.mp4 exists)
+        self._allow_video: bool = (text is None)
+        self._video_mode: bool = False
+        self._video_reader = None
+        self._video_size: tuple[int, int] = (1280, 720)
+        self._video_fps: float = 24.0
+        self._video_accum: float = 0.0
+        self._video_surf: Optional[pg.Surface] = None
+
     def _load_chapter(self, idx: int) -> None:
         """Load the specified prologue chapter into the typewriter renderer."""
         self._chapter_index = max(0, min(idx, len(self._chapters) - 1))
@@ -205,15 +211,77 @@ class StoryState(State):
         self.is_exiting = False
         self.exit_alpha = 0.0
         self.anim_renderer.set_text(self.story_text)
+        if self._start_intro_video():
+            return
         if hasattr(self.manager, "audio_manager") and self.manager.audio_manager:
             self.manager.audio_manager.play_music("background_music", volume=0.45)
 
+    def _start_intro_video(self) -> bool:
+        video_path = "assets/video/intro.mp4"
+        if not self._allow_video or not os.path.exists(video_path) or pg.display.get_surface() is None:
+            return False
+        try:
+            import imageio_ffmpeg
+            reader = imageio_ffmpeg.read_frames(video_path)
+            meta = next(reader)
+            self._video_size = tuple(meta["size"])
+            self._video_fps = float(meta.get("fps") or 24.0)
+            self._video_reader = reader
+            self._video_accum = 0.0
+            first_bytes = next(reader, None)
+            if first_bytes is None:
+                self._stop_intro_video()
+                return False
+            surf = pg.image.frombuffer(first_bytes, self._video_size, "RGB").convert()
+            if surf.get_size() != (self.width, self.height):
+                surf = pg.transform.scale(surf, (self.width, self.height))
+            self._video_surf = surf
+            self._video_mode = True
+            audio_path = "assets/video/intro_audio.wav"
+            if os.path.exists(audio_path) and pg.mixer.get_init():
+                try:
+                    pg.mixer.music.load(audio_path)
+                    pg.mixer.music.set_volume(0.85)
+                    pg.mixer.music.play()
+                except Exception:
+                    pass
+            return True
+        except Exception as e:
+            print(f"[StoryState] Intro video fallback to chapters: {e}")
+            self._stop_intro_video()
+            return False
+
+    def _stop_intro_video(self, keep_surface: bool = False) -> None:
+        if not keep_surface:
+            self._video_mode = False
+        if self._video_reader is not None:
+            try:
+                self._video_reader.close()
+            except Exception:
+                pass
+            self._video_reader = None
+        if pg.mixer.get_init():
+            try:
+                pg.mixer.music.stop()
+            except Exception:
+                pass
+
     def on_exit(self):
-        pass
+        self._stop_intro_video()
 
     # ── Events ───────────────────────────────────────────────────────────────
 
     def handle_event(self, event: pg.event.Event):
+        if self._video_mode:
+            skip_pressed = (
+                (event.type == pg.KEYDOWN and event.key in (pg.K_RETURN, pg.K_SPACE, pg.K_ESCAPE))
+                or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 7))
+            )
+            if skip_pressed and self.elapsed >= 0.4 and not self.is_exiting:
+                self._stop_intro_video(keep_surface=True)
+                self.is_exiting = True
+            return
+
         advance_pressed = (
             (event.type == pg.KEYDOWN and event.key in (pg.K_RETURN, pg.K_SPACE, pg.K_e, pg.K_x))
             or (event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 2, 6, 7))
@@ -242,6 +310,29 @@ class StoryState(State):
         if self.alpha < 255.0:
             self.alpha = min(255.0, self.alpha + self.fade_speed * dt_sec)
 
+        if self._video_mode:
+            if self._video_reader is not None and not self.is_exiting:
+                frame_dur = 1.0 / max(1.0, self._video_fps)
+                self._video_accum += dt_sec
+                while self._video_accum >= frame_dur:
+                    self._video_accum -= frame_dur
+                    try:
+                        raw = next(self._video_reader)
+                        surf = pg.image.frombuffer(raw, self._video_size, "RGB").convert()
+                        if surf.get_size() != (self.width, self.height):
+                            surf = pg.transform.scale(surf, (self.width, self.height))
+                        self._video_surf = surf
+                    except StopIteration:
+                        self._stop_intro_video(keep_surface=True)
+                        self.is_exiting = True
+                        break
+            if self.is_exiting:
+                self.exit_alpha += 450.0 * dt_sec
+                if self.exit_alpha >= 255.0:
+                    self._stop_intro_video(keep_surface=False)
+                    self.finish("NEW_GAME")
+            return
+
         # Advance typewriter text
         if not self.is_text_complete:
             self.anim_renderer.update(dt_sec)
@@ -268,6 +359,24 @@ class StoryState(State):
     # ── Draw ─────────────────────────────────────────────────────────────────
 
     def draw(self, surface: pg.Surface):
+        if self._video_mode and self._video_surf is not None:
+            surface.fill((0, 0, 0))
+            surface.blit(self._video_surf, (0, 0))
+            if self.elapsed >= 0.8:
+                skip_str = "[ SPACE / ESC ] SKIP INTRO"
+                s_surf = self.prompt_font.render(skip_str, True, (235, 215, 165))
+                pad_box = pg.Surface((s_surf.get_width() + 24, s_surf.get_height() + 12), pg.SRCALPHA)
+                pad_box.fill((10, 8, 16, 170))
+                bx = self.width - pad_box.get_width() - 24
+                by = self.height - pad_box.get_height() - 20
+                surface.blit(pad_box, (bx, by))
+                surface.blit(s_surf, (bx + 12, by + 6))
+            if self.is_exiting and self.exit_alpha > 0.0:
+                exit_overlay = pg.Surface((self.width, self.height), pg.SRCALPHA)
+                exit_overlay.fill((0, 0, 0, int(min(255.0, self.exit_alpha))))
+                surface.blit(exit_overlay, (0, 0))
+            return
+
         surface.fill((12, 10, 20))
 
         # 1. Background Layers with gentle subtle drift

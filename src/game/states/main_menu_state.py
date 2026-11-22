@@ -54,16 +54,30 @@ class MainMenuState(State):
             "assets/font/Abaddon Bold.ttf", 28
         )
 
-        self.title_text = "THE UNPAID DEBT"
-        self.subtitle_text = "A PACT IN THE SHADOWS"
+        self.title_text = "GUARDIAN RUNNER"
+        self.subtitle_text = "OF THE STAR-FIRE"
 
-        # Buttons (if custom buttons are used)
+        # ── Industry-Standard Interactive Menu Buttons ───────────────────────
+        self._menu_font = AssetManager.get_font("assets/font/Abaddon Bold.ttf", 24)
+        self._menu_items: list[tuple[str, callable]] = []
+        if self._has_resumable_save():
+            self._menu_items.append(("CONTINUE", self.continue_game))
+        self._menu_items.extend([
+            ("NEW GAME", self.start_game),
+            ("SETTINGS", self.open_settings),
+            ("CONTROLS", self.open_controls),
+            ("QUIT", self.exit_game),
+        ])
+        self.selected_index: int = 0
         self.buttons = []
+        self._button_rects: list[pg.Rect] = []
+        self._build_menu_layout()
         
         # Input Cooldown & Transition
         self.input_cooldown = 0.4
         self.time_entered: float = 0.0
         self.is_starting: bool = False
+        self.pending_route: str = "PLAY"
         self.start_alpha: float = 0.0
 
     def load_frames(self):
@@ -98,9 +112,58 @@ class MainMenuState(State):
             print(f"Failed to load background frames: {e}")
             self.loading_progress = 1.0
 
+    def _has_resumable_save(self) -> bool:
+        import json
+        save_path = "save_data/slot_auto.json"
+        if not os.path.exists(save_path):
+            return False
+        try:
+            with open(save_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return float(data.get("world_distance", 0.0)) > 10.0
+        except Exception:
+            return False
+
+    def _build_menu_layout(self) -> None:
+        btn_w, btn_h = 300, 44
+        gap = 12
+        start_y = int(self.height * 0.50)
+        x = (self.width - btn_w) // 2
+        self._button_rects = [
+            pg.Rect(x, start_y + i * (btn_h + gap), btn_w, btn_h)
+            for i in range(len(self._menu_items))
+        ]
+
+    def _play_nav_sfx(self) -> None:
+        if hasattr(self.manager, "audio_manager") and self.manager.audio_manager:
+            try:
+                self.manager.audio_manager.play_sound("magic_sfx", volume=0.18)
+            except Exception:
+                pass
+
+    def continue_game(self):
+        if not self.is_starting:
+            self.pending_route = "CONTINUE"
+            self.is_starting = True
+
     def start_game(self):
         if not self.is_starting:
+            self.pending_route = "PLAY"
             self.is_starting = True
+
+    def open_settings(self):
+        if self.is_starting:
+            return
+        from src.game.states.settings_state import SettingsState
+        self._play_nav_sfx()
+        self.manager.push(SettingsState(self.manager))
+
+    def open_controls(self):
+        if self.is_starting:
+            return
+        from src.game.states.controls_state import ControlsState
+        self._play_nav_sfx()
+        self.manager.push(ControlsState(self.manager))
 
     def exit_game(self):
         self.manager.set_router(None)
@@ -115,15 +178,41 @@ class MainMenuState(State):
             self.manager.audio_manager.play_music("background_music", volume=0.5)
 
     def handle_event(self, event):
-        for btn in self.buttons:
-            btn.handle_event(event)
-            
+        if self.is_starting:
+            return
+
         current_time = pg.time.get_ticks() / 1000.0
-        if current_time - self.time_entered > self.input_cooldown:
-            if event.type == pg.KEYDOWN and event.key in (pg.K_SPACE, pg.K_RETURN, pg.K_e, pg.K_x):
-                self.start_game()
-            elif event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6, 7):
-                self.start_game()
+        if current_time - self.time_entered <= self.input_cooldown:
+            return
+
+        if event.type == pg.MOUSEMOTION:
+            for idx, rect in enumerate(self._button_rects):
+                if rect.collidepoint(event.pos):
+                    self.selected_index = idx
+                    break
+        elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            for idx, rect in enumerate(self._button_rects):
+                if rect.collidepoint(event.pos):
+                    self.selected_index = idx
+                    self._menu_items[idx][1]()
+                    return
+        elif event.type == pg.KEYDOWN:
+            if event.key in (pg.K_UP, pg.K_w):
+                self.selected_index = (self.selected_index - 1) % len(self._menu_items)
+                self._play_nav_sfx()
+            elif event.key in (pg.K_DOWN, pg.K_s):
+                self.selected_index = (self.selected_index + 1) % len(self._menu_items)
+                self._play_nav_sfx()
+            elif event.key in (pg.K_SPACE, pg.K_RETURN, pg.K_KP_ENTER):
+                self._menu_items[self.selected_index][1]()
+            elif event.key == pg.K_ESCAPE:
+                self.selected_index = len(self._menu_items) - 1
+        elif event.type == pg.JOYHATMOTION and event.value[1] != 0:
+            step = -1 if event.value[1] > 0 else 1
+            self.selected_index = (self.selected_index + step) % len(self._menu_items)
+            self._play_nav_sfx()
+        elif event.type == pg.JOYBUTTONDOWN and event.button in (0, 1, 6, 7):
+            self._menu_items[self.selected_index][1]()
 
     def update(self, dt):
         dt_sec = dt / 1000.0 if dt > 0.5 else dt
@@ -152,11 +241,11 @@ class MainMenuState(State):
         for btn in self.buttons:
             btn.update(dt)
 
-        # Transition to StoryState
+        # Transition to StoryState / GameState
         if self.is_starting:
             self.start_alpha += 480.0 * dt_sec
             if self.start_alpha >= 255.0:
-                self.finish("PLAY")
+                self.finish(self.pending_route)
 
     def draw(self, surface):
         if self.frames:
@@ -181,7 +270,7 @@ class MainMenuState(State):
 
         # ── Render Title Banner with Gold Typography ─────────────────────────
         title_cx = self.width // 2
-        title_cy = int(self.height * 0.32)
+        title_cy = int(self.height * 0.24)
 
         # Title Drop Shadow
         shd_surf = self.title_font.render(self.title_text, True, (0, 0, 0))
@@ -193,44 +282,33 @@ class MainMenuState(State):
 
         # Subtitle Tag
         sub_shd = self.subtitle_font.render(self.subtitle_text, True, (0, 0, 0))
-        surface.blit(sub_shd, sub_shd.get_rect(center=(title_cx + 2, title_cy + 60)))
+        surface.blit(sub_shd, sub_shd.get_rect(center=(title_cx + 2, title_cy + 58)))
 
         sub_surf = self.subtitle_font.render(self.subtitle_text, True, (210, 180, 120))
-        surface.blit(sub_surf, sub_surf.get_rect(center=(title_cx, title_cy + 58)))
+        surface.blit(sub_surf, sub_surf.get_rect(center=(title_cx, title_cy + 56)))
 
-        # ── Buttons (if any) ─────────────────────────────────────────────────
-        for btn in self.buttons:
-            btn.draw(surface)
-            
-        # ── Pulsing Start Prompt (Obsidian Plate + Gold Text) ────────────────
-        prompt_pulse = (math.sin(ticks * 0.006) + 1.0) * 0.5
-        prompt_alpha = int(150 + 105 * prompt_pulse)
+        # ── Obsidian & Gold Menu Buttons ─────────────────────────────────────
+        pulse = (math.sin(ticks * 0.006) + 1.0) * 0.5
+        for idx, ((label, _), rect) in enumerate(zip(self._menu_items, self._button_rects)):
+            is_sel = (idx == self.selected_index)
+            plate = pg.Surface((rect.w, rect.h), pg.SRCALPHA)
+            bg_alpha = 225 if is_sel else 175
+            plate.fill((22, 16, 34, bg_alpha) if is_sel else (10, 8, 18, bg_alpha))
+            border_col = (255, 215, 80, int(190 + 65 * pulse)) if is_sel else (130, 105, 60, 140)
+            pg.draw.rect(plate, border_col, (0, 0, rect.w, rect.h), width=2 if is_sel else 1, border_radius=8)
+            surface.blit(plate, rect.topleft)
 
-        prompt_str = "[ PRESS SPACE OR ENTER TO BEGIN ]"
-        pw, ph = self.prompt_font.size(prompt_str)
-        box_w = pw + 60
-        box_h = ph + 24
-        box_x = (self.width - box_w) // 2
-        box_y = self.height - 110
+            txt_col = (255, 230, 130) if is_sel else (200, 185, 155)
+            display_label = f">  {label}  <" if is_sel else label
+            l_shd = self._menu_font.render(display_label, True, (0, 0, 0))
+            l_txt = self._menu_font.render(display_label, True, txt_col)
+            surface.blit(l_shd, l_shd.get_rect(center=(rect.centerx + 2, rect.centery + 2)))
+            surface.blit(l_txt, l_txt.get_rect(center=rect.center))
 
-        # Obsidian box behind prompt
-        prompt_box = pg.Surface((box_w, box_h), pg.SRCALPHA)
-        prompt_box.fill((10, 6, 18, int(prompt_alpha * 0.75)))
-        pg.draw.rect(
-            prompt_box,
-            (255, 190, 50, int(prompt_alpha * 0.6)),
-            (0, 0, box_w, box_h),
-            width=2,
-            border_radius=8,
-        )
-        surface.blit(prompt_box, (box_x, box_y))
-
-        # Text render
-        p_shd = self.prompt_font.render(prompt_str, True, (0, 0, 0))
-        surface.blit(p_shd, p_shd.get_rect(center=(self.width // 2 + 2, box_y + box_h // 2 + 2)))
-
-        p_txt = self.prompt_font.render(prompt_str, True, (255, 220, 100))
-        surface.blit(p_txt, p_txt.get_rect(center=(self.width // 2, box_y + box_h // 2)))
+        # Subtle footer hint
+        hint_font = AssetManager.get_font("assets/font/Abaddon Bold.ttf", 16)
+        hint_surf = hint_font.render("UP/DOWN Select   |   ENTER Confirm   |   F11 Fullscreen", True, (165, 150, 125))
+        surface.blit(hint_surf, hint_surf.get_rect(center=(self.width // 2, self.height - 28)))
 
         # ── Smooth Exit Fade Overlay ─────────────────────────────────────────
         if self.is_starting and self.start_alpha > 0.0:

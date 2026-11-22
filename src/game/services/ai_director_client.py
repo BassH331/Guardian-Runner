@@ -41,9 +41,9 @@ class AiDirectorClient:
         try:
             from v3x_zulfiqar_gideon import SettingsManager
             val = SettingsManager().get("ai_director_enabled")
-            return bool(val) if val is not None else True
+            return bool(val) if val is not None else False
         except Exception:
-            return True
+            return False
 
     @classmethod
     def get_active_directive(cls) -> Dict[str, Any]:

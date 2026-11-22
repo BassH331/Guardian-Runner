@@ -100,6 +100,12 @@ class EnvironmentProp:
     SPRITESHEET_GRIDS: Dict[str, Tuple[int, int]] = {
         "large skull.png": (10, 4),
         "memento mori skeleton.png": (4, 4),
+        "demon mine.png": (7, 2),
+        "pot_frames.png": (2, 2),
+        "statue_frames.png": (6, 1),
+        "totem.png": (6, 1),
+        "fire sheet.png": (6, 1),
+        "blue fire sheet.png": (6, 1),
     }
 
     def __init__(
@@ -132,6 +138,13 @@ class EnvironmentProp:
         glow_color: Optional[List[int]] = None,
         proximity_radius: float = 0.0,
         ambient_sfx: Optional[str] = None,
+        cast_shadow: bool = False,
+        shadow_color: Optional[List[int]] = None,
+        tint_color: Optional[List[int]] = None,
+        shadow_outline_color: Optional[List[int]] = None,
+        proximity_explode: bool = False,
+        explode_radius: float = 85.0,
+        explode_damage: float = 20.0,
     ) -> None:
         self.texture_path = texture_path
         self.slice_rect = slice_rect
@@ -164,6 +177,16 @@ class EnvironmentProp:
         self.frames: List[pg.Surface] = []
         self._frame_paths: List[str] = []
 
+        # Visual cohesion, ground shadow & proximity mine metadata
+        self.cast_shadow: bool = bool(cast_shadow)
+        self.shadow_color: Optional[List[int]] = list(shadow_color) if shadow_color else None
+        self.tint_color: Optional[List[int]] = list(tint_color) if tint_color else None
+        self.shadow_outline_color: Optional[List[int]] = list(shadow_outline_color) if shadow_outline_color else None
+        self.proximity_explode: bool = bool(proximity_explode)
+        self.explode_radius: float = float(explode_radius) if explode_radius else 85.0
+        self.explode_damage: float = float(explode_damage) if explode_damage else 20.0
+        self._ground_shadow_surf: Optional[pg.Surface] = None
+
         # Environmental storytelling & atmosphere metadata
         self.lore_id = lore_id
         self.lore_title = lore_title
@@ -195,15 +218,62 @@ class EnvironmentProp:
         self.rebuild_frames()
 
     def _transform_surface(self, sub_surf: pg.Surface) -> pg.Surface:
-        """Apply configured flip and scale transformations to a frame surface."""
+        """Apply configured flip, outline-softening/tint, and scale transforms."""
+        work = sub_surf.copy() if (self.tint_color or self.shadow_outline_color) else sub_surf
         if self.flip_x or self.flip_y:
-            sub_surf = pg.transform.flip(sub_surf, self.flip_x, self.flip_y)
+            work = pg.transform.flip(work, self.flip_x, self.flip_y)
+
+        if self.shadow_outline_color and len(self.shadow_outline_color) >= 3:
+            sr, sg, sb = int(self.shadow_outline_color[0]), int(self.shadow_outline_color[1]), int(self.shadow_outline_color[2])
+            for y in range(work.get_height()):
+                for x in range(work.get_width()):
+                    r, g, b, a = work.get_at((x, y))
+                    if a < 10:
+                        continue
+                    lum = (r + g + b) / 3.0
+                    if lum < 42.0:
+                        t = 1.0 - (lum / 42.0)
+                        work.set_at((x, y), (
+                            max(0, min(255, int(r * (1.0 - t) + sr * t))),
+                            max(0, min(255, int(g * (1.0 - t) + sg * t))),
+                            max(0, min(255, int(b * (1.0 - t) + sb * t))),
+                            a,
+                        ))
+
+        if self.tint_color and len(self.tint_color) >= 3:
+            tint_surf = pg.Surface(work.get_size(), pg.SRCALPHA)
+            ta = int(self.tint_color[3]) if len(self.tint_color) >= 4 else 255
+            tint_surf.fill((int(self.tint_color[0]), int(self.tint_color[1]), int(self.tint_color[2]), ta))
+            if work is sub_surf:
+                work = sub_surf.copy()
+            work.blit(tint_surf, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
 
         if self.scale != 1.0:
-            target_w = max(1, int(sub_surf.get_width() * self.scale))
-            target_h = max(1, int(sub_surf.get_height() * self.scale))
-            return pg.transform.smoothscale(sub_surf, (target_w, target_h))
-        return sub_surf
+            target_w = max(1, int(work.get_width() * self.scale))
+            target_h = max(1, int(work.get_height() * self.scale))
+            return pg.transform.smoothscale(work, (target_w, target_h))
+        return work
+
+    def _build_ground_shadow(self) -> pg.Surface:
+        """Build cached 2-step pixel-art elliptical ground contact shadow matching world lighting."""
+        if self._ground_shadow_surf is not None:
+            return self._ground_shadow_surf
+        px_step = 3
+        sw = max(30, int(self.width * 0.96))
+        sh = max(12, min(26, int(self.height * 0.14) if self.height > 90 else 15))
+        gw, gh = max(8, sw // px_step), max(4, sh // px_step)
+        grid = pg.Surface((gw, gh), pg.SRCALPHA)
+        col = self.shadow_color if (self.shadow_color and len(self.shadow_color) >= 3) else [40, 46, 26]
+        sr, sg, sb = int(col[0]), int(col[1]), int(col[2])
+        pg.draw.ellipse(grid, (sr, sg, sb, 90), (0, 0, gw, gh))
+        iw, ih = max(4, int(gw * 0.72)), max(2, int(gh * 0.60))
+        pg.draw.ellipse(
+            grid,
+            (max(0, sr - 12), max(0, sg - 12), max(0, sb - 10), 145),
+            ((gw - iw) // 2 + 1, (gh - ih) // 2, iw, ih),
+        )
+        self._ground_shadow_surf = pg.transform.scale(grid, (gw * px_step, gh * px_step))
+        return self._ground_shadow_surf
 
     def _slice_single_surface(self, raw_tex: pg.Surface, rect_spec: Optional[List[int]]) -> pg.Surface:
         """Subsurface and transform a region of raw_tex."""
@@ -333,6 +403,34 @@ class EnvironmentProp:
             )
         return pg.Rect(draw_x, draw_y, self.width, self.height)
 
+    def trigger_proximity_detonation(self) -> bool:
+        """Trigger a proximity-mine blast into its dissolve/explosion frames."""
+        if not self.proximity_explode or self.trap_state != "active":
+            return False
+        self.trap_hp = 0.0
+        self.trap_state = "dissolving"
+        if self.trap_loop_frames > 0 and self.trap_loop_frames < len(self.frames):
+            self.frame_idx = self.trap_loop_frames
+        elif len(self.frames) > 1:
+            self.frame_idx = 1
+        else:
+            self.frame_idx = 0
+        self.anim_timer = 0.0
+        if self.frames:
+            self.image = self.frames[self.frame_idx]
+        return True
+
+    def check_proximity_trigger(self, target_rect: pg.Rect, world_dist: float) -> bool:
+        """Return True and detonate if target_rect enters this Demon Mine's trigger envelope."""
+        if not self.proximity_explode or self.trap_state != "active":
+            return False
+        box = self.get_world_hitbox(world_dist)
+        dx = abs(target_rect.centerx - box.centerx)
+        dy = abs(target_rect.bottom - box.bottom)
+        if dx <= self.explode_radius * 0.68 and dy <= 64:
+            return self.trigger_proximity_detonation()
+        return False
+
     def take_trap_damage(self, amount: float) -> bool:
         """Apply damage to a destructible trap prop. Returns True if newly banished."""
         if not self.is_destructible_trap() or amount <= 0:
@@ -429,6 +527,8 @@ class EnvironmentProp:
                     )
                     self.frame_idx = (self.frame_idx + steps) % loop_len
                 self.image = self.frames[self.frame_idx]
+        elif self.trap_state == "dissolving" and dt > 0:
+            self.trap_state = "destroyed"
 
     def is_in_front(self) -> bool:
         """Determines if prop renders in foreground in front of player and entities."""
@@ -475,8 +575,21 @@ class EnvironmentProp:
             cy = (draw_y + int(self.height * 0.25)) if "torch" in (self.texture_path or "").lower() else (draw_y + int(self.height * 0.58))
             surface.blit(aura_surf, (cx - radius, cy - radius))
 
+        # 2-tone pixel-art ground contact shadow beneath prop feet
+        if self.cast_shadow and self.trap_state == "active":
+            sh_surf = self._build_ground_shadow()
+            sh_x = int(draw_x + self.width // 2 - sh_surf.get_width() // 2 - 4)
+            sh_y = int(draw_y + self.height - sh_surf.get_height() * 0.50)
+            surface.blit(sh_surf, (sh_x, sh_y))
+
         # ── AAA Ground-Impact Fire FX (behind sprite: charred crater + additive floor light) ──
-        has_ground_fire = self.trap_max_hp > 0 and (
+        # Keep volcanic/eruption ground embers strictly on wide floor traps (e.g. Large Skull),
+        # so narrow totems, busts, urns, and mines sit cleanly on 2-tone pixel shadows.
+        is_eruption_trap = (
+            self.width >= 150
+            or "large skull" in (self.texture_path or "").lower()
+        )
+        has_ground_fire = self.trap_max_hp > 0 and is_eruption_trap and (
             self._ground_scorch_heat > 0.02 or is_hazard_eruption or is_telegraph
         )
         if has_ground_fire:
@@ -711,6 +824,18 @@ class EnvironmentProp:
             data["proximity_radius"] = self.proximity_radius
         if self.ambient_sfx:
             data["ambient_sfx"] = self.ambient_sfx
+        if self.cast_shadow:
+            data["cast_shadow"] = True
+        if self.shadow_color:
+            data["shadow_color"] = list(self.shadow_color)
+        if self.tint_color:
+            data["tint_color"] = list(self.tint_color)
+        if self.shadow_outline_color:
+            data["shadow_outline_color"] = list(self.shadow_outline_color)
+        if self.proximity_explode:
+            data["proximity_explode"] = True
+            data["explode_radius"] = self.explode_radius
+            data["explode_damage"] = self.explode_damage
         return data
 
 
@@ -744,6 +869,11 @@ class EnvironmentManager:
         self.bg_music_track: str = "game_loop"
         self.ground_y: int = 686
         self.config: Dict[str, Any] = {}
+        self.zone_tints: List[Dict[str, Any]] = []
+        self.rift_zone: Optional[Dict[str, Any]] = None
+        self._rift_cache: Optional[Dict[str, Any]] = None
+        self._rift_clock: float = 0.0
+        self._zone_wash_surf: Optional[pg.Surface] = None
 
         # Per-frame ground Y cache: quantized X range -> computed ground Y
         self._ground_y_cache: Dict[Tuple[int, int, bool], Optional[float]] = {}
@@ -891,6 +1021,9 @@ class EnvironmentManager:
 
         self.bg_music_track = env_config.get("bg_music_track", "game_loop")
         self.ground_y = env_config.get("ground_y", 686)
+        self.zone_tints = list(env_config.get("zone_tints", []))
+        self.rift_zone = env_config.get("rift_zone")
+        self._rift_cache = None
 
         # 1. Sky Configuration
         sky_cfg = env_config.get("sky")
@@ -1005,9 +1138,173 @@ class EnvironmentManager:
                     glow_color=pdata.get("glow_color"),
                     proximity_radius=pdata.get("proximity_radius", 0.0),
                     ambient_sfx=pdata.get("ambient_sfx"),
+                    cast_shadow=pdata.get("cast_shadow", False),
+                    shadow_color=pdata.get("shadow_color"),
+                    tint_color=pdata.get("tint_color"),
+                    shadow_outline_color=pdata.get("shadow_outline_color"),
+                    proximity_explode=pdata.get("proximity_explode", False),
+                    explode_radius=pdata.get("explode_radius", 85.0),
+                    explode_damage=pdata.get("explode_damage", 20.0),
                 ))
             except Exception:
                 pass
+
+    def _compute_rift_alpha(self, cam_x: float) -> float:
+        rz = self.rift_zone
+        if not rz or not rz.get("enabled", True):
+            return 0.0
+        start_x = float(rz.get("start_x", 25600.0))
+        if cam_x < start_x:
+            return 0.0
+        fade_w = max(1.0, float(rz.get("fade_width", 900.0)))
+        return max(0.0, min(1.0, (cam_x - start_x) / fade_w))
+
+    def _ensure_rift_cache(self) -> Optional[Dict[str, Any]]:
+        """Lazily build and cache Zone 4 Forest-to-Hell Rift scrolling surfaces."""
+        if self._rift_cache is not None:
+            return self._rift_cache
+        bg4 = "assets/graphics/Pixel-Art-Battlegrounds/PNG/Battleground4/Pale"
+        hell_pack = "assets/graphics/GandalfHardcore Hell Asset Pack 32x32"
+        hell_bg = f"{hell_pack}/GandalfHardcore Hell background"
+        hell_tiles = f"{hell_pack}/GandalfHardcore Hell Tiles 32x32.png"
+        lava_path = f"{hell_pack}/GandalfHardcore Lava Tiles.png"
+        if not (os.path.exists(f"{bg4}/ground.png") and os.path.exists(lava_path)):
+            return None
+
+        w, h = self.screen_width, self.screen_height
+        has_display = pg.display.get_surface() is not None
+
+        def to_alpha(s: pg.Surface) -> pg.Surface:
+            return s.convert_alpha() if has_display else s
+
+        def to_opaque(s: pg.Surface) -> pg.Surface:
+            return s.convert() if has_display else s
+
+        def scaled_tinted(path: str, tint: Tuple[int, int, int]) -> pg.Surface:
+            tex = to_alpha(pg.transform.scale(AssetManager.get_texture(path), (w, h)))
+            t_surf = pg.Surface((w, h), pg.SRCALPHA)
+            t_surf.fill((*tint, 255))
+            tex.blit(t_surf, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+            return tex
+
+        sky = to_opaque(scaled_tinted(f"{bg4}/sky.png", (165, 65, 50)))
+        if os.path.exists(f"{hell_bg}/middle layer.png"):
+            crags = to_alpha(pg.transform.scale(AssetManager.get_texture(f"{hell_bg}/middle layer.png"), (w, h)))
+            crags.set_alpha(150)
+            sky.blit(crags, (0, -70))
+        # Subtle caldera horizon glow baked onto static sky
+        glow = pg.Surface((840, 840), pg.SRCALPHA)
+        for rad in range(420, 0, -14):
+            alpha = int(10 * (1.0 - rad / 420.0) ** 2.0)
+            pg.draw.circle(glow, (220, 65, 25, alpha), (420, 420), rad)
+        sky.blit(glow, (w // 2 - 420, int(h * 0.44) - 420))
+
+        back_trees = scaled_tinted(f"{bg4}/back_trees.png", (120, 62, 56))
+        graves = scaled_tinted(f"{bg4}/graves.png", (115, 58, 54))
+        wall = scaled_tinted(f"{bg4}/wall.png", (125, 70, 66))
+        ground = scaled_tinted(f"{bg4}/ground.png", (140, 88, 82))
+
+        lava_sheet = to_alpha(AssetManager.get_texture(lava_path))
+        lava_band = pg.transform.scale(lava_sheet.subsurface((0, 72, 640, 24)).copy(), (w, max(64, int(h * 0.132))))
+        lava_bright = pg.transform.scale(lava_sheet.subsurface((0, 192, 640, 22)).copy(), (w, max(28, int(h * 0.061))))
+        lava_glow = pg.Surface((w, 130), pg.SRCALPHA)
+        for row in range(130):
+            pg.draw.line(lava_glow, (255, 90, 20, int(85 * (row / 130.0) ** 2.2)), (0, row), (w, row))
+
+        crust_strip = None
+        if os.path.exists(hell_tiles):
+            ht_raw = to_alpha(AssetManager.get_texture(hell_tiles))
+            crust_tile = ht_raw.subsurface((208, 192, 64, 18)).copy()
+            r_box = crust_tile.get_bounding_rect(min_alpha=10)
+            if r_box.w > 0 and r_box.h > 0:
+                crust_tile = crust_tile.subsurface(r_box).copy()
+            crust_tile = pg.transform.scale(crust_tile, (max(1, int(crust_tile.get_width() * 2.5)), max(1, int(crust_tile.get_height() * 2.5))))
+            cw = crust_tile.get_width()
+            crust_strip = pg.Surface((w + cw * 2, crust_tile.get_height()), pg.SRCALPHA)
+            for cx in range(0, w + cw * 2, cw):
+                crust_strip.blit(crust_tile, (cx, 0))
+
+        fg_tree = None
+        if os.path.exists(f"{bg4}/tree.png"):
+            tr_raw = to_alpha(AssetManager.get_texture(f"{bg4}/tree.png")).subsurface((1108, 0, 532, 608)).copy()
+            fg_tree = pg.transform.scale(tr_raw, (int(tr_raw.get_width() * 1.35), int(tr_raw.get_height() * 1.35)))
+            ft_tint = pg.Surface(fg_tree.get_size(), pg.SRCALPHA)
+            ft_tint.fill((95, 50, 46, 255))
+            fg_tree.blit(ft_tint, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+
+        self._rift_cache = {
+            "sky": sky,
+            "back_trees": back_trees,
+            "graves": graves,
+            "wall": wall,
+            "ground": ground,
+            "lava_band": lava_band,
+            "lava_bright": lava_bright,
+            "lava_glow": lava_glow,
+            "crust_strip": crust_strip,
+            "fg_tree": fg_tree,
+            "composite": to_opaque(pg.Surface((w, h))),
+        }
+        return self._rift_cache
+
+    @staticmethod
+    def _blit_repeating_layer(dest: pg.Surface, layer: pg.Surface, cam_x: float, ratio: float, y: int = 0) -> None:
+        lw = layer.get_width()
+        if lw <= 0:
+            return
+        offset = int(cam_x * ratio) % lw
+        dest.blit(layer, (-offset, y))
+        if -offset + lw < dest.get_width():
+            dest.blit(layer, (-offset + lw, y))
+
+    def _draw_rift_background(self, surface: pg.Surface, cam_x: float, alpha: float) -> None:
+        cache = self._ensure_rift_cache()
+        if not cache or alpha <= 0.0:
+            return
+        target = surface if alpha >= 0.99 else cache["composite"]
+        target.blit(cache["sky"], (0, 0))
+        self._blit_repeating_layer(target, cache["back_trees"], cam_x, 0.28)
+        self._blit_repeating_layer(target, cache["graves"], cam_x, 0.45)
+        self._blit_repeating_layer(target, cache["wall"], cam_x, 0.72)
+        self._blit_repeating_layer(target, cache["ground"], cam_x, 1.0)
+
+        h = self.screen_height
+        lava_drift = self._rift_clock * 28.0
+        target.blit(cache["lava_glow"], (0, int(h * 0.70)))
+        self._blit_repeating_layer(target, cache["lava_band"], cam_x + lava_drift * 0.5, 1.0, y=int(h * 0.872))
+        self._blit_repeating_layer(target, cache["lava_bright"], cam_x + lava_drift, 1.0, y=int(h * 0.864))
+        if cache["crust_strip"] is not None:
+            cs = cache["crust_strip"]
+            cw = max(1, cs.get_width() - self.screen_width)
+            off = int(cam_x) % max(1, cw // 2)
+            target.blit(cs, (-off, int(h * 0.844)))
+
+        if target is not surface:
+            target.set_alpha(max(0, min(255, int(alpha * 255))))
+            surface.blit(target, (0, 0))
+
+    def _draw_zone_wash(self, surface: pg.Surface, cam_x: float) -> None:
+        if not self.zone_tints:
+            return
+        for zt in self.zone_tints:
+            min_x = float(zt.get("min_x", 0.0))
+            max_x = float(zt.get("max_x", 0.0))
+            fade = max(1.0, float(zt.get("fade", 600.0)))
+            col = zt.get("color", [0, 0, 0, 0])
+            if len(col) < 4 or col[3] <= 0 or cam_x < min_x - fade or cam_x > max_x + fade:
+                continue
+            factor = 1.0
+            if cam_x < min_x:
+                factor = (cam_x - (min_x - fade)) / fade
+            elif cam_x > max_x:
+                factor = ((max_x + fade) - cam_x) / fade
+            factor = max(0.0, min(1.0, factor))
+            if factor <= 0.01:
+                continue
+            if self._zone_wash_surf is None or self._zone_wash_surf.get_size() != surface.get_size():
+                self._zone_wash_surf = pg.Surface(surface.get_size(), pg.SRCALPHA)
+            self._zone_wash_surf.fill((int(col[0]), int(col[1]), int(col[2]), int(col[3] * factor)))
+            surface.blit(self._zone_wash_surf, (0, 0))
 
     def check_prop_story_triggers(self, player_world_x: float, corruption: float = 0.0) -> List[Dict[str, Any]]:
         """Evaluate proximity of player_world_x against untriggered story props.
@@ -1061,6 +1358,8 @@ class EnvironmentManager:
 
         solid_ys = []
         for prop in self.props:
+            if getattr(prop, "trap_state", "active") == "destroyed":
+                continue
             if getattr(prop, "is_ground", False) and getattr(prop, "collision_type", "deco") in ("solid", "platform"):
                 if getattr(prop, "parallax_ratio", 1.0) != 1.0 or prop.layer_index not in (3, 4, 6):
                     continue
@@ -1082,6 +1381,8 @@ class EnvironmentManager:
     def update(self, dt: float, player_speed: float = 0.0) -> None:
         """Update sky and background parallax layers across all layer stacks."""
         self._ground_y_cache.clear()
+        if dt > 0:
+            self._rift_clock += dt
         if self.sky:
             self.sky.update(dt)
         for stack in self.layer_stacks.values():
@@ -1110,6 +1411,8 @@ class EnvironmentManager:
             if max_layer is None:
                 max_layer = 6
 
+        rift_alpha = self._compute_rift_alpha(cam_x)
+
         if clear_bg and (min_layer is None or min_layer <= 1):
             surface.fill((20, 20, 32))
             if self.sky:
@@ -1132,6 +1435,7 @@ class EnvironmentManager:
         else:
             active_indices = all_indices
 
+        rift_drawn = False
         for l_idx in active_indices:
             stack = self.layer_stacks.get(l_idx)
             is_visible = stack.get("visible", True) if stack else True
@@ -1141,10 +1445,40 @@ class EnvironmentManager:
             if stack:
                 player_layer = stack.get("parallax_layer")
                 if player_layer:
-                    player_layer.draw(surface, cam_x=cam_x, cam_y=cam_y)
+                    if l_idx >= 7 and rift_alpha > 0.0:
+                        if rift_alpha < 0.70:
+                            prev_alpha = player_layer.image.get_alpha()
+                            player_layer.image.set_alpha(max(0, min(255, int(255 * (1.0 - rift_alpha / 0.70)))))
+                            player_layer.draw(surface, cam_x=cam_x, cam_y=cam_y)
+                            player_layer.image.set_alpha(prev_alpha)
+                    else:
+                        player_layer.draw(surface, cam_x=cam_x, cam_y=cam_y)
+
+            # Blend Zone 4 Forest-to-Hell Rift & Zone Wash smoothly under layer 6 road props
+            if l_idx >= 6 and foreground_pass is not True and not rift_drawn:
+                rift_drawn = True
+                self._draw_zone_wash(surface, cam_x)
+                if rift_alpha > 0.0:
+                    self._draw_rift_background(surface, cam_x, rift_alpha)
 
             for prop in props_by_layer.get(l_idx, []):
                 prop.draw(surface, cam_x=cam_x, cam_y=cam_y)
+
+        if foreground_pass is not True and not rift_drawn:
+            self._draw_zone_wash(surface, cam_x)
+            if rift_alpha > 0.0:
+                self._draw_rift_background(surface, cam_x, rift_alpha)
+
+        if foreground_pass is True and rift_alpha >= 0.45:
+            cache = self._ensure_rift_cache()
+            if cache and cache.get("fg_tree") is not None:
+                ft = cache["fg_tree"]
+                span = 1800
+                tx = -(int(cam_x * 1.12) + 760) % span
+                if tx > -ft.get_width() and tx < self.screen_width:
+                    surface.blit(ft, (tx, -45))
+                elif tx - span > -ft.get_width():
+                    surface.blit(ft, (tx - span, -45))
 
     def to_config_dict(self) -> Dict[str, Any]:
         """Exports current environment configuration dictionary for saving."""
@@ -1175,7 +1509,7 @@ class EnvironmentManager:
             if os.path.exists(f"assets/graphics/Clouds 3/{i}.png")
         ] if self.sky else []
 
-        return {
+        out = {
             "bg_music_track": self.bg_music_track,
             "ground_y": self.ground_y,
             "sky": {"enabled": self.sky is not None, "layers": sky_layers},
@@ -1183,6 +1517,11 @@ class EnvironmentManager:
             "parallax_layers": legacy_parallax,
             "props": [p.to_dict() for p in self.props]
         }
+        if self.zone_tints:
+            out["zone_tints"] = list(self.zone_tints)
+        if self.rift_zone:
+            out["rift_zone"] = dict(self.rift_zone)
+        return out
 
     @staticmethod
     def get_environment_folders() -> List[Dict[str, Any]]:

@@ -1300,20 +1300,33 @@ class GameState(PlayingState):
                                   f"kills={killed_count}/{required_kills if required_kills > 0 else 'inf'}")
     
     def spawn_skeleton(self, zone: Optional[dict] = None) -> None:
-        """Spawn a new skeleton at a random position on the right side of the screen."""
+        """Spawn a new enemy at a random position on the right side of the screen."""
         # Calculate spawn position (off-screen right, but not too far)
         spawn_x = self.width + randint(100, 300)
         spawn_y = self.height - 50  # Same as initial spawn height
-        
+
         # Get player sprite from GroupSingle
         player_sprite = self.player.sprite
         if player_sprite is None:
             return  # Can't spawn skeleton without player
-            
-        sprite_root = zone.get("sprite_root") if zone else None
-        behaviour_map = zone.get("behaviour_map") if zone else None
-        tier = zone.get("tier", "minion") if zone else "minion"
-        enemy_type = zone.get("enemy_type", "skeleton") if zone else "skeleton"
+
+        # Support zone-level variants list for mixed Damned / Skeleton encounters
+        spec: dict = dict(zone) if zone else {}
+        variants = zone.get("variants") if zone else None
+        if variants:
+            total_w = sum(max(1, int(v.get("weight", 1))) for v in variants)
+            roll = randint(1, total_w)
+            acc = 0
+            for v in variants:
+                acc += max(1, int(v.get("weight", 1)))
+                if roll <= acc:
+                    spec.update(v)
+                    break
+
+        sprite_root = spec.get("sprite_root")
+        behaviour_map = spec.get("behaviour_map")
+        tier = spec.get("tier", "minion")
+        enemy_type = spec.get("enemy_type", "skeleton")
 
         if enemy_type in ("dark_ronin", "ronin"):
             from src.game.entities.dark_ronin import DarkRonin
@@ -1325,6 +1338,10 @@ class GameState(PlayingState):
             )
             print(f"[SPAWN] Dark Ronin elite spawned! dist={int(self.max_distance_reached)}")
         else:
+            is_flying = bool(spec.get("is_flying", False))
+            hover_y = spec.get("hover_y")
+            if is_flying:
+                spawn_y = int(hover_y) if hover_y is not None else randint(280, 410)
             enemy = Skeleton(
                 x=spawn_x,
                 y=spawn_y,
@@ -1332,7 +1349,22 @@ class GameState(PlayingState):
                 sprite_root=sprite_root,
                 behaviour_map=behaviour_map,
                 tier=tier,
+                custom_scale=spec.get("scale"),
+                custom_health=spec.get("health"),
                 audio_manager=self.audio_manager,
+                spritesheet_path=spec.get("spritesheet_path"),
+                sheet_grid=spec.get("sheet_grid"),
+                row_map=spec.get("row_map"),
+                tint_color=spec.get("tint_color"),
+                shadow_outline_color=spec.get("shadow_outline_color"),
+                custom_speed=spec.get("speed"),
+                explode_on_proximity=bool(spec.get("explode_on_proximity", False)),
+                explode_trigger_range=int(spec.get("explode_trigger_range", 85)),
+                explode_radius=int(spec.get("explode_radius", 110)),
+                explode_damage=float(spec.get("explode_damage", 20.0)),
+                is_flying=is_flying,
+                hover_y=hover_y,
+                enemy_name=spec.get("enemy_name"),
             )
         self.obstacle_group.add(enemy)
         if zone is not None:

@@ -230,7 +230,7 @@ def main():
         # Game Flow Map (State Routing)
         routes={
             SplashState: MainMenuState,
-            MainMenuState: {"PLAY": StoryState},
+            MainMenuState: {"PLAY": StoryState, "CONTINUE": GameState},
             StoryState: {"NEW_GAME": GameState},
             TransformationCutscene: GameState,
         },

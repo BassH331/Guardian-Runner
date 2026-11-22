@@ -64,7 +64,7 @@ class SettingsState(State):
         telemetry_val = self.settings.get("telemetry_enabled")
         self.current_telemetry = bool(telemetry_val) if telemetry_val is not None else True
         ai_dir_val = self.settings.get("ai_director_enabled")
-        self.current_ai_director = bool(ai_dir_val) if ai_dir_val is not None else True
+        self.current_ai_director = bool(ai_dir_val) if ai_dir_val is not None else False
         
         # Setup settings options definitions
         self.options = [
@@ -117,30 +117,59 @@ class SettingsState(State):
         # Selection states
         self.selected_index = 0
         
+        # Snapshot initial values so Cancel/ESC can revert unsaved changes
+        self._initial_values = {opt["id"]: self._get_value(opt["id"]) for opt in self.options}
+        self._saved_toast_timer: float = 0.0
+        self._footer_action_index: int = 0  # 0 = Save & Confirm, 1 = Cancel
+
         # Coordinates layout
         self.row_start_y = self._parch_rect.top + int(self._parch_rect.height * 0.22)
         self.row_spacing = int(self._parch_rect.height * 0.09)
         self.label_x = self._parch_rect.left + int(self._parch_rect.width * 0.12)
         self.val_center_x = self._parch_rect.right - int(self._parch_rect.width * 0.22)
         
-        # Back button
+        # Save & Confirm + Cancel buttons
         btn_y = self._parch_rect.bottom - int(self._parch_rect.height * 0.18)
-        self.back_button = UIButton(
-            "Back",
-            x=self.width // 2,
+        self.save_button = UIButton(
+            "Save",
+            x=self.width // 2 - 115,
             y=btn_y,
             size="medium",
             scale=0.8,
-            on_click=self._on_back
+            on_click=self._on_save_and_confirm,
+        )
+        self.back_button = UIButton(
+            "Cancel",
+            x=self.width // 2 + 115,
+            y=btn_y,
+            size="medium",
+            scale=0.8,
+            on_click=self._on_cancel,
         )
         
         # Dynamic interactable zones (updated every frame/draw for correctness)
         self.hitboxes = []
-        
-    def _on_back(self):
-        # Save final state just in case
+
+    def _on_save_and_confirm(self):
+        self.settings.save()
+        self._initial_values = {opt["id"]: self._get_value(opt["id"]) for opt in self.options}
+        self._saved_toast_timer = 1.6
+        if hasattr(self.manager, "audio_manager") and self.manager.audio_manager:
+            try:
+                self.manager.audio_manager.play_sound("defend")
+            except Exception:
+                pass
+        self.manager.pop()
+
+    def _on_cancel(self):
+        for opt_id, orig_val in self._initial_values.items():
+            if self._get_value(opt_id) != orig_val:
+                self._set_value(opt_id, orig_val)
         self.settings.save()
         self.manager.pop()
+
+    def _on_back(self):
+        self._on_cancel()
         
     def _get_value(self, option_id):
         if option_id == "quality": return self.current_quality
@@ -207,8 +236,9 @@ class SettingsState(State):
                     self._set_value(opt_id, new_val)
                 
     def handle_event(self, event):
-        # Pass to back button first if mouse event
+        # Pass to Save & Cancel buttons first if mouse event
         if event.type in (pg.MOUSEBUTTONDOWN, pg.MOUSEBUTTONUP, pg.MOUSEMOTION):
+            self.save_button.handle_event(event)
             self.back_button.handle_event(event)
             
         if event.type == pg.MOUSEBUTTONDOWN:
@@ -237,16 +267,27 @@ class SettingsState(State):
             elif event.key in (pg.K_LEFT, pg.K_a):
                 if self.selected_index < len(self.options):
                     self._change_val(-1)
+                else:
+                    self._footer_action_index = 0
             elif event.key in (pg.K_RIGHT, pg.K_d):
                 if self.selected_index < len(self.options):
                     self._change_val(1)
+                else:
+                    self._footer_action_index = 1
             elif event.key in (pg.K_RETURN, pg.K_SPACE):
                 if self.selected_index == len(self.options):
-                    self._on_back()
+                    if self._footer_action_index == 0:
+                        self._on_save_and_confirm()
+                    else:
+                        self._on_cancel()
             elif event.key == pg.K_ESCAPE:
-                self._on_back()
+                self._on_cancel()
                 
     def update(self, dt):
+        dt_sec = dt / 1000.0 if dt > 0.5 else dt
+        if self._saved_toast_timer > 0.0:
+            self._saved_toast_timer = max(0.0, self._saved_toast_timer - dt_sec)
+        self.save_button.update(dt)
         self.back_button.update(dt)
         
     def draw(self, surface):
@@ -337,12 +378,13 @@ class SettingsState(State):
             p3 = (self.val_center_x + 70, row_y + 26)
             pg.draw.polygon(surface, ar_color, [p1, p2, p3])
             
-        # Draw Back Button
-        is_back_selected = (self.selected_index == len(self.options))
-        if is_back_selected:
-            # Draw a subtle selection highlight around the back button
-            back_rect = self.back_button._internal.rect
-            rect_to_draw = (back_rect.x - 4, back_rect.y - 4, back_rect.width + 8, back_rect.height + 8)
+        # Draw Save & Cancel Buttons
+        is_footer_selected = (self.selected_index == len(self.options))
+        if is_footer_selected:
+            target_btn = self.save_button if self._footer_action_index == 0 else self.back_button
+            btn_rect = target_btn._internal.rect
+            rect_to_draw = (btn_rect.x - 4, btn_rect.y - 4, btn_rect.width + 8, btn_rect.height + 8)
             pg.draw.rect(surface, self.highlight_color, rect_to_draw, 2, border_radius=4)
             
+        self.save_button.draw(surface)
         self.back_button.draw(surface)
