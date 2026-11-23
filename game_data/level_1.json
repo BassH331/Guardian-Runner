@@ -2180,7 +2180,7 @@
                 "scale": 2.9,
                 "layer_index": 6,
                 "parallax_ratio": 1.0,
-                "flip_x": true,
+                "flip_x": false,
                 "is_ground": false,
                 "collision_type": "deco",
                 "anim_grid": [
@@ -2445,8 +2445,8 @@
                     "tier": "minion",
                     "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Plague Flies.png",
                     "sheet_grid": [
-                        4,
-                        1
+                        5,
+                        2
                     ],
                     "row_map": {
                         "idle": [
@@ -2462,8 +2462,8 @@
                             4
                         ],
                         "death": [
-                            0,
-                            4
+                            1,
+                            5
                         ]
                     },
                     "scale": 1.9,

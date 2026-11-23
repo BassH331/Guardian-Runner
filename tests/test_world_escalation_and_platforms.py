@@ -63,7 +63,8 @@ def test_known_spritesheet_grids_registered():
     assert AssetManager.KNOWN_SPRITESHEET_GRIDS["pot_frames.png"] == (2, 2)
     assert AssetManager.KNOWN_SPRITESHEET_GRIDS["statue_frames.png"] == (6, 1)
     assert AssetManager.KNOWN_SPRITESHEET_GRIDS["totem.png"] == (6, 1)
-    assert AssetManager.KNOWN_SPRITESHEET_GRIDS["plague flies.png"] == (4, 1)
+    assert AssetManager.KNOWN_SPRITESHEET_GRIDS["plague flies.png"] == (5, 2)
+    assert AssetManager.KNOWN_SPRITESHEET_GRIDS["spr_roninattack_strip33.png"] == (25, 1)
 
 
 def test_level1_all_props_exist_and_platforms_are_jumpable():
@@ -254,3 +255,157 @@ def test_demon_mine_proximity_and_slash_chain_blast():
         for _ in range(30):
             mine.update(0.15)
         assert mine.trap_state == "destroyed"
+
+
+def test_enemy_orientations_uncropped_bounds_and_no_moonwalking():
+    """Verify native-left spritesheet orientations, uncropped Imp swoops, proportional hitboxes, and 0 moonwalk frames."""
+    level = json.loads((REPO_ROOT / "game_data" / "level_1.json").read_text(encoding="utf-8"))
+    variants = {
+        v["enemy_name"]: v
+        for z in level.get("spawn_zones", [])
+        for v in z.get("variants", [])
+    }
+
+    mock_audio = MagicMock()
+    player = Player(260, 568, mock_audio)
+    player.set_ground_y(568)
+    player.facing_left = False
+
+    # 1. Native-left detection & proportional body hurtboxes + uncropped swoop frames
+    expected_native_left = [
+        "Risen Vanguard Husk",
+        "Plague Flies",
+        "Shrouded Damned",
+        "Bloated Blight-Bomber",
+        "Burning Damned",
+        "Ashen Imp",
+        "Flying Demon Eye",
+        "Twisted Damned",
+    ]
+    for name in expected_native_left:
+        v = variants[name]
+        sk = Skeleton(
+            x=760,
+            y=int(v["hover_y"]) if v.get("is_flying") and v.get("hover_y") else 568,
+            player=player,
+            sprite_root=v.get("sprite_root"),
+            behaviour_map=v.get("behaviour_map"),
+            tier=v.get("tier", "minion"),
+            custom_scale=v.get("scale"),
+            custom_health=v.get("health"),
+            audio_manager=mock_audio,
+            spritesheet_path=v.get("spritesheet_path"),
+            sheet_grid=v.get("sheet_grid"),
+            row_map=v.get("row_map"),
+            is_flying=bool(v.get("is_flying", False)),
+            hover_y=v.get("hover_y"),
+            enemy_name=name,
+        )
+        sk.set_ground_y(568)
+        assert sk.natively_facing_left is True, f"{name} should be natively_facing_left=True"
+        assert sk.rect.width <= 130 and sk.rect.height <= 145, f"{name} rect={sk.rect.size} inflated"
+        if name == "Ashen Imp":
+            atk_vis = [fr.get_bounding_rect(min_alpha=10).height for fr in sk.animations[SkeletonState.ATTACK]]
+            assert max(atk_vis) >= 50, f"Ashen Imp swoop clipped: {atk_vis}"
+
+    # 2. Chase simulation -> 0 moonwalk frames on minions
+    for name in ("Forest Skeleton", "Shrouded Damned", "Burning Damned", "Ashen Imp"):
+        v = variants[name]
+        sk = Skeleton(
+            x=720,
+            y=568,
+            player=player,
+            sprite_root=v.get("sprite_root"),
+            behaviour_map=v.get("behaviour_map"),
+            tier=v.get("tier", "minion"),
+            custom_scale=v.get("scale"),
+            audio_manager=mock_audio,
+            spritesheet_path=v.get("spritesheet_path"),
+            sheet_grid=v.get("sheet_grid"),
+            row_map=v.get("row_map"),
+            custom_speed=v.get("speed"),
+            enemy_name=name,
+        )
+        sk.set_ground_y(568)
+        for _ in range(90):
+            ox = sk.rect.centerx
+            old_tp = sk.is_teleporting
+            sk.update(0.016, 0)
+            dx = sk.rect.centerx - ox
+            if dx != 0 and not old_tp and not sk.is_teleporting and abs(dx) < 40 and abs(sk._knockback_vel_x) < 0.2:
+                assert not ((dx > 0 and sk.facing_left) or (dx < 0 and not sk.facing_left)), (
+                    f"{name} moonwalked: dx={dx}, facing_left={sk.facing_left}"
+                )
+
+
+def test_boss_and_npc_hitboxes_and_retreat_orientations():
+    """Verify DarkRonin strip slicing/grounding, FireWizard width, Boss retreat facing, and GenericNPC centered rect."""
+    from src.game.entities.dark_ronin import DarkRonin, DarkRoninState
+    from src.game.entities.fire_wizard import FireWizard
+    from src.game.entities.green_monster import GreenMonster
+    from src.game.entities.generic_npc import GenericNPC
+
+    mock_audio = MagicMock()
+    player = Player(300, 568, mock_audio)
+    player.set_ground_y(568)
+    player.facing_left = False
+
+    # DarkRonin attack strip cleanly sliced into 25 128x96 frames, grounded, and 0 moonwalks
+    dr = DarkRonin(580, 568, player, audio_manager=mock_audio, tier="boss", custom_scale=2.6, custom_health=260.0)
+    dr.set_ground_y(568)
+    assert len(dr.animations[DarkRoninState.ATTACK]) == 25
+    assert dr.rect.bottom == dr.y_ground
+    for _ in range(90):
+        ox = dr.rect.centerx
+        dr.update(0.016, 0)
+        dx = dr.rect.centerx - ox
+        if dx != 0 and abs(dx) < 40:
+            fleft = (dr._direction == -1)
+            assert not ((dx > 0 and fleft) or (dx < 0 and not fleft)), (
+                f"DarkRonin moonwalked: dx={dx}, dir={dr._direction}, state={dr._state}"
+            )
+
+    # FireWizard widened hitbox & non-moonwalking close-range retreat
+    fw = FireWizard(
+        350, 568, player,
+        sprite_root="assets/wizard",
+        behaviour_map={"Attack": "attack", "Death": "death", "Idle": "idle", "Move": "walk", "Take Hit": "hurt"},
+        tier="elite", custom_scale=3.8, custom_health=220.0, audio_manager=mock_audio,
+    )
+    fw.set_ground_y(568)
+    assert fw.rect.width >= 100
+    for _ in range(45):
+        ox = fw.rect.centerx
+        fw.update(0.016, 0)
+        dx = fw.rect.centerx - ox
+        if dx != 0 and abs(dx) < 40:
+            assert not ((dx > 0 and fw.facing_left) or (dx < 0 and not fw.facing_left)), (
+                f"FireWizard moonwalked during retreat: dx={dx}, facing_left={fw.facing_left}"
+            )
+
+    # Gatekeeper non-moonwalking retreat
+    gm = GreenMonster(
+        350, 568, player,
+        sprite_root="assets/graphics/green_monster",
+        behaviour_map={"1atk": "attack", "2atk": "attack", "death": "death", "fly": "idle", "hurt": "hurt", "idle": "idle", "walk": "walk"},
+        tier="elite", custom_scale=2.63, custom_health=260.0, audio_manager=mock_audio,
+    )
+    gm.set_ground_y(568)
+    for _ in range(45):
+        ox = gm.rect.centerx
+        gm.update(0.016, 0)
+        dx = gm.rect.centerx - ox
+        if dx != 0 and abs(dx) < 40:
+            assert not ((dx > 0 and gm.facing_left) or (dx < 0 and not gm.facing_left)), (
+                f"Gatekeeper moonwalked during retreat: dx={dx}, facing_left={gm.facing_left}"
+            )
+
+    # GenericNPC centered hitbox without double compounded image_offset
+    npc = GenericNPC(
+        600, 568,
+        sprite_dir="assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
+        text="Test", title="Moonstone Keeper", scale=2.0,
+    )
+    assert npc.rect.width < 120
+    assert npc.image_offset.x < npc.image.get_width() // 2
+    assert npc.rect.bottom == 568

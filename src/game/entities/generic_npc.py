@@ -321,21 +321,20 @@ class GenericNPC(Actor):
         # Different animation sets have different frame sizes and transparent
         # padding.  Pre-compute the bottom offset for each state so we can
         # keep the NPC's feet pinned to the ground across state transitions.
+        self._margins = margins
         self._state_bottom_offsets: dict = {}
         for st, frames in self.animations.items():
             fr = frames[0]
             br = fr.get_bounding_rect()
             self._state_bottom_offsets[st] = fr.get_height() - br.bottom
 
-        # Set initial animation state
-        if self.is_walking and _GenericNPCState.WALK in self.animations:
-            self.set_state(_GenericNPCState.WALK, force=True)
-        else:
+        init_state = (
+            _GenericNPCState.WALK
+            if (self.is_walking and _GenericNPCState.WALK in self.animations)
+            else _GenericNPCState.IDLE
+        )
+        if init_state != _GenericNPCState.WALK:
             self.is_walking = False
-            self.set_state(_GenericNPCState.IDLE, force=True)
-
-        if self.state in self.animations:
-            self.image = self.animations[self.state][0]
 
         # Use the IDLE offset as the canonical ground reference
         first_frame = self.animations[_GenericNPCState.IDLE][0]
@@ -343,14 +342,15 @@ class GenericNPC(Actor):
         self.bottom_offset = self._state_bottom_offsets.get(_GenericNPCState.IDLE, 0)
         self.visual_height = bounding_rect.height
 
+        # Anchor full frame so visible feet start at y, then let set_state trim once cleanly
+        self.image = self.animations[init_state][0]
         self.rect = self.image.get_rect(midbottom=(x, y))
-        self.rect.bottom += self._state_bottom_offsets.get(self.state, 0)
+        self.image_offset = pg.math.Vector2(0, 0)
+        self.set_state(init_state, force=True)
 
-        # Intro NPCs walk in from the right → they should face left toward the player
+        # Intro NPCs walk in from the right -> they should face left toward the player
         if self.is_intro_npc:
             self.facing_left = True
-
-        self.adjust_hitbox_sides(left=margins.left, right=margins.right, top=margins.top, bottom=margins.bottom)
 
         # ── Talk prompt (cached surface) ────────────────────────────────────
         self._font = AssetManager.get_font(self._FONT_PATH, self._FONT_SIZE)
@@ -412,12 +412,37 @@ class GenericNPC(Actor):
     def mark_interacted(self) -> None:
         self._interacted = True
 
+    def _apply_trimmed_hitbox(self) -> None:
+        """Fit hitbox symmetrically around visible sprite bounds without compounding offsets."""
+        if not self.image:
+            self._applied_bottom_trim = 0
+            return
+        self.image_offset = pg.math.Vector2(0, 0)
+        margins = getattr(self, "_margins", None)
+        m_left = getattr(margins, "left", 0)
+        m_right = getattr(margins, "right", 0)
+        m_top = getattr(margins, "top", 0)
+        m_bottom = getattr(margins, "bottom", 0)
+        if m_left == 0 and m_right == 0 and m_top == 0 and m_bottom == 0:
+            vbr = self.image.get_bounding_rect(min_alpha=10)
+            if vbr.width > 0 and vbr.height > 0:
+                pad_x = 12
+                pad_top = 8
+                m_left = max(0, vbr.left - pad_x)
+                m_right = max(0, self.image.get_width() - vbr.right - pad_x)
+                m_top = max(0, vbr.top - pad_top)
+                m_bottom = max(0, self.image.get_height() - vbr.bottom)
+        self._margin_left = m_left
+        self._margin_right = m_right
+        self._applied_bottom_trim = m_bottom
+        self.adjust_hitbox_sides(left=m_left, right=m_right, top=m_top, bottom=m_bottom)
+
     def set_state(self, new_state, force: bool = False) -> None:
         """Override to re-anchor the sprite to the ground when switching states.
 
         Different animation sets (Walk=96px, Spawn=128px, etc.) have different
         frame sizes and transparent padding.  We compute a *visual ground*
-        position (rect.bottom minus per-state bottom offset) and preserve it
+        position (rect.bottom minus any untrimmed bottom offset) and preserve it
         across transitions so the NPC's feet stay pinned to the ground.
         """
         if getattr(self, "_sky_fall_phase", 0) in (1, 5) or getattr(self, "is_death_complete", False):
@@ -434,7 +459,8 @@ class GenericNPC(Actor):
 
         old_state = self.state
         old_offset = getattr(self, '_state_bottom_offsets', {}).get(old_state, 0)
-        visual_ground = self.rect.bottom - old_offset  # where the feet are
+        untrimmed_pad = max(0, old_offset - getattr(self, '_applied_bottom_trim', 0))
+        visual_ground = self.rect.bottom - untrimmed_pad  # where the feet are
 
         super().set_state(new_state, force=force)
 
@@ -445,9 +471,12 @@ class GenericNPC(Actor):
             old_centerx = self.rect.centerx
             self.rect = self.image.get_rect()
             self.rect.centerx = old_centerx
+            self.image_offset = pg.math.Vector2(0, 0)
             # Re-anchor: feet stay at the same visual ground position
             new_offset = self._state_bottom_offsets.get(self.state, 0)
             self.rect.bottom = visual_ground + new_offset
+            self._apply_trimmed_hitbox()
+            self.rect.centerx = old_centerx
 
     def trigger_death(self) -> None:
         """Trigger death animation on interaction completion."""

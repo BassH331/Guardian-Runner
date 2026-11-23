@@ -264,6 +264,7 @@ class Skeleton(BaseEnemy):
         self._scale_is_explicit = (registry_scale is not None or custom_scale is not None)
 
         # 1. Load animations (spritesheet path takes priority if configured)
+        self._sheet_body_margins: Optional[tuple[int, int, int, int]] = None
         if spritesheet_path and sheet_grid and row_map:
             self._load_spritesheet_animations(
                 spritesheet_path=spritesheet_path,
@@ -272,7 +273,11 @@ class Skeleton(BaseEnemy):
                 tint_color=tint_color,
                 shadow_outline_color=shadow_outline_color,
             )
-            self.natively_facing_left = False
+            sp_low = spritesheet_path.lower()
+            self.natively_facing_left = any(
+                tok in sp_low
+                for tok in ("damned", "imp", "demon eye", "plague flies", "old demon", "devil")
+            )
         else:
             self.animations[SkeletonState.IDLE] = self._load_frames(
                 "assets/skeleton/Skeleton_01_White_Idle/skeleton-idle_{}.png", 8
@@ -338,6 +343,11 @@ class Skeleton(BaseEnemy):
                     self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["die"])
                 elif "hurt" in tag_to_folders:
                     self.animations[SkeletonState.DEATH] = load_from_folders(tag_to_folders["hurt"])
+
+                # Align variable-width folder sprites (e.g. SkeletonZombie 64x64 Idle vs 146x64 Attack)
+                # onto a uniform feet-grounded canvas centered around the IDLE visual body.
+                if sprite_root and "skeletonzombie" in sprite_root.lower() and self.animations.get(SkeletonState.IDLE):
+                    self._normalize_folder_body_alignment()
                 
         # 3. Apply Tier Scaling (Health, Speed, Size)
         damage_scale = 1.0
@@ -510,21 +520,34 @@ class Skeleton(BaseEnemy):
                 interruptible=False,
             )
 
-        # Initial setup
+        # Initial setup & spawn facing toward player
+        p_rect = getattr(player, "rect", None) if player is not None else None
+        if p_rect is not None and isinstance(getattr(p_rect, "centerx", None), (int, float)):
+            self.facing_left = (x > p_rect.centerx)
         self.set_state(SkeletonState.IDLE)
         if self.state in self.animations:
             self.image = self.animations[self.state][0]
+            if self.facing_left != getattr(self, "natively_facing_left", False):
+                self.image = pg.transform.flip(self.image, True, False)
         self.rect: pg.Rect = self.image.get_rect(midbottom=(x, y))
 
-        # Tight pre-trimmed hitboxes for spritesheet Damned enemies vs registry margins for folder enemies
-        if spritesheet_path:
+        # Tight pre-trimmed hitboxes for spritesheet/normalized Damned enemies vs registry margins
+        if self._sheet_body_margins is not None:
+            ml, mr, mt, mb = self._sheet_body_margins
+            self.adjust_hitbox_sides(left=ml, right=mr, top=mt, bottom=mb)
+        elif spritesheet_path:
             self.adjust_hitbox_sides(left=4, right=4, top=6, bottom=0)
         else:
             self.adjust_hitbox_sides(left=margins.left, right=margins.right, top=margins.top, bottom=margins.bottom)
 
-        # Movement and physics
+        # Movement and physics (sub-pixel tracking + inertia smoothing)
+        self._pos_x: float = float(self.rect.x)
+        self._last_rect_x: int = self.rect.x
+        self._vel_x: float = 0.0
+        self._target_vx: float = 0.0
         self._gravity: float = 0.0
         self._knockback_vel_x: float = 0.0
+        self._checked_player_attack_id: Optional[tuple] = None
         surf = pg.display.get_surface()
         height = surf.get_height() if surf else 720
         self._ground_y: Optional[int] = height - margins.ground_offset
@@ -552,13 +575,56 @@ class Skeleton(BaseEnemy):
         )
         SquadTokenManager.get_instance().register_enemy(id(self), self.tier)
 
-        # Precalculate scaled hitbox dimensions for high-performance updates
-        self._scaled_hitbox_w: int = int(self._attack_hitbox_width * self.scale)
-        self._scaled_hitbox_h: int = int(self._attack_hitbox_height * self.scale)
+        # Size melee attack hitboxes proportionally to actual body rect (prevents huge 236px boxes)
+        if spritesheet_path or (sprite_root and "skeletonzombie" in sprite_root.lower()):
+            self._scaled_hitbox_w = max(54, min(104, int(self.rect.width * 1.35)))
+            self._scaled_hitbox_h = max(54, min(110, int(self.rect.height * 0.90)))
+        else:
+            self._scaled_hitbox_w = int(self._attack_hitbox_width * self.scale)
+            self._scaled_hitbox_h = min(int(self._attack_hitbox_height * self.scale), max(96, int(self.rect.height * 1.05)))
 
         # Audio trigger system (non-fatal; gracefully skipped if audio_manager is None)
         _entity_audio_key = "skeleton_boss" if self.tier == "boss" else ("skeleton_zombie" if (sprite_root and "zombie" in (sprite_root or "").lower()) else "skeleton_minion")
         self._init_entity_audio_config(audio_manager, _entity_audio_key)
+
+    def _normalize_folder_body_alignment(self) -> None:
+        """Align multi-folder animations onto a shared feet-grounded, body-centered canvas."""
+        all_states = list(self.animations.keys())
+        idle0 = self.animations[SkeletonState.IDLE][0]
+        idle_br = idle0.get_bounding_rect(min_alpha=10)
+        if idle_br.width <= 0 or idle_br.height <= 0:
+            return
+        max_w = max(f.get_width() for st in all_states for f in self.animations[st] if f)
+        max_h = max(f.get_height() for st in all_states for f in self.animations[st] if f)
+        # Keep tight body height up to tall frames, anchor every frame's visual bottom cleanly
+        canvas_w = max_w
+        canvas_h = max_h
+        anchor_cx = canvas_w // 2
+        anchor_bot = canvas_h
+
+        def recenter(frames: list[pg.Surface]) -> list[pg.Surface]:
+            out = []
+            for f in frames:
+                br = f.get_bounding_rect(min_alpha=10)
+                c = pg.Surface((canvas_w, canvas_h), pg.SRCALPHA)
+                if br.width > 0 and br.height > 0:
+                    dx = anchor_cx - br.centerx
+                    dy = anchor_bot - br.bottom
+                    c.blit(f, (dx, dy))
+                out.append(c)
+            return out
+
+        for st in list(self.animations.keys()):
+            self.animations[st] = recenter(self.animations[st])
+        self._attack1_frames = self.animations.get(SkeletonState.ATTACK, self._attack1_frames)
+        self._attack2_frames = self._attack1_frames
+
+        # Compact body hurtbox around the centered visual torso/skull of IDLE
+        new_idle_br = self.animations[SkeletonState.IDLE][0].get_bounding_rect(min_alpha=10)
+        body_w = min(new_idle_br.width, max(54, int(idle_br.width * 0.72)))
+        m_side = max(0, (canvas_w - body_w) // 2)
+        m_top = max(0, new_idle_br.top + 4)
+        self._sheet_body_margins = (m_side, canvas_w - m_side - body_w, m_top, 0)
 
     def _load_spritesheet_animations(
         self,
@@ -568,7 +634,7 @@ class Skeleton(BaseEnemy):
         tint_color: Optional[Sequence[int]] = None,
         shadow_outline_color: Optional[Sequence[int]] = None,
     ) -> None:
-        """Load, outline-soften, union-trim, and cache row animations from a grid spritesheet."""
+        """Load, outline-soften, action-preserve union-trim, and cache grid sheet animations."""
         cache_key = (
             spritesheet_path,
             int(sheet_grid[0]),
@@ -586,6 +652,7 @@ class Skeleton(BaseEnemy):
             self._attack1_frames = cached["atk1"]
             self._attack2_frames = cached["atk2"]
             self._custom_hit_frames = cached["hit_frames"]
+            self._sheet_body_margins = cached.get("body_margins")
             return
 
         raw = AssetManager.get_texture(spritesheet_path)
@@ -608,27 +675,54 @@ class Skeleton(BaseEnemy):
             if 0 <= r_idx < rows:
                 raw_rows[key] = extract_row(r_idx, cnt)
 
-        # Compute union crop rect across body rows (idle + walk) so feet stay locked flush on ground_y
+        # Compute body_rect from idle + walk (torso/feet bounds), then expand symmetrically up/wide
+        # across attack frames so leaping/punching limbs (e.g. Imp swoop) never get cropped!
         body_cells = raw_rows.get("idle", []) + raw_rows.get("walk", []) + raw_rows.get("chase", [])
         if not body_cells:
             body_cells = [f for fs in raw_rows.values() for f in fs]
         if body_cells:
-            union_rect = body_cells[0].get_bounding_rect(min_alpha=10)
+            body_rect = body_cells[0].get_bounding_rect(min_alpha=10)
             for cell in body_cells[1:]:
                 br = cell.get_bounding_rect(min_alpha=10)
                 if br.width > 0 and br.height > 0:
-                    union_rect = union_rect.union(br) if union_rect.width > 0 else br
-            if union_rect.width <= 0 or union_rect.height <= 0:
-                union_rect = pg.Rect(0, 0, cw, ch)
+                    body_rect = body_rect.union(br) if body_rect.width > 0 else br
+            if body_rect.width <= 0 or body_rect.height <= 0:
+                body_rect = pg.Rect(0, 0, cw, ch)
         else:
-            union_rect = pg.Rect(0, 0, cw, ch)
+            body_rect = pg.Rect(0, 0, cw, ch)
+
+        action_rect = body_rect.copy()
+        for cell in raw_rows.get("attack", []):
+            br = cell.get_bounding_rect(min_alpha=10)
+            if br.width > 0 and br.height > 0:
+                action_rect = action_rect.union(br)
+
+        # Symmetrical horizontal canvas around body_rect.centerx keeps facing flips centered cleanly
+        half_w = max(
+            body_rect.centerx - action_rect.left,
+            action_rect.right - body_rect.centerx,
+            body_rect.width // 2,
+        )
+        canvas_raw_w = max(1, half_w * 2)
+        crop_top = max(0, min(body_rect.top, action_rect.top))
+        crop_bottom = min(ch, max(body_rect.bottom, action_rect.bottom) if self.explode_on_proximity else body_rect.bottom)
+        canvas_raw_h = max(1, crop_bottom - crop_top)
+
+        # Symmetrical body hitbox margins inside the scaled canvas
+        body_half_w = max(1, body_rect.width // 2)
+        m_side = max(0, int((half_w - body_half_w) * self.scale))
+        m_top = max(0, int((body_rect.top - crop_top) * self.scale) + 4)
+        body_margins = (m_side, m_side, m_top, 0)
 
         def process_cell(cell: pg.Surface, keep_full_width: bool = False) -> pg.Surface:
             if keep_full_width:
-                # For explosive bursts that expand past idle width, trim only empty margins below feet
-                sub = cell.subsurface(pg.Rect(0, max(0, union_rect.top - 8), cw, min(ch - max(0, union_rect.top - 8), union_rect.bottom - max(0, union_rect.top - 8) + 4))).copy()
+                sub = cell.subsurface(pg.Rect(0, crop_top, cw, min(ch - crop_top, canvas_raw_h + 2))).copy()
             else:
-                sub = cell.subsurface(union_rect).copy()
+                sub = pg.Surface((canvas_raw_w, canvas_raw_h), pg.SRCALPHA)
+                src_l = max(0, body_rect.centerx - half_w)
+                src_r = min(cw, body_rect.centerx + half_w)
+                dst_x = src_l - (body_rect.centerx - half_w)
+                sub.blit(cell, (dst_x, 0), pg.Rect(src_l, crop_top, max(1, src_r - src_l), canvas_raw_h))
 
             if shadow_outline_color and len(shadow_outline_color) >= 3:
                 sr, sg, sb = int(shadow_outline_color[0]), int(shadow_outline_color[1]), int(shadow_outline_color[2])
@@ -661,7 +755,6 @@ class Skeleton(BaseEnemy):
         atk_raw = raw_rows.get("attack") or walk_raw
         atk_frames = [process_cell(c, keep_full_width=self.explode_on_proximity) for c in atk_raw]
         if self.explode_on_proximity and len(atk_frames) >= 2:
-            # Hold frame 0 (swollen telegraph) briefly so player can jump, dash, or slash before blast!
             atk_frames = [atk_frames[0], atk_frames[0], atk_frames[0]] + atk_frames[1:]
             custom_hf = frozenset({3, 4})
         else:
@@ -685,12 +778,14 @@ class Skeleton(BaseEnemy):
             "atk1": atk_frames,
             "atk2": atk_frames,
             "hit_frames": custom_hf,
+            "body_margins": body_margins,
         }
         for k, frames in anims.items():
             self.animations[k] = frames
         self._attack1_frames = atk_frames
         self._attack2_frames = atk_frames
         self._custom_hit_frames = custom_hf
+        self._sheet_body_margins = body_margins
 
         
     def _load_frames(
@@ -808,13 +903,28 @@ class Skeleton(BaseEnemy):
         hitbox_y = self.rect.centery - hitbox_h // 2
         return pg.Rect(hitbox_x, hitbox_y, hitbox_w, hitbox_h)
 
+    def update_animation(self, dt: float) -> None:
+        """Orient frames consistently for natively-left and natively-right sprites."""
+        orig_facing = self.facing_left
+        self.facing_left = (orig_facing != getattr(self, "natively_facing_left", False))
+        try:
+            super().update_animation(dt)
+        finally:
+            self.facing_left = orig_facing
+
     def update(self, dt: Optional[float] = None, scroll_speed: int = 0) -> None:
         if dt is None: dt = 1.0 / 60.0
         dt_sec = dt if dt < 1.0 else dt / 1000.0
         if self.is_flying:
             self._flight_clock += dt_sec
 
-        self.rect.x -= scroll_speed
+        # Pick up any external position adjustments (e.g. test setups or knockback hooks)
+        if self.rect.x != self._last_rect_x:
+            self._pos_x = float(self.rect.x)
+
+        self._pos_x -= float(scroll_speed)
+        self.rect.x = int(round(self._pos_x))
+        self._last_rect_x = self.rect.x
         if getattr(self, "_teleport_arrival_pending", False):
             self._teleport_target_x -= scroll_speed
 
@@ -833,22 +943,38 @@ class Skeleton(BaseEnemy):
 
         # Update active bone dust effects
         self._update_vfx(dt_sec, scroll_speed)
-        
+
         # Apply horizontal knockback velocity
         if abs(self._knockback_vel_x) > 0.1:
-            self.rect.x += int(self._knockback_vel_x)
+            self._pos_x += float(self._knockback_vel_x)
+            self.rect.x = int(round(self._pos_x))
+            self._last_rect_x = self.rect.x
             self._knockback_vel_x *= 0.8  # Decay knockback over time
         else:
             self._knockback_vel_x = 0.0
-            
+
         self._apply_gravity()
+        self._target_vx = 0.0
         if not self._is_teleporting:
             self._update_ai(dt_sec)
-        
+
+        # Smooth inertia & crowd spacing integration (eliminates integer-step jitter and moonwalking)
+        if self.state == SkeletonState.CHASE and not self._is_teleporting:
+            if self._target_vx * self._vel_x < 0.0:
+                self._vel_x = 0.0
+            accel = min(1.0, dt_sec * 14.0)
+            self._vel_x += (self._target_vx - self._vel_x) * accel
+            if abs(self._vel_x) > 0.15:
+                self.facing_left = (self._vel_x < 0.0)
+        else:
+            self._vel_x = 0.0
+        if abs(self._vel_x) > 0.05:
+            self._pos_x += self._vel_x * dt_sec * 60.0
+            self.rect.x = int(round(self._pos_x))
+            self._last_rect_x = self.rect.x
+
         was_in_attack = (self.state == SkeletonState.ATTACK)
-        super().update(dt) # Handles state machines and animations
-        if getattr(self, "natively_facing_left", False) and self.image:
-            self.image = pg.transform.flip(self.image, True, False)
+        super().update(dt)  # State machine + Skeleton.update_animation handles flip cleanly
         self._update_animation_audio()
 
         # Check for immediate follow-up attack / combo chaining when attack finishes
@@ -995,25 +1121,44 @@ class Skeleton(BaseEnemy):
         )
 
         if is_pincer or action == TacticalAction.PUNISH_WHIFF or action == TacticalAction.ATTACK or (in_melee_reach and has_token):
+            self.facing_left = (self.rect.centerx > player_rect.centerx)
             self._begin_attack()
         elif action == TacticalAction.RETRACT_SPACING:
-            # Step back away from player swing (tactical spacing, no imaginary dodge anim)
+            # Turn outward when repositioning away so walk legs match actual travel direction (no moonwalking)
             step_dir = 1 if self.rect.centerx > player_rect.centerx else -1
-            self.rect.x += step_dir * int(self._speed * 0.8)
-            self.facing_left = (self.rect.centerx > player_rect.centerx)
+            self._target_vx = step_dir * (self._speed * 0.85)
+            self.facing_left = (step_dir < 0)
             self.set_state(SkeletonState.CHASE)
         elif in_melee_reach:
             # Hold combat stance facing the player; do NOT awkwardly play chase/walk animation
+            self._target_vx = 0.0
             self.set_state(SkeletonState.IDLE)
             self.facing_left = (self.rect.centerx > player_rect.centerx)
         elif action == TacticalAction.CHASE:
             self.set_state(SkeletonState.CHASE)
             self._chase_player(player_rect)
         else:
+            self._target_vx = 0.0
+            self.facing_left = (self.rect.centerx > player_rect.centerx)
             self.set_state(SkeletonState.IDLE)
-    
+
+        # Gentle horizontal separation so squad members spread naturally instead of stacking 1:1
+        if self.state == SkeletonState.CHASE and not self.explode_on_proximity:
+            sep_push = 0.0
+            for grp in self.groups():
+                for other in grp:
+                    if other is self or not isinstance(other, Skeleton) or not other.alive():
+                        continue
+                    diff_x = self.rect.centerx - other.rect.centerx
+                    if abs(diff_x) < 42 and abs(self.rect.centery - other.rect.centery) < 60:
+                        sep_push += (1.1 if diff_x >= 0 else -1.1)
+            if sep_push != 0.0:
+                self._target_vx += max(-1.4, min(1.4, sep_push))
+
     def _begin_attack(self, force_anim: Optional[int] = None) -> None:
         """Initiate attack animation and config, alternating for fluid combos."""
+        self._target_vx = 0.0
+        self._vel_x = 0.0
         if force_anim == 2 or (force_anim is None and self._last_attack_type == 1):
             # Secondary attack animation
             self.animations[SkeletonState.ATTACK] = self._attack2_frames
@@ -1025,16 +1170,24 @@ class Skeleton(BaseEnemy):
             self.current_attack_config = self.attack1_config
             self._last_attack_type = 1
         self.set_state(SkeletonState.ATTACK, force=True)
-    
+
     def _chase_player(self, player_rect: pg.Rect) -> None:
-        target_x = SquadCoordinator.get_instance().get_target_offset_x(
-            id(self), player_rect, getattr(self._player, "facing_left", False), float(self._attack_range)
-        )
+        if self.explode_on_proximity:
+            target_x = float(player_rect.centerx)
+        else:
+            target_x = SquadCoordinator.get_instance().get_target_offset_x(
+                id(self), player_rect, getattr(self._player, "facing_left", False), float(self._attack_range), enemy_x=float(self.rect.centerx)
+            )
         dx = target_x - self.rect.centerx
-        if abs(dx) > 5:
-            move_dir = 1 if dx > 0 else -1
-            self.rect.x += move_dir * int(self._speed)
+        if abs(dx) > 6.0:
+            move_dir = 1.0 if dx > 0 else -1.0
+            self._target_vx = move_dir * float(self._speed)
+            self.facing_left = (move_dir < 0)
+        else:
+            self._target_vx = 0.0
             self.facing_left = (self.rect.centerx > player_rect.centerx)
+            if not self.explode_on_proximity:
+                self.set_state(SkeletonState.IDLE)
 
     def _detect_incoming_danger(self, dt_sec: float) -> None:
         """Detect incoming player attacks and execute timed bone dust shatter dodge."""
@@ -1076,6 +1229,7 @@ class Skeleton(BaseEnemy):
 
         if not is_player_attacking:
             self._teleport_reaction_timer = 0.0
+            self._checked_player_attack_id = None
             return
 
         # Classify attack type for dynamic danger zone & timing synchronization
@@ -1137,9 +1291,13 @@ class Skeleton(BaseEnemy):
             if not is_hit_active and is_special and cur_frame < 14:
                 return
 
-        # Start or advance reaction delay countdown
+        # Evaluate dodge probability at most once per enemy swing (prevents 60Hz multi-roll)
+        atk_key = (state_val, id(self._player))
         if self._teleport_reaction_timer <= 0.0:
-            if random.random() <= self.spidey_sense:
+            if self.spidey_sense < 0.99 and self._checked_player_attack_id == atk_key:
+                return
+            self._checked_player_attack_id = atk_key
+            if self.spidey_sense >= 0.99 or random.random() <= self.spidey_sense:
                 self._teleport_reaction_timer = max(0.01, self.teleport_reaction_delay)
             else:
                 return
@@ -1191,21 +1349,32 @@ class Skeleton(BaseEnemy):
         # Low spidey_sense (<= 0.35, e.g. 0.25 in test_minion_teleport_retreat): retreats away to safety
         is_flanker = (is_god_mode or is_boss or (self.spidey_sense > 0.35 and random.random() < 0.75))
 
+        surf = pg.display.get_surface()
+        display_w = surf.get_width() if surf else 1280
+        max_x = (display_w - 80) if display_w >= 300 else 1200
+
         if is_flanker or is_god_mode or is_boss:
             # Flank behind the player with clearance tailored to the attack's rear hitboxes:
             # Special reaches up to 199px behind; Power reaches 159px behind; Smash/Thrust reach ~91px behind.
+            slot_stagger = (abs(id(self)) % 3) * 28
             if is_special:
-                flank_offset = random.randint(250, 290)
+                flank_offset = random.randint(240, 280) + slot_stagger
             elif is_power:
-                flank_offset = random.randint(220, 260)
+                flank_offset = random.randint(210, 250) + slot_stagger
             else:
-                flank_offset = random.randint(150, 180)
+                flank_offset = random.randint(140, 175) + slot_stagger
 
             if player_facing_left:
-                target_x = player_rect.centerx + flank_offset
+                if player_rect.centerx <= max_x - 140:
+                    target_x = min(max_x, player_rect.centerx + flank_offset)
+                else:
+                    target_x = player_rect.centerx + flank_offset
                 new_facing_left = True
             else:
-                target_x = player_rect.centerx - flank_offset
+                if player_rect.centerx >= 200:
+                    target_x = max(60, player_rect.centerx - flank_offset)
+                else:
+                    target_x = player_rect.centerx - flank_offset
                 new_facing_left = False
         else:
             # Minion/Standard: Retreat backwards away from player
@@ -1220,27 +1389,18 @@ class Skeleton(BaseEnemy):
                 target_x = player_rect.centerx - dist_offset
                 new_facing_left = False
 
-        # Guaranteed displacement: Never land on the same spot!
-        surf = pg.display.get_surface()
-        display_w = surf.get_width() if surf else 1280
-        max_x = (display_w - 80) if display_w >= 300 else 1200
-
+        # Clamp inside level bounds first, then guarantee >= 140px displacement from origin_x
+        target_x = max(60, min(max_x, int(target_x)))
         if abs(target_x - origin_x) < 140:
-            if origin_x < 260:
-                target_x = origin_x + 180
-            elif origin_x > max_x - 260:
-                target_x = origin_x - 180
-            elif target_x >= origin_x:
-                target_x = origin_x + 180
+            cand_left = max(60, origin_x - 180)
+            cand_right = min(max_x, origin_x + 180)
+            if abs(cand_left - origin_x) >= 140 and (origin_x > max_x - 260 or target_x <= origin_x):
+                target_x = cand_left
+            elif abs(cand_right - origin_x) >= 140:
+                target_x = cand_right
             else:
-                target_x = origin_x - 180
-
-        # Keep within level boundaries without reducing displacement below threshold
-        if target_x < 60:
-            target_x = min(max_x, origin_x + 180)
-        elif target_x > max_x:
-            target_x = max(60, origin_x - 180)
-        target_x = max(60, min(max_x, target_x))
+                target_x = cand_left if abs(cand_left - origin_x) >= abs(cand_right - origin_x) else cand_right
+        new_facing_left = (target_x > player_rect.centerx)
 
         # Store destination parameters for the arrival phase
         self._teleport_target_x = target_x
@@ -1260,6 +1420,9 @@ class Skeleton(BaseEnemy):
 
         # Materialize at destination
         self.rect.centerx = self._teleport_target_x
+        self._pos_x = float(self.rect.x)
+        self._last_rect_x = self.rect.x
+        self._vel_x = 0.0
         self.facing_left = self._teleport_target_facing_left
         if self._ground_y is not None:
             self.rect.bottom = self._ground_y

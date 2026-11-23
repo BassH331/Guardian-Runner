@@ -119,21 +119,30 @@ class SquadCoordinator:
         player_rect: pg.Rect,
         player_facing_left: bool,
         preferred_spacing: float = 65.0,
+        enemy_x: Optional[float] = None,
     ) -> float:
-        """Calculate target X position based on assigned squad role."""
+        """Calculate target X position based on assigned squad role with per-unit slot spread."""
         role = self.get_role(enemy_id)
-        player_front_x = -preferred_spacing if player_facing_left else preferred_spacing
-        player_rear_x = preferred_spacing if player_facing_left else -preferred_spacing
+        # Small deterministic stagger per unit so allies form a spaced line instead of stacking 1:1
+        slot_spread = ((abs(enemy_id) % 5) - 2) * 14.0
+        player_front_dir = -1.0 if player_facing_left else 1.0
+        player_rear_dir = -player_front_dir
 
         if role == SquadRole.FRONT_HARASSER:
-            return player_rect.centerx + player_front_x
+            # Approach from current side if already engaged close so enemies don't moonwalk through player
+            if enemy_x is not None and abs(enemy_x - player_rect.centerx) < 160.0:
+                side_dir = 1.0 if enemy_x >= player_rect.centerx else -1.0
+                return player_rect.centerx + side_dir * preferred_spacing
+            return player_rect.centerx + player_front_dir * (preferred_spacing + abs(slot_spread) * 0.4)
         elif role == SquadRole.REAR_FLANKER:
-            # Force flanking position behind player
-            return player_rect.centerx + player_rear_x
-        else: # SUPPORT_BAITER
-            # Medium distance support
-            offset_dir = player_rear_x / abs(player_rear_x) if player_rear_x != 0 else 1.0
-            return player_rect.centerx + (offset_dir * (preferred_spacing + 90.0))
+            return player_rect.centerx + player_rear_dir * (preferred_spacing + 18.0 + abs(slot_spread) * 0.5)
+        else:  # SUPPORT_BAITER
+            # Hold staggered medium perimeter on current side instead of running straight across player
+            if enemy_x is not None:
+                side_dir = 1.0 if enemy_x >= player_rect.centerx else -1.0
+            else:
+                side_dir = player_rear_dir
+            return player_rect.centerx + side_dir * (preferred_spacing + 80.0 + abs(slot_spread))
 
     def should_trigger_pincer_attack(
         self,

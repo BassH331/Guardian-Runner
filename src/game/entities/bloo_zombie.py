@@ -837,9 +837,10 @@ class BloodZombie(EntityAudioMixin, Actor):
                 self.facing_left = (self.rect.centerx > player_rect.centerx)
                 self._begin_attack()
             else:
+                # Turn in the direction of retreat so forward walk legs match travel direction
                 step_dir = 1 if self.rect.centerx > player_rect.centerx else -1
-                self.rect.x += step_dir * int(self._speed * 0.8)
-                self.facing_left = (self.rect.centerx > player_rect.centerx)
+                self.rect.x += step_dir * max(1, int(self._speed * 0.8))
+                self.facing_left = (step_dir < 0)
                 self.set_state(BloodZombieState.CHASE)
         elif action == TacticalAction.CHASE:
             if can_attack:
@@ -875,12 +876,14 @@ class BloodZombie(EntityAudioMixin, Actor):
 
     def _chase_player(self, player_rect: pg.Rect) -> None:
         target_x = SquadCoordinator.get_instance().get_target_offset_x(
-            id(self), player_rect, getattr(self._player, "facing_left", False), float(self._attack_range)
+            id(self), player_rect, getattr(self._player, "facing_left", False), float(self._attack_range), enemy_x=float(self.rect.centerx)
         )
         dx = target_x - self.rect.centerx
         if abs(dx) > 5:
             move_dir = 1 if dx > 0 else -1
             self.rect.x += move_dir * int(self._speed)
+            self.facing_left = (move_dir < 0)
+        else:
             self.facing_left = (self.rect.centerx > player_rect.centerx)
 
     # ─────────────────────────────────────────────────────────────────────────

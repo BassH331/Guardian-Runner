@@ -68,6 +68,11 @@ class UtilityCombatEngine:
             self.retract_chance = 0.45
 
         self._last_telemetry_check_time: float = 0.0
+        # Committed posture hysteresis to prevent 60Hz per-frame random twitching
+        self._committed_action: Optional[TacticalAction] = None
+        self._commit_timer: float = 0.0
+        self._retract_cooldown: float = 0.0
+        self._spacing_hysteresis: float = 18.0
 
     def evaluate_action(
         self,
@@ -77,13 +82,17 @@ class UtilityCombatEngine:
         has_attack_token: bool,
         dt_sec: float,
     ) -> TacticalAction:
-        """Score candidate actions and return the highest-utility action."""
+        """Score candidate actions and return a smoothed, committed tactical action."""
         if player is None:
             return TacticalAction.IDLE
 
         is_dead_val = getattr(player, "is_dead", False)
         if is_dead_val is True:
             return TacticalAction.IDLE
+
+        dt_clamped = max(0.0, min(0.2, float(dt_sec)))
+        self._commit_timer = max(0.0, self._commit_timer - dt_clamped)
+        self._retract_cooldown = max(0.0, self._retract_cooldown - dt_clamped)
 
         self._adapt_from_telemetry()
 
@@ -112,31 +121,56 @@ class UtilityCombatEngine:
         # 1. Whiff Punishment Opportunity: Player missed attack and is recovering
         if player_is_recovering and dist_x < (self.preferred_spacing + 40) and dist_y < 120:
             if can_attack and has_attack_token:
+                self._commit_timer = 0.0
+                self._committed_action = TacticalAction.PUNISH_WHIFF
                 logger.debug("[AI TACTICS] WHIFF PUNISHMENT triggered! Player missed swing (recovering) -> Enemy initiating counter-strike!")
                 return TacticalAction.PUNISH_WHIFF
 
         # 2. Attack: Enemy is in range and holds a squad attack token
         if can_attack and has_attack_token and dist_y < 120:
+            self._commit_timer = 0.0
+            self._committed_action = TacticalAction.ATTACK
             return TacticalAction.ATTACK
 
-        # 3. Retract / Step back: Player is actively swinging close to the enemy (when not attacking)
-        if player_is_attacking and dist_x < (self.preferred_spacing + 30) and dist_y < 100:
-            # If enemy has special dash/teleport ability, use it
+        # Hold any committed movement/spacing beat smoothly instead of twitching every 16ms
+        if self._commit_timer > 0.0 and self._committed_action is not None:
+            if self._committed_action == TacticalAction.RETRACT_SPACING and dist_x < self.preferred_spacing + 75:
+                return TacticalAction.RETRACT_SPACING
+            if self._committed_action == TacticalAction.IDLE and dist_x <= self.preferred_spacing + self._spacing_hysteresis:
+                return TacticalAction.IDLE
+
+        # 3. Retract / Step back: Committed defensive beat when player swings close
+        if (
+            self._retract_cooldown <= 0.0
+            and player_is_attacking
+            and dist_x < (self.preferred_spacing + 30)
+            and dist_y < 100
+        ):
             if self.has_dash_evasion and random.random() < 0.6:
+                self._retract_cooldown = 1.6
                 logger.debug("[AI TACTICS] DASH EVASION triggered! Player swinging close -> Executing mobility dash.")
                 return TacticalAction.DASH_EVADE
-            # Otherwise use tactical spacing retraction (no imaginary dodge anims)
+            self._retract_cooldown = 1.4
             if random.random() < self.retract_chance:
+                self._committed_action = TacticalAction.RETRACT_SPACING
+                self._commit_timer = 0.34
                 return TacticalAction.RETRACT_SPACING
 
-        # 4. Chase / Maintain Spacing: Move towards player if outside attack range
-        if not can_attack and dist_x > self.preferred_spacing:
+        # 4. Chase / Maintain Spacing with hysteresis so enemies don't oscillate at boundary
+        if not can_attack and dist_x > self.preferred_spacing + (self._spacing_hysteresis * 0.5):
+            self._committed_action = TacticalAction.CHASE
+            self._commit_timer = 0.18
             return TacticalAction.CHASE
 
-        # If too close without an attack token, step back to hold squad perimeter
-        if not has_attack_token and dist_x < self.preferred_spacing - 15:
+        # If directly crowding inside another attacker's reach without a token, step back briefly
+        if not has_attack_token and dist_x < max(24.0, self.preferred_spacing - 20.0) and self._retract_cooldown <= 0.0:
+            self._committed_action = TacticalAction.RETRACT_SPACING
+            self._commit_timer = 0.30
+            self._retract_cooldown = 1.2
             return TacticalAction.RETRACT_SPACING
 
+        self._committed_action = TacticalAction.IDLE
+        self._commit_timer = 0.20
         return TacticalAction.IDLE
 
     def _adapt_from_telemetry(self) -> None:

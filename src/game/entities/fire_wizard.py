@@ -676,17 +676,17 @@ class FireWizard(BaseEnemy):
         dist_x = self.rect.centerx - player_rect.centerx
         abs_dist_x = abs(dist_x)
         
-        # Smart retreating: if player gets too close, back away to keep distance!
+        # Smart retreating: turn away to reposition rather than moonwalking backward
         if abs_dist_x < 120:
             retreat_speed = self._speed * 1.3
             if dist_x > 0:
-                # Wizard is to the right of player, move right
+                # Wizard is to the right of player, run right
                 self.rect.x += int(retreat_speed)
-                self.facing_left = True  # Keep facing the player
+                self.facing_left = False
             else:
-                # Wizard is to the left of player, move left
+                # Wizard is to the left of player, run left
                 self.rect.x -= int(retreat_speed)
-                self.facing_left = False  # Keep facing the player
+                self.facing_left = True
         # If player is too far, advance to get into casting range
         elif abs_dist_x > 260:
             if dist_x > 0:

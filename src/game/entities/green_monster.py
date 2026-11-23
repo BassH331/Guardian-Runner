@@ -676,15 +676,15 @@ class GreenMonster(BaseEnemy):
         dist_x = self.rect.centerx - player_rect.centerx
         abs_dist_x = abs(dist_x)
 
-        # Smart retreating: if player gets too close, back away to keep distance!
+        # Smart retreating: turn away to run out of melee range rather than moonwalking backward
         if abs_dist_x < 120:
             retreat_speed = self._speed * 1.3
             if dist_x > 0:
                 self.rect.x += int(retreat_speed)
-                self.facing_left = True
+                self.facing_left = False
             else:
                 self.rect.x -= int(retreat_speed)
-                self.facing_left = False
+                self.facing_left = True
         # If player is too far, advance to get into range
         elif abs_dist_x > 320:
             if dist_x > 0:

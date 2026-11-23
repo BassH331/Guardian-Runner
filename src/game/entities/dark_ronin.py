@@ -57,7 +57,7 @@ class DarkRonin(EntityAudioMixin, Actor):
     hit_vfx_type: Final[str] = "dark_shadow"
 
     SLASH_CONFIG: Final[AttackConfig] = AttackConfig(
-        hit_frames=frozenset({12, 13, 14, 15}),
+        hit_frames=frozenset({8, 9, 15, 16}),
         base_damage=2.0,
         knockback_force=12.0,
     )
@@ -122,15 +122,26 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         # Load animations from assets/graphics/Ronin
         self.animations: dict[Enum, list[pg.Surface]] = {}
+        self._body_size: tuple[int, int] = (72, 92)
         self._load_animations()
 
-        # Set default image & rect
+        # Set default image & tight ground-flush body rect
         self.image = self.animations[DarkRoninState.IDLE][0]
-        self.rect = self.image.get_rect(midbottom=(x, y))
+        self.rect = pg.Rect(0, 0, self._body_size[0], self._body_size[1])
         surf = pg.display.get_surface()
         screen_h = surf.get_height() if surf else 720
         self.y_ground: int = screen_h - self.margins.ground_offset
-        self.rect.bottom = self.y_ground
+        self.rect.midbottom = (x, self.y_ground)
+        self._pos_x: float = float(self.rect.x)
+        self._last_rect_x: int = self.rect.x
+        self._vel_x: float = 0.0
+
+        # Face player cleanly upon spawn
+        player_sprite = getattr(player, "sprite", player) if player else None
+        p_rect = getattr(player_sprite, "rect", None) if player_sprite else None
+        if p_rect is not None and isinstance(getattr(p_rect, "centerx", None), (int, float)):
+            self._direction = 1 if p_rect.centerx > self.rect.centerx else -1
+        self.facing_left = (self._direction == -1)
 
         self._hit_targets: set[int] = set()
         self._is_invincible: bool = False
@@ -214,12 +225,50 @@ class DarkRonin(EntityAudioMixin, Actor):
                         sheet.subsurface(pg.Rect(i * fw, 0, fw, fh)).copy()
                         for i in range(n_frames)
                     ]
+            # Anchor horizontally on frame 0's standing spine so transition into lunge/slash never snaps backward,
+            # while cropping vertically to union bottom so feet stay flush with y_ground.
+            non_empty = [f for f in raw_frames if f.get_bounding_rect(min_alpha=10).width > 0]
+            if non_empty:
+                root_br = non_empty[0].get_bounding_rect(min_alpha=10)
+                ubox = root_br.copy()
+                for fr in non_empty[1:]:
+                    br = fr.get_bounding_rect(min_alpha=10)
+                    if br.width > 0 and br.height > 0:
+                        ubox = ubox.union(br)
+                pad_x = 4
+                cx_orig = root_br.centerx
+                half_w = max(cx_orig - ubox.left, ubox.right - cx_orig, 12) + pad_x
+                crop_y0 = max(0, ubox.top - 4)
+                crop_y1 = min(raw_frames[0].get_height(), ubox.bottom)
+                crop_h = max(1, crop_y1 - crop_y0)
+                src_w = raw_frames[0].get_width()
+                x0 = cx_orig - half_w
+                x1 = cx_orig + half_w
+                if x0 >= 0 and x1 <= src_w:
+                    crop_rect = pg.Rect(x0, crop_y0, x1 - x0, crop_h)
+                    pad_canvas = None
+                else:
+                    crop_rect = pg.Rect(0, crop_y0, src_w, crop_h)
+                    pad_canvas = (2 * half_w, crop_h, half_w - cx_orig)
+            else:
+                crop_rect = None
+                pad_canvas = None
+
             scaled_frames = []
             for frame in raw_frames:
-                w = max(1, int(frame.get_width() * scale))
-                h = max(1, int(frame.get_height() * scale))
-                scaled_frames.append(pg.transform.smoothscale(frame, (w, h)))
+                trimmed = frame.subsurface(crop_rect).copy() if crop_rect is not None else frame
+                if pad_canvas is not None:
+                    cw, ch, bx = pad_canvas
+                    padded = pg.Surface((cw, ch), pg.SRCALPHA)
+                    padded.blit(trimmed, (bx, 0))
+                    trimmed = padded
+                w = max(1, int(trimmed.get_width() * scale))
+                h = max(1, int(trimmed.get_height() * scale))
+                scaled_frames.append(pg.transform.scale(trimmed, (w, h)))
             self.animations[state] = scaled_frames if scaled_frames else [pg.Surface((32, 32))]
+            if state == DarkRoninState.IDLE and self.animations[state]:
+                idle0 = self.animations[state][0]
+                self._body_size = (max(48, int(idle0.get_width() * 0.85)), max(64, idle0.get_height()))
 
     def set_ground_y(self, ground_y: Optional[int]) -> None:
         """Set ground level height."""
@@ -249,7 +298,11 @@ class DarkRonin(EntityAudioMixin, Actor):
         dt_sec = dt / 1000.0 if dt > 0.5 else dt
 
         # Adjust position for background scrolling
-        self.rect.x -= int(bg_scroll_speed)
+        if self.rect.x != self._last_rect_x:
+            self._pos_x = float(self.rect.x)
+        self._pos_x -= float(bg_scroll_speed)
+        self.rect.x = int(round(self._pos_x))
+        self._last_rect_x = self.rect.x
 
         # Handle Death State
         if self._state == DarkRoninState.DEATH:
@@ -264,17 +317,21 @@ class DarkRonin(EntityAudioMixin, Actor):
             screen_w = surf.get_width() if surf else 1280
             if self.rect.centerx > screen_w - 220:
                 self._direction = -1
+                self.facing_left = True
                 self.set_state(DarkRoninState.CHASE)
-                self.rect.x -= int(max(3.5, self.move_speed))
+                self._pos_x -= max(3.5, self.move_speed)
+                self.rect.x = int(round(self._pos_x))
             else:
                 self.set_state(DarkRoninState.IDLE)
             self._update_animation()
             return
 
         # AI Behavior with Perception and Utility Engine
+        target_vx = 0.0
         player_sprite = getattr(self._player, "sprite", self._player)
         if player_sprite and hasattr(player_sprite, "rect"):
             facing_left = (self._direction == -1)
+            self.facing_left = facing_left
             alert = self.perception.update(dt_sec, self.rect, facing_left, player_sprite)
 
             if alert == AlertLevel.UNAWARE:
@@ -285,6 +342,7 @@ class DarkRonin(EntityAudioMixin, Actor):
 
                 if abs_dist > 10 and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
                     self._direction = 1 if dist_x > 0 else -1
+                    self.facing_left = (self._direction == -1)
 
                 has_token = SquadTokenManager.get_instance().request_attack_token(id(self))
                 can_attack = (abs_dist <= 75)
@@ -308,7 +366,11 @@ class DarkRonin(EntityAudioMixin, Actor):
                     self.last_dash_time = current_time
                     self.set_state(DarkRoninState.DASH_STRIKE)
                 elif action == TacticalAction.RETRACT_SPACING and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
-                    self.rect.x -= int(self._direction * self.move_speed)
+                    # Turn and retreat cleanly rather than moonwalking backward
+                    retreat_dir = -1 if dist_x > 0 else 1
+                    self._direction = retreat_dir
+                    self.facing_left = (self._direction == -1)
+                    target_vx = retreat_dir * self.move_speed * 0.85
                     self.set_state(DarkRoninState.CHASE)
                 elif action == TacticalAction.CHASE and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
                     self.set_state(DarkRoninState.CHASE)
@@ -316,19 +378,35 @@ class DarkRonin(EntityAudioMixin, Actor):
                         id(self), player_sprite.rect, getattr(player_sprite, "facing_left", False), 65.0
                     )
                     dx = target_x - self.rect.centerx
-                    if abs(dx) > 5:
+                    if abs(dx) > 8:
                         move_dir = 1 if dx > 0 else -1
-                        self.rect.x += move_dir * int(self.move_speed)
                         self._direction = move_dir
+                        self.facing_left = (self._direction == -1)
+                        target_vx = move_dir * self.move_speed
 
         # Release token if not in an attacking state
         if self._state not in (DarkRoninState.ATTACK, DarkRoninState.DASH_STRIKE):
             SquadTokenManager.get_instance().release_attack_token(id(self))
 
-        # Handle Dash Movement
+        # Handle Dash / Chase Movement (stop residual slide on state change or reversal to prevent moonwalking)
         if self._state == DarkRoninState.DASH_STRIKE:
             dash_velocity = 8.5
-            self.rect.x += int(self._direction * dash_velocity)
+            self._vel_x = self._direction * dash_velocity
+            self._pos_x += self._vel_x * dt_sec * 60.0
+        elif self._state == DarkRoninState.CHASE:
+            if target_vx * self._vel_x < 0.0:
+                self._vel_x = 0.0
+            accel = min(1.0, dt_sec * 14.0)
+            self._vel_x += (target_vx - self._vel_x) * accel
+            if abs(self._vel_x) < 0.08 and target_vx == 0.0:
+                self._vel_x = 0.0
+            elif abs(self._vel_x) > 0.15:
+                self._direction = 1 if self._vel_x > 0.0 else -1
+                self.facing_left = (self._direction == -1)
+            self._pos_x += self._vel_x * dt_sec * 60.0
+        else:
+            self._vel_x = 0.0
+        self.rect.x = int(round(self._pos_x))
 
         # Keep boss inside arena bounds once engaged
         if getattr(self, "is_boss", False):
@@ -336,8 +414,11 @@ class DarkRonin(EntityAudioMixin, Actor):
             screen_w = surf.get_width() if surf else 1280
             if self.rect.left < 20:
                 self.rect.left = 20
+                self._pos_x = float(self.rect.x)
             if self.rect.right > screen_w - 20 and not getattr(self, "ai_frozen", False):
                 self.rect.right = min(self.rect.right, screen_w + 180)
+                self._pos_x = float(self.rect.x)
+        self._last_rect_x = self.rect.x
 
         self._update_animation()
 
@@ -358,8 +439,8 @@ class DarkRonin(EntityAudioMixin, Actor):
         idx = int(self.animation_index) % len(frames)
         raw_image = frames[idx]
 
-        # Flip horizontally if facing right
-        if self._direction == 1:
+        # Ronin source strips natively face right (+1), so mirror when facing left (-1)
+        if self._direction == -1:
             self.image = pg.transform.flip(raw_image, True, False)
         else:
             self.image = raw_image
@@ -399,13 +480,13 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         idx = int(self.animation_index)
         if idx in config.hit_frames:
-            hitbox_w = 100 if getattr(self, "is_boss", False) else 90
-            hitbox_h = 80 if getattr(self, "is_boss", False) else 70
+            hitbox_w = 104 if getattr(self, "is_boss", False) else 92
+            hitbox_h = 76 if getattr(self, "is_boss", False) else 68
             if self._direction == -1:
-                hx = self.rect.left - hitbox_w + 20
+                hx = self.rect.left - hitbox_w + 16
             else:
-                hx = self.rect.right - 20
-            hy = self.rect.top + 10
+                hx = self.rect.right - 16
+            hy = self.rect.centery - hitbox_h // 2
             return pg.Rect(hx, hy, hitbox_w, hitbox_h)
         return None
 
@@ -432,9 +513,19 @@ class DarkRonin(EntityAudioMixin, Actor):
             return self.DASH_STRIKE_CONFIG.knockback_force
         return self.SLASH_CONFIG.knockback_force
 
+    def get_render_position(self) -> tuple[int, int]:
+        """Anchor sprite midbottom directly onto self.rect.midbottom across all strip sizes."""
+        img = self.image
+        if img is None:
+            return self.rect.topleft
+        return (
+            self.rect.centerx - img.get_width() // 2,
+            self.rect.bottom - img.get_height(),
+        )
+
     def draw(self, surface: pg.Surface) -> None:
         """Render DarkRonin onto target surface."""
-        surface.blit(self.image, self.rect)
+        surface.blit(self.image, self.get_render_position())
         if not getattr(self, "is_boss", False) and self._health < self._max_health and self._state != DarkRoninState.DEATH:
             self._draw_health_bar(surface)
 
