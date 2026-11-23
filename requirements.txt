@@ -9,6 +9,7 @@
 
 pygame-ce>=2.5.0
 numpy>=1.24.0
+imageio-ffmpeg
 edge-tts
 requests
 
