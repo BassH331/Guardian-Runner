@@ -862,11 +862,6 @@ class Player(Actor):
         self._spawn_midtop: tuple[int, int] = self.rect.midtop
         self.adjust_hitbox_sides(left=margins.left, right=margins.right, top=margins.top, bottom=margins.bottom)
 
-        # Per-state horizontal anchor offsets so transitioning IDLE/RUN -> ATTACK
-        # keeps the player's feet/body planted instead of snapping backwards.
-        self._state_anchor_dx: dict[tuple[Any, bool], int] = {}
-        self._compute_state_anchor_offsets()
-
         # Physics state
         self._gravity: float = 0.0
         surf = pg.display.get_surface()
@@ -2009,62 +2004,3 @@ class Player(Actor):
                 self.image.set_alpha(255)
         else:
             self.image.set_alpha(255)
-
-    def _measure_lower_body_cx(self, surf: pg.Surface) -> Optional[int]:
-        """Measure the horizontal center of the character's feet/legs (bottom 45% of visible sprite)."""
-        br = surf.get_bounding_rect(min_alpha=10)
-        if br.width <= 0 or br.height <= 0:
-            return None
-        foot_y0 = br.top + int(br.height * 0.55)
-        foot_h = max(1, surf.get_height() - foot_y0)
-        fbr = surf.subsurface(pg.Rect(0, foot_y0, surf.get_width(), foot_h)).get_bounding_rect(min_alpha=10)
-        if fbr.width <= 0:
-            return br.centerx
-        return fbr.centerx
-
-    def _compute_state_anchor_offsets(self) -> None:
-        """Align ground/combat states horizontally to IDLE's feet center so attacks never snap backward."""
-        enhanced_flag = bool(getattr(self, "_is_enhanced", False))
-        idle_frames = self.animations.get(PlayerState.IDLE)
-        if not idle_frames:
-            return
-        base_cx = self._measure_lower_body_cx(idle_frames[0])
-        if base_cx is None:
-            return
-
-        anchor_states = (
-            PlayerState.IDLE,
-            PlayerState.RUN,
-            PlayerState.ATTACK_THRUST,
-            PlayerState.ATTACK_SMASH,
-            PlayerState.ATTACK_POWER,
-            PlayerState.SPECIAL_ATTACK,
-            PlayerState.DEFEND,
-            PlayerState.HURT,
-        )
-        for st in anchor_states:
-            frames = self.animations.get(st)
-            if not frames:
-                continue
-            st_cx = self._measure_lower_body_cx(frames[0])
-            if st_cx is not None:
-                dx = int(base_cx - st_cx)
-                # Clamp extreme offsets so animation motion stays natural
-                dx = max(-64, min(64, dx))
-                self._state_anchor_dx[(st, enhanced_flag)] = dx
-
-    def get_render_position(self) -> tuple[int, int]:
-        """Return (x, y) blit position with per-state horizontal body anchoring applied."""
-        draw_pos = self.rect.topleft - self.image_offset
-        enhanced_flag = bool(getattr(self, "_is_enhanced", False))
-        key = (self.state, enhanced_flag)
-        if key not in self._state_anchor_dx and self.state in self.animations:
-            self._compute_state_anchor_offsets()
-        dx = self._state_anchor_dx.get(key, 0)
-        if self.facing_left:
-            dx = -dx
-        return int(draw_pos.x) + dx, int(draw_pos.y)
-
-    def draw(self, surface: pg.Surface) -> None:
-        """Render the player with stabilized horizontal anchoring across state transitions."""
-        surface.blit(self.image, self.get_render_position())

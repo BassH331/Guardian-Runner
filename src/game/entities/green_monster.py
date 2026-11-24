@@ -29,8 +29,9 @@ if TYPE_CHECKING:
 
 
 class ToxicGlob(pg.sprite.Sprite):
-    """A lobbed toxic projectile spat by the Gatekeeper. Arcs under gravity
-    rather than flying flat, distinguishing it from the Fire Wizard's fireball."""
+    """Animated Emerald Ectoplasm plasma-bolt fired straight from the Gatekeeper's
+    outstretched tentacle-arm. Flies in a fast straight line with writhing ectoplasm
+    tendrils and trailing toxic droplets (no gravity curve)."""
 
     def __init__(
         self,
@@ -45,34 +46,57 @@ class ToxicGlob(pg.sprite.Sprite):
         super().__init__()
         self._player = player
         self.direction = direction
-        self.speed = 5.0
-        self._vy = -6.0
-        self._gravity = 0.35
+        self.speed = 9.5
         self.damage = damage
         self.knockback = knockback
+        self._scale = max(1.0, float(scale))
+        self._elapsed: float = 0.0
+        self._pos_x: float = float(x)
+        self._pos_y: float = float(y)
 
-        size = max(14, int(20 * scale))
-        self.image = pg.Surface((size, size), pg.SRCALPHA)
-        center = size // 2
-        # Toxic glow: outer haze -> mid glob -> pale core
-        pg.draw.circle(self.image, (60, 140, 20, 140), (center, center), center)
-        pg.draw.circle(self.image, (110, 200, 40, 210), (center, center), int(center * 0.7))
-        pg.draw.circle(self.image, (190, 255, 120, 255), (center, center), int(center * 0.35))
+        # Compact hitbox centered on the glowing ectoplasm head
+        self._radius = max(14, int(11 * self._scale))
+        self._tail_len = max(46, int(34 * self._scale))
+        self._trail_droplets: list[dict] = []
+        self._droplet_accum: float = 0.0
 
+        self.image = pg.Surface((self._radius * 2, self._radius * 2), pg.SRCALPHA)
         self.rect = self.image.get_rect(center=(x, y))
 
         self.is_projectile = True
         self.is_boss = False
 
     def update(self, dt: Optional[float] = None, scroll_speed: int = 0) -> None:
-        self.rect.x -= scroll_speed
-        self.rect.x += int(self.direction * self.speed)
+        dt_sec = (dt / 1000.0 if dt > 0.5 else dt) if dt is not None else (1.0 / 60.0)
+        self._elapsed += dt_sec
+        step = self.speed * (dt_sec * 60.0)
 
-        self._vy += self._gravity
-        self.rect.y += int(self._vy)
+        # Straight linear flight (zero gravity curve)
+        self._pos_x += self.direction * step - float(scroll_speed)
+        self.rect.centerx = int(round(self._pos_x))
+        self.rect.centery = int(round(self._pos_y))
 
-        # Destroy once it arcs off-screen or well past the ground
-        if self.rect.top > 1400 or self.rect.right < -200 or self.rect.left > 2200:
+        # Emit glowing ectoplasm droplets trailing behind the bolt
+        self._droplet_accum += dt_sec
+        if self._droplet_accum >= 0.025:
+            self._droplet_accum = 0.0
+            self._trail_droplets.append({
+                "x": self._pos_x - self.direction * random.uniform(6.0, self._radius * 1.1),
+                "y": self._pos_y + random.uniform(-self._radius * 0.55, self._radius * 0.55),
+                "vx": -self.direction * random.uniform(18.0, 55.0),
+                "vy": random.uniform(-22.0, 28.0),
+                "r": random.uniform(3.0, max(4.5, self._radius * 0.28)),
+                "life": random.uniform(0.18, 0.34),
+                "max_life": 0.34,
+            })
+
+        for d in self._trail_droplets:
+            d["life"] -= dt_sec
+            d["x"] += d["vx"] * dt_sec - float(scroll_speed)
+            d["y"] += d["vy"] * dt_sec
+        self._trail_droplets = [d for d in self._trail_droplets if d["life"] > 0.0]
+
+        if self.rect.right < -200 or self.rect.left > 2200:
             self.kill()
             return
 
@@ -84,10 +108,78 @@ class ToxicGlob(pg.sprite.Sprite):
                     if apply_kb:
                         kb_dir = -1 if self.rect.centerx > self._player.rect.centerx else 1
                         apply_kb(self.knockback * kb_dir)
+                try:
+                    from src.game.effects.vfx_manager import VisualEffectManager
+                    VisualEffectManager.spawn_hit_vfx(
+                        self.rect.centerx, self.rect.centery, vfx_type="toxic_splatter"
+                    )
+                except Exception:
+                    pass
             self.kill()
 
     def draw(self, surface: pg.Surface) -> None:
-        surface.blit(self.image, self.rect)
+        cx, cy = self.rect.centerx, self.rect.centery
+        r = self._radius
+        t = self._elapsed
+        d = self.direction
+
+        # 1. Trailing glowing ectoplasm droplets
+        for drop in self._trail_droplets:
+            frac = max(0.0, drop["life"] / drop["max_life"])
+            dr = max(2, int(drop["r"] * frac))
+            alpha = int(210 * frac)
+            ds = pg.Surface((dr * 2 + 4, dr * 2 + 4), pg.SRCALPHA)
+            pg.draw.circle(ds, (45, 195, 70, int(alpha * 0.65)), (dr + 2, dr + 2), dr + 1)
+            pg.draw.circle(ds, (165, 255, 120, alpha), (dr + 2, dr + 2), max(1, int(dr * 0.65)))
+            surface.blit(ds, (int(drop["x"] - dr - 2), int(drop["y"] - dr - 2)))
+
+        # 2. Writhing emerald ectoplasm plasma tail + pulsing core
+        canvas_w = self._tail_len + r * 3 + 16
+        canvas_h = r * 4 + 16
+        surf = pg.Surface((canvas_w, canvas_h), pg.SRCALPHA)
+        # Head sits near the front edge of the canvas based on flight direction
+        head_x = (canvas_w - r - 8) if d > 0 else (r + 8)
+        head_y = canvas_h // 2
+
+        # Draw 3 sinusoidal ectoplasm tendrils streaming behind the orb
+        for strand_idx, (phase, amp, thickness, col) in enumerate((
+            (0.0, r * 0.42, max(4, int(r * 0.36)), (35, 175, 65, 150)),
+            (2.1, r * 0.30, max(3, int(r * 0.26)), (95, 235, 85, 195)),
+            (4.2, r * 0.18, max(2, int(r * 0.16)), (195, 255, 145, 225)),
+        )):
+            pts = []
+            steps = 8
+            for i in range(steps + 1):
+                frac = i / steps
+                px = head_x - d * (frac * self._tail_len)
+                wobble = math.sin(t * 22.0 - frac * 5.5 + phase) * amp * (0.25 + 0.75 * frac)
+                py = head_y + wobble
+                pts.append((int(px), int(py)))
+            for i in range(len(pts) - 1):
+                seg_w = max(1, int(thickness * (1.0 - (i / len(pts)) * 0.78)))
+                pg.draw.line(surf, col, pts[i], pts[i + 1], seg_w)
+
+        # Pulsing ectoplasm orb layers (outer abyssal haze -> emerald plasma -> toxic lime -> hot nucleus)
+        pulse = 1.0 + 0.12 * math.sin(t * 26.0)
+        r_outer = int(r * 1.38 * pulse)
+        r_mid = int(r * 0.98 * pulse)
+        r_inner = int(r * 0.62)
+        r_core = max(3, int(r * 0.32))
+
+        pg.draw.circle(surf, (25, 130, 55, 85), (head_x, head_y), r_outer)
+        pg.draw.circle(surf, (55, 205, 65, 175), (head_x, head_y), r_mid)
+        pg.draw.circle(surf, (135, 255, 95, 235), (head_x, head_y), r_inner)
+        pg.draw.circle(surf, (235, 255, 210, 255), (head_x, head_y), r_core)
+
+        # Orbiting goo bubbles around the ectoplasm head
+        for b_idx in range(3):
+            ang = t * 14.0 + b_idx * 2.094
+            bx = int(head_x + math.cos(ang) * r * 0.78)
+            by = int(head_y + math.sin(ang) * r * 0.62)
+            br = max(2, int(r * 0.20))
+            pg.draw.circle(surf, (175, 255, 130, 220), (bx, by), br)
+
+        surface.blit(surf, (cx - head_x, cy - head_y))
 
 
 class MagicShotProjectile(pg.sprite.Sprite):
@@ -200,8 +292,9 @@ class GreenMonster(BaseEnemy):
         GatekeeperState.DEATH: StateConfig(0.12, loops=False, interruptible=False),
     }
 
-    # Frame (within the 9-frame "2atk" clip) at which the toxic glob is released.
-    _SPIT_RELEASE_FRAME: Final[int] = 5
+    # Frame (within the 9-frame "2atk" clip) at which the ectoplasm bolt is released
+    # right as the tentacle-arm reaches full forward extension (f03).
+    _SPIT_RELEASE_FRAME: Final[int] = 3
 
     hit_vfx_type: str = "toxic_splatter"
 
@@ -258,6 +351,10 @@ class GreenMonster(BaseEnemy):
         self._mana_recharge_rate: float = 50.0
         self._chase_delay_duration: float = 0.8
         self._spidey_sense: float = 0.0
+
+        # Ectoplasm muzzle-launch burst & spray VFX particles
+        self._muzzle_bursts: list[dict] = []
+        self._muzzle_sparks: list[dict] = []
 
         # Cooldowns and states
         self._chase_cooldown: float = 0.0
@@ -494,7 +591,19 @@ class GreenMonster(BaseEnemy):
             if self._mana >= self._max_mana:
                 self._is_recharging = False
 
-        # Spawn the toxic glob mid-way through the spit animation
+        # Update ectoplasm launch muzzle bursts & spray droplets
+        for b in self._muzzle_bursts:
+            b["timer"] -= dt_sec
+            b["x"] -= float(scroll_speed)
+        self._muzzle_bursts = [b for b in self._muzzle_bursts if b["timer"] > 0.0]
+
+        for s in self._muzzle_sparks:
+            s["timer"] -= dt_sec
+            s["x"] += s["vx"] * dt_sec - float(scroll_speed)
+            s["y"] += s["vy"] * dt_sec
+        self._muzzle_sparks = [s for s in self._muzzle_sparks if s["timer"] > 0.0]
+
+        # Spawn the emerald ectoplasm bolt right as the tentacle-arm extends
         if (
             self.state == GatekeeperState.ATTACK
             and self._attack_kind == "spit"
@@ -549,10 +658,39 @@ class GreenMonster(BaseEnemy):
             if self._ground_y is not None and self.rect.bottom > self._ground_y:
                 self.rect.bottom = self._ground_y
 
+    def _get_tentacle_tip_pos(self, progress: float = 1.0) -> tuple[int, int]:
+        """Compute screen position at the tip of the Gatekeeper's outstretched tentacle-arm."""
+        direction = -1 if self.facing_left else 1
+        # During windup (progress 0..1), the energy travels outward from his claw to the full tendril tip
+        reach = int((18.0 + 48.0 * max(0.0, min(1.0, progress))) * self.scale)
+        tip_x = (self.rect.left - reach) if self.facing_left else (self.rect.right + reach)
+        tip_y = self.rect.centery - int(6 * self.scale)
+        return tip_x, tip_y
+
     def _spawn_toxic_glob(self) -> None:
         direction = -1 if self.facing_left else 1
-        spawn_x = self.rect.left if self.facing_left else self.rect.right
-        spawn_y = self.rect.centery
+        spawn_x, spawn_y = self._get_tentacle_tip_pos(1.0)
+
+        # Spawn an emerald ectoplasm muzzle-flash ring + directional spray burst right at the tendril tip
+        self._muzzle_bursts.append({
+            "x": float(spawn_x),
+            "y": float(spawn_y),
+            "timer": 0.28,
+            "max_timer": 0.28,
+            "max_r": max(28.0, 22.0 * self.scale),
+        })
+        for _ in range(14):
+            ang = random.uniform(-0.85, 0.85)
+            spd = random.uniform(90.0, 260.0)
+            self._muzzle_sparks.append({
+                "x": float(spawn_x),
+                "y": float(spawn_y),
+                "vx": direction * math.cos(ang) * spd,
+                "vy": math.sin(ang) * spd,
+                "r": random.uniform(3.0, max(5.0, 3.2 * self.scale)),
+                "timer": random.uniform(0.16, 0.32),
+                "max_timer": 0.32,
+            })
 
         damage = self.current_attack_config.base_damage if self.current_attack_config else 3.0
         knockback = self.current_attack_config.knockback_force if self.current_attack_config else 6.0
@@ -775,8 +913,60 @@ class GreenMonster(BaseEnemy):
 
     def draw(self, surface: pg.Surface) -> None:
         super().draw(surface)
+        self._draw_spit_vfx(surface)
         if (self._health < self._max_health or self._mana < self._max_mana) and self.state != GatekeeperState.DEATH:
             self._draw_health_bar(surface)
+
+    def _draw_spit_vfx(self, surface: pg.Surface) -> None:
+        """Draw emerald ectoplasm charge-up along the extending tentacle-arm and launch burst."""
+        # 1. Windup charge-up glow & converging ectoplasm wisps (frames 0..release_frame)
+        if (
+            self.state == GatekeeperState.ATTACK
+            and self._attack_kind == "spit"
+            and self.animation_index <= self._SPIT_RELEASE_FRAME + 0.5
+        ):
+            prog = max(0.0, min(1.0, self.animation_index / max(1.0, float(self._SPIT_RELEASE_FRAME))))
+            cx, cy = self._get_tentacle_tip_pos(prog)
+            rad = max(10, int((8.0 + 14.0 * prog) * self.scale))
+            charge = pg.Surface((rad * 2 + 12, rad * 2 + 12), pg.SRCALPHA)
+            c = rad + 6
+            alpha = int(140 + 110 * prog)
+            pg.draw.circle(charge, (35, 165, 60, int(alpha * 0.45)), (c, c), rad)
+            pg.draw.circle(charge, (120, 250, 90, int(alpha * 0.85)), (c, c), int(rad * 0.62))
+            pg.draw.circle(charge, (235, 255, 210, alpha), (c, c), max(3, int(rad * 0.30)))
+            # Swirling converging ectoplasm arcs
+            t = pg.time.get_ticks() * 0.015
+            for i in range(4):
+                ang = t + i * (math.pi * 0.5)
+                dist = rad * (1.25 - 0.65 * prog)
+                px = int(c + math.cos(ang) * dist)
+                py = int(c + math.sin(ang) * dist)
+                pg.draw.line(charge, (175, 255, 130, alpha), (px, py), (c, c), 2)
+            surface.blit(charge, (cx - c, cy - c))
+
+        # 2. Expanding emerald muzzle-burst rings on launch
+        for b in self._muzzle_bursts:
+            t = 1.0 - max(0.0, b["timer"] / b["max_timer"])
+            alpha = int(235 * (1.0 - t))
+            if alpha <= 4:
+                continue
+            rad = max(8, int(b["max_r"] * (0.35 + 0.95 * t)))
+            rw = max(6, int(rad * 0.55))
+            rh = rad
+            bs = pg.Surface((rw * 2 + 10, rh * 2 + 10), pg.SRCALPHA)
+            pg.draw.ellipse(bs, (90, 245, 95, alpha), (5, 5, rw * 2, rh * 2), 3)
+            pg.draw.ellipse(bs, (220, 255, 190, int(alpha * 0.8)), (5 + rw // 3, 5 + rh // 4, max(4, rw * 4 // 3), max(6, rh * 3 // 2)), 2)
+            surface.blit(bs, (int(b["x"] - rw - 5), int(b["y"] - rh - 5)))
+
+        # 3. Directional ectoplasm spray droplets
+        for s in self._muzzle_sparks:
+            frac = max(0.0, s["timer"] / s["max_timer"])
+            alpha = int(230 * frac)
+            sr = max(2, int(s["r"] * frac))
+            ss = pg.Surface((sr * 2 + 4, sr * 2 + 4), pg.SRCALPHA)
+            pg.draw.circle(ss, (65, 225, 85, int(alpha * 0.7)), (sr + 2, sr + 2), sr + 1)
+            pg.draw.circle(ss, (205, 255, 160, alpha), (sr + 2, sr + 2), max(1, sr - 1))
+            surface.blit(ss, (int(s["x"] - sr - 2), int(s["y"] - sr - 2)))
 
     def _draw_health_bar(self, surface: pg.Surface) -> None:
         bar_width = 40
