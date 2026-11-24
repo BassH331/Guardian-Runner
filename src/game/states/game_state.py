@@ -2474,11 +2474,39 @@ class GameState(PlayingState):
             if getattr(ambient, "bg_layer_depth", 4) >= 4:
                 ambient.draw(target)
 
-        # Player
-        self.player.sprite.draw(target)
-        
-        # Enemies
+        # ── Combat Z-Layering: Player vs Enemies & Bosses ────────────────────
+        # - Regular enemies receive a persistent random front/back layer so slices
+        #   appear both over and behind the player.
+        # - Bosses draw IN FRONT of the player by default (so boss slashes land
+        #   over the player), EXCEPT when the player is attacking — then the
+        #   player draws OVER the boss so player hits cut across the boss!
+        player_sprite = self.player.sprite
+        player_attacking = bool(player_sprite and getattr(player_sprite, "is_attacking", False))
+        behind_enemies = []
+        front_enemies = []
         for enemy in self.obstacle_group:
+            if getattr(enemy, "is_boss", False):
+                if player_attacking:
+                    behind_enemies.append(enemy)
+                else:
+                    front_enemies.append(enemy)
+            else:
+                z_pref = getattr(enemy, "_combat_z_pref", None)
+                if z_pref is None:
+                    z_pref = "front" if randint(0, 1) == 1 else "back"
+                    setattr(enemy, "_combat_z_pref", z_pref)
+                if z_pref == "back":
+                    behind_enemies.append(enemy)
+                else:
+                    front_enemies.append(enemy)
+
+        for enemy in behind_enemies:
+            enemy.draw(target)
+
+        if player_sprite:
+            player_sprite.draw(target)
+
+        for enemy in front_enemies:
             enemy.draw(target)
 
         # The EYE familiar companion & Demon Time projectiles

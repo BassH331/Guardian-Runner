@@ -229,7 +229,7 @@ class BloodZombie(EntityAudioMixin, Actor):
         knockback_scale = float(config.get("knockback_scale", 2.0 if self.tier == "boss" else 1.5))
         
         self._detection_range = int(config.get("detection_range", 3500 if self.tier == "boss" else 1200))
-        self._attack_range = int(config.get("attack_range", 108 if self.tier == "boss" else 70))
+        self._attack_range = int(config.get("attack_range", 72 if self.tier == "boss" else 52))
         self._vertical_tolerance = int(config.get("vertical_tolerance", 600 if self.tier == "boss" else 200))
         self._attack_hitbox_width = int(config.get("attack_hitbox_width", 70))
         self._attack_hitbox_height = int(config.get("attack_hitbox_height", 90))

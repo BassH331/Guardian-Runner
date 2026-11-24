@@ -171,7 +171,7 @@ class DarkRonin(EntityAudioMixin, Actor):
         self.utility_engine = UtilityCombatEngine(
             has_dash_evasion=True,
             has_block_anim=False,
-            preferred_spacing=65.0,
+            preferred_spacing=52.0,
         )
         SquadTokenManager.get_instance().register_enemy(id(self), "boss" if tier == "boss" else "elite")
 
@@ -386,7 +386,7 @@ class DarkRonin(EntityAudioMixin, Actor):
                     self.facing_left = (self._direction == -1)
 
                 has_token = SquadTokenManager.get_instance().request_attack_token(id(self))
-                melee_reach = 115 if getattr(self, "is_boss", False) else 75
+                melee_reach = 88 if getattr(self, "is_boss", False) else 58
                 can_attack = (abs_dist <= melee_reach)
 
                 action = self.utility_engine.evaluate_action(
@@ -739,12 +739,12 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         idx = int(self.animation_index)
         if idx in config.hit_frames:
-            hitbox_w = 160 if getattr(self, "is_boss", False) else 92
-            hitbox_h = 115 if getattr(self, "is_boss", False) else 68
+            hitbox_w = 132 if getattr(self, "is_boss", False) else 80
+            hitbox_h = 108 if getattr(self, "is_boss", False) else 64
             if self._direction == -1:
-                hx = self.rect.left - hitbox_w + 24
+                hx = self.rect.left - hitbox_w + 28
             else:
-                hx = self.rect.right - 24
+                hx = self.rect.right - 28
             hy = self.rect.centery - hitbox_h // 2
             return pg.Rect(hx, hy, hitbox_w, hitbox_h)
         return None

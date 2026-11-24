@@ -377,7 +377,7 @@ class Skeleton(BaseEnemy):
             
             # Additional boss AI fields
             self._detection_range = 3000
-            self._attack_range = 80
+            self._attack_range = 60
             self._vertical_tolerance = 500
         elif self.tier == "elite":
             if not sprite_root and not self._scale_is_explicit:
@@ -1102,13 +1102,13 @@ class Skeleton(BaseEnemy):
             self._chase_player(player_rect)
             return
 
-        in_melee_reach = (edge_x <= max(60, self._attack_range) and dist_y < self._vertical_tolerance)
+        in_melee_reach = (edge_x <= max(38, self._attack_range) and dist_y < self._vertical_tolerance)
 
         # 2. Check Attack Token & Squad Coordinator Pincer Signals
         has_token = SquadTokenManager.get_instance().request_attack_token(id(self))
 
         is_pincer = SquadCoordinator.get_instance().should_trigger_pincer_attack(
-            id(self), dist_x, can_attack=(in_melee_reach or dist_x <= self._attack_range + 25)
+            id(self), dist_x, can_attack=(in_melee_reach or dist_x <= self._attack_range + 12)
         )
 
         # 3. Utility Engine Action Evaluation
