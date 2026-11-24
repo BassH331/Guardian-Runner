@@ -27,15 +27,23 @@ class SaveSlot:
     """Versioned schema representing saved game progress."""
     slot_id: str
     player_health: float = 100.0
+    player_max_health: float = 100.0
     player_mana: float = 100.0
+    is_enhanced: bool = False
+    demonic_pact_offered: bool = False
     world_distance: float = 0.0
     max_distance: float = 0.0
     souls_collected: int = 0
+    total_souls: int = 0
+    corruption: float = 0.0
+    boss_defeat_count: int = 0
     bosses_defeated: List[str] = field(default_factory=list)
+    relics_collected: List[str] = field(default_factory=list)
+    health_relic_charges: int = 3
     timestamp: str = ""
     playtime_seconds: float = 0.0
     level_path: str = "game_data/level_1.json"
-    version: int = 1
+    version: int = 2
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -111,17 +119,41 @@ class SaveManager:
     def auto_save(cls, game_state: GameState) -> bool:
         """Extract live game state and persist to the auto-save slot."""
         player = game_state.player.sprite
-        p_health = player.health if player else 100.0
-        p_mana = getattr(player, "mana", 100.0) if player else 100.0
+        p_max_health = float(getattr(player, "max_health", 100.0)) if player else 100.0
+        raw_health = float(player.health) if player else p_max_health
+        # If saving on death, restore full health for when the player presses Continue
+        p_health = p_max_health if (raw_health <= 0.0 or (player and getattr(player, "is_dead", False))) else raw_health
+        p_mana = float(getattr(player, "mana", 100.0)) if player else 100.0
+        is_enhanced = bool(getattr(player, "is_enhanced", False)) if player else False
+
+        relics = (
+            game_state.relic_manager.collected_ids()
+            if hasattr(game_state, "relic_manager") and game_state.relic_manager
+            else []
+        )
+        corruption = (
+            float(game_state.corruption_manager.value)
+            if hasattr(game_state, "corruption_manager") and game_state.corruption_manager
+            else 0.0
+        )
 
         slot_data = SaveSlot(
             slot_id="auto",
             player_health=p_health,
+            player_max_health=p_max_health,
             player_mana=p_mana,
-            world_distance=game_state.world_distance,
-            max_distance=game_state.max_distance_reached,
-            souls_collected=game_state.player_ui.current_soul_total,
-            bosses_defeated=getattr(game_state, "_bosses_defeated", []),
+            is_enhanced=is_enhanced,
+            demonic_pact_offered=bool(getattr(game_state, "_demonic_pact_offered", False)),
+            world_distance=float(game_state.world_distance),
+            max_distance=float(game_state.max_distance_reached),
+            souls_collected=int(game_state.player_ui.current_soul_total),
+            total_souls=int(getattr(game_state, "total_souls", 0)),
+            corruption=corruption,
+            boss_defeat_count=int(getattr(game_state, "_boss_defeat_count", 0)),
+            bosses_defeated=list(getattr(game_state, "_bosses_defeated", [])),
+            relics_collected=relics,
+            health_relic_charges=int(getattr(game_state, "_health_relic_charges", 3)),
             playtime_seconds=float((pg.time.get_ticks() - getattr(game_state, "_game_start_ticks", 0)) / 1000.0),
+            level_path=str(getattr(game_state, "_level_path", "game_data/level_1.json")),
         )
         return cls.save("auto", slot_data)

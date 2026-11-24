@@ -3192,7 +3192,7 @@
             "type": "boss",
             "params": {
                 "title": "Commander Kaelen, The Hollowed Mentor",
-                "scale": 2.6,
+                "scale": 4.6,
                 "health": 260.0,
                 "tier": "boss",
                 "soul_value": "remaining",

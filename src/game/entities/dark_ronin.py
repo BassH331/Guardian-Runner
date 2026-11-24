@@ -7,7 +7,9 @@ Commander Kaelen, The First Vessel (your former mentor in the Star-Fire Watch).
 
 from __future__ import annotations
 
+import math
 import os
+import random
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Final, Optional, Callable
@@ -57,7 +59,7 @@ class DarkRonin(EntityAudioMixin, Actor):
     hit_vfx_type: Final[str] = "dark_shadow"
 
     SLASH_CONFIG: Final[AttackConfig] = AttackConfig(
-        hit_frames=frozenset({8, 9, 15, 16}),
+        hit_frames=frozenset({2, 3, 8, 9, 15, 16}),
         base_damage=2.0,
         knockback_force=12.0,
     )
@@ -147,6 +149,19 @@ class DarkRonin(EntityAudioMixin, Actor):
         self._is_invincible: bool = False
         self._audio_manager = audio_manager
 
+        # Phase-out / Void-transport VFX state (afterimages, rifts, energy streaks)
+        self._afterimages: list[dict] = []
+        self._phase_rifts: list[dict] = []
+        self._transport_sparks: list[dict] = []
+        self._dash_phase_out_fired: bool = False
+        self._dash_phase_in_fired: bool = False
+        self._afterimage_accum: float = 0.0
+        self._phase2_triggered: bool = False
+        self._is_phase_transporting: bool = False
+        self._phase_transport_timer: float = 0.0
+        self._phase_transport_origin: tuple[float, float] = (0.0, 0.0)
+        self._phase_transport_target_x: float = 0.0
+
         # AI Perception & Utility Engine
         self.perception = PerceptionSystem(
             vision_range=1500.0,
@@ -208,19 +223,33 @@ class DarkRonin(EntityAudioMixin, Actor):
         scale = self._scale_override if self._scale_override is not None else self.margins.scale
         for state, file_name in file_mapping.items():
             file_path = os.path.join(base_dir, file_name)
-            raw_frames = AssetManager.get_animation_frames(file_path)
-            if not raw_frames and os.path.exists(file_path):
+            raw_frames: list[pg.Surface] = []
+            # Load directly from the source strip PNG so we never pick up stale
+            # pre-sliced *_frames folders (e.g. spr_RoninAttack_strip33_frames was
+            # mis-sliced into 33 drifting frames instead of 25 clean 128x96 frames).
+            if os.path.exists(file_path):
                 try:
                     raw_frames = [pg.image.load(file_path).convert_alpha()]
                 except Exception:
                     raw_frames = []
+            if not raw_frames:
+                raw_frames = AssetManager.get_animation_frames(file_path)
             m = re.search(r"_strip(\d+)\.png$", file_name, re.IGNORECASE)
-            if m and len(raw_frames) == 1:
-                n_frames = max(1, int(m.group(1)))
+            if len(raw_frames) == 1:
                 sheet = raw_frames[0]
-                fw = sheet.get_width() // n_frames
-                fh = sheet.get_height()
-                if fw > 0 and fh > 0:
+                sw, sh = sheet.get_width(), sheet.get_height()
+                n_frames = max(1, int(m.group(1))) if m else 1
+                # Validate that strip width divides evenly by n_frames; some Ronin
+                # attack strips (e.g. spr_RoninAttack_strip33.png, 3200x96) actually
+                # contain 25 frames of 128x96. Slicing by 33 causes 32px/frame drift
+                # that cuts the character in half at frame boundaries.
+                if sw % n_frames != 0:
+                    std_fw = 128 if sh >= 96 else 64
+                    if sw % std_fw == 0:
+                        n_frames = sw // std_fw
+                fw = sw // n_frames
+                fh = sh
+                if fw > 0 and fh > 0 and n_frames > 1:
                     raw_frames = [
                         sheet.subsurface(pg.Rect(i * fw, 0, fw, fh)).copy()
                         for i in range(n_frames)
@@ -290,6 +319,10 @@ class DarkRonin(EntityAudioMixin, Actor):
             self.state = new_state
             self.animation_index = 0.0
             self._hit_targets.clear()
+            if new_state == DarkRoninState.DASH_STRIKE:
+                self._dash_phase_out_fired = False
+                self._dash_phase_in_fired = False
+                self._afterimage_accum = 0.0
             super().set_state(new_state, force=force)
 
     def update(self, dt: float = 16.67, bg_scroll_speed: float = 0.0) -> None:
@@ -304,10 +337,18 @@ class DarkRonin(EntityAudioMixin, Actor):
         self.rect.x = int(round(self._pos_x))
         self._last_rect_x = self.rect.x
 
+        # Update active phase-out / transport VFX particles even during death or dialogue
+        self._update_phase_vfx(dt_sec, float(bg_scroll_speed))
+
         # Handle Death State
         if self._state == DarkRoninState.DEATH:
             SquadTokenManager.get_instance().unregister_enemy(id(self))
             self._update_animation()
+            return
+
+        # Handle Phase 2 Shadow-Transport sequence (boss vanishes into void rift & warps across arena)
+        if self._is_phase_transporting:
+            self._update_phase_transport(dt_sec)
             return
 
         # Freeze AI during pre-fight boss encounter dialogue
@@ -345,7 +386,8 @@ class DarkRonin(EntityAudioMixin, Actor):
                     self.facing_left = (self._direction == -1)
 
                 has_token = SquadTokenManager.get_instance().request_attack_token(id(self))
-                can_attack = (abs_dist <= 75)
+                melee_reach = 115 if getattr(self, "is_boss", False) else 75
+                can_attack = (abs_dist <= melee_reach)
 
                 action = self.utility_engine.evaluate_action(
                     enemy_rect=self.rect,
@@ -356,10 +398,10 @@ class DarkRonin(EntityAudioMixin, Actor):
                 )
 
                 # Melee attack takes precedence when in range
-                if (action in (TacticalAction.PUNISH_WHIFF, TacticalAction.ATTACK) or abs_dist <= 75) and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
+                if (action in (TacticalAction.PUNISH_WHIFF, TacticalAction.ATTACK) or abs_dist <= melee_reach) and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE):
                     self.set_state(DarkRoninState.ATTACK)
                 elif (
-                    (action == TacticalAction.DASH_EVADE or 120 <= abs_dist <= 300)
+                    (action == TacticalAction.DASH_EVADE or (melee_reach + 35) <= abs_dist <= 340)
                     and current_time - self.last_dash_time >= self.dash_cooldown_ms
                     and self._state in (DarkRoninState.IDLE, DarkRoninState.CHASE)
                 ):
@@ -390,9 +432,28 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         # Handle Dash / Chase Movement (stop residual slide on state change or reversal to prevent moonwalking)
         if self._state == DarkRoninState.DASH_STRIKE:
-            dash_velocity = 8.5
+            idx = int(self.animation_index)
+            # Trigger departure rift at frame 4 (phase-out start) and arrival rift at frame 7 (reform)
+            if idx >= 4 and not self._dash_phase_out_fired:
+                self._dash_phase_out_fired = True
+                self._spawn_phase_rift(self.rect.centerx, self.rect.centery, color=(255, 210, 90), is_arrival=False)
+                self._spawn_transport_sparks(self.rect.centerx, self.rect.centery, count=14, direction=self._direction)
+            if idx >= 7 and not self._dash_phase_in_fired:
+                self._dash_phase_in_fired = True
+                self._spawn_phase_rift(self.rect.centerx, self.rect.centery, color=(190, 120, 255), is_arrival=True)
+                self._spawn_transport_sparks(self.rect.centerx, self.rect.centery, count=16, direction=-self._direction)
+
+            # High-speed burst while phased out (frames 4-6), leaving golden-violet ghost afterimages & sparks
+            dash_velocity = 12.5 if 4 <= idx <= 6 else 7.0
             self._vel_x = self._direction * dash_velocity
             self._pos_x += self._vel_x * dt_sec * 60.0
+
+            if 3 <= idx <= 7:
+                self._afterimage_accum += dt_sec
+                if self._afterimage_accum >= 0.032:
+                    self._afterimage_accum = 0.0
+                    self._record_afterimage(tint=(240, 185, 75) if idx <= 5 else (175, 110, 255))
+                    self._spawn_transport_sparks(self.rect.centerx, self.rect.centery, count=3, direction=self._direction)
         elif self._state == DarkRoninState.CHASE:
             if target_vx * self._vel_x < 0.0:
                 self._vel_x = 0.0
@@ -459,13 +520,211 @@ class DarkRonin(EntityAudioMixin, Actor):
                 except Exception:
                     pass
         else:
-            self.set_state(DarkRoninState.HURT, force=True)
+            # Trigger Phase 2 Shadow-Transport at <= 50% HP for the Final Boss!
+            if (
+                getattr(self, "is_boss", False)
+                and not self._phase2_triggered
+                and self._health <= self._max_health * 0.50
+            ):
+                self._start_phase2_transport()
+            else:
+                self.set_state(DarkRoninState.HURT, force=True)
             if self._audio_manager:
                 try:
                     self._audio_manager.play_sound("skeleton_hurt")
                 except Exception:
                     pass
         return True
+
+    def _start_phase2_transport(self) -> None:
+        """Initiate dramatic Phase 2 shadow-phase disappearance & transport across the arena."""
+        self._phase2_triggered = True
+        self._is_phase_transporting = True
+        self._is_invincible = True
+        self._phase_transport_timer = 0.85  # seconds spent in void-transport
+        self._phase_transport_origin = (float(self.rect.centerx), float(self.rect.centery))
+
+        surf = pg.display.get_surface()
+        screen_w = surf.get_width() if surf else 1280
+        # Transport to the opposite side of the arena from current position
+        self._phase_transport_target_x = 220.0 if self.rect.centerx > screen_w * 0.5 else float(screen_w - 220)
+
+        # Enrage buffs for Phase 2
+        self.move_speed = max(self.move_speed * 1.18, 4.8)
+        self.dash_cooldown_ms = max(1800, int(self.dash_cooldown_ms * 0.7))
+
+        # Departure rift + burst of void/star-fire sparks + ghost silhouette
+        self._record_afterimage(tint=(255, 200, 80), duration=0.45)
+        self._spawn_phase_rift(self.rect.centerx, self.rect.centery, color=(255, 195, 70), is_arrival=False, max_radius=95.0)
+        self._spawn_transport_sparks(self.rect.centerx, self.rect.centery, count=26, direction=self._direction)
+        if self._audio_manager:
+            try:
+                self._audio_manager.play_sound("dash")
+            except Exception:
+                pass
+
+    def _update_phase_transport(self, dt_sec: float) -> None:
+        """Animate the void-energy transport streak while Commander Kaelen is vanished between phases."""
+        self._phase_transport_timer -= dt_sec
+        progress = max(0.0, min(1.0, 1.0 - (self._phase_transport_timer / 0.85)))
+        ox, oy = self._phase_transport_origin
+        cur_x = ox + (self._phase_transport_target_x - ox) * progress
+
+        # Continuously emit transport energy trail along the travel path
+        self._spawn_transport_sparks(cur_x, oy, count=4, direction=1 if self._phase_transport_target_x > ox else -1)
+
+        # Telegraph arrival rift slightly before re-materializing
+        if progress >= 0.72 and not any(r.get("is_phase2_arrival") for r in self._phase_rifts):
+            self._spawn_phase_rift(
+                self._phase_transport_target_x,
+                oy,
+                color=(200, 110, 255),
+                is_arrival=True,
+                max_radius=105.0,
+                extra={"is_phase2_arrival": True},
+            )
+
+        if self._phase_transport_timer <= 0.0:
+            self._is_phase_transporting = False
+            self._is_invincible = False
+            self.rect.centerx = int(round(self._phase_transport_target_x))
+            self.rect.bottom = self.y_ground
+            self._pos_x = float(self.rect.x)
+            self._last_rect_x = self.rect.x
+            # Face player upon re-materializing
+            player_sprite = getattr(self._player, "sprite", self._player)
+            if player_sprite and hasattr(player_sprite, "rect"):
+                self._direction = 1 if player_sprite.rect.centerx > self.rect.centerx else -1
+                self.facing_left = (self._direction == -1)
+            self._spawn_transport_sparks(self.rect.centerx, self.rect.centery, count=24, direction=self._direction)
+            self.set_state(DarkRoninState.IDLE, force=True)
+            self._update_animation()
+
+    def _record_afterimage(self, tint: tuple[int, int, int] = (230, 175, 70), duration: float = 0.28) -> None:
+        """Store a tinted ghost silhouette at the current render position."""
+        if self.image is None:
+            return
+        ghost = self.image.copy()
+        tint_surf = pg.Surface(ghost.get_size(), pg.SRCALPHA)
+        tint_surf.fill((*tint, 255))
+        ghost.blit(tint_surf, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        rx, ry = self.get_render_position()
+        self._afterimages.append({
+            "surf": ghost,
+            "x": float(rx),
+            "y": float(ry),
+            "timer": duration,
+            "max_timer": duration,
+        })
+
+    def _spawn_phase_rift(
+        self,
+        cx: float,
+        cy: float,
+        color: tuple[int, int, int] = (240, 185, 75),
+        is_arrival: bool = False,
+        max_radius: float = 68.0,
+        extra: Optional[dict] = None,
+    ) -> None:
+        """Spawn an expanding/collapsing vertical shadow-portal rift at (cx, cy)."""
+        rift = {
+            "x": float(cx),
+            "y": float(cy),
+            "color": color,
+            "is_arrival": is_arrival,
+            "timer": 0.36,
+            "max_timer": 0.36,
+            "max_radius": max_radius,
+        }
+        if extra:
+            rift.update(extra)
+        self._phase_rifts.append(rift)
+
+    def _spawn_transport_sparks(self, cx: float, cy: float, count: int = 8, direction: int = -1) -> None:
+        """Spawn streaking star-fire / void-shadow particles during phase-out and transport."""
+        palette = [(255, 225, 110), (240, 170, 55), (180, 105, 255), (110, 60, 190)]
+        for _ in range(count):
+            vx = -direction * random.uniform(70.0, 220.0) + random.uniform(-45.0, 45.0)
+            vy = random.uniform(-90.0, 90.0)
+            life = random.uniform(0.18, 0.42)
+            self._transport_sparks.append({
+                "x": float(cx) + random.uniform(-24.0, 24.0),
+                "y": float(cy) + random.uniform(-55.0, 45.0),
+                "vx": vx,
+                "vy": vy,
+                "length": random.uniform(12.0, 32.0),
+                "color": random.choice(palette),
+                "timer": life,
+                "max_timer": life,
+            })
+
+    def _update_phase_vfx(self, dt_sec: float, bg_scroll_speed: float = 0.0) -> None:
+        """Advance timers and positions for afterimages, phase rifts, and transport sparks."""
+        for g in self._afterimages:
+            g["timer"] -= dt_sec
+            g["x"] -= bg_scroll_speed
+        self._afterimages = [g for g in self._afterimages if g["timer"] > 0.0]
+
+        for r in self._phase_rifts:
+            r["timer"] -= dt_sec
+            r["x"] -= bg_scroll_speed
+        self._phase_rifts = [r for r in self._phase_rifts if r["timer"] > 0.0]
+
+        for s in self._transport_sparks:
+            s["timer"] -= dt_sec
+            s["x"] += s["vx"] * dt_sec - bg_scroll_speed
+            s["y"] += s["vy"] * dt_sec
+        self._transport_sparks = [s for s in self._transport_sparks if s["timer"] > 0.0]
+
+    def _draw_phase_vfx(self, surface: pg.Surface) -> None:
+        """Render shadow afterimages, void phase rifts, and transport energy streaks."""
+        # 1. Fading ghost afterimages
+        for g in self._afterimages:
+            alpha = int(175 * max(0.0, g["timer"] / g["max_timer"]))
+            if alpha > 4:
+                g["surf"].set_alpha(alpha)
+                surface.blit(g["surf"], (int(g["x"]), int(g["y"])))
+
+        # 2. Vertical void-portal rifts (departure / arrival rings)
+        for r in self._phase_rifts:
+            t = 1.0 - max(0.0, r["timer"] / r["max_timer"])
+            alpha = int(225 * (1.0 - t))
+            if alpha <= 4:
+                continue
+            rad = int(r["max_radius"] * (1.0 - 0.55 * t) if r["is_arrival"] else r["max_radius"] * (0.35 + 0.85 * t))
+            rw = max(8, int(rad * 0.52))
+            rh = max(16, int(rad * 1.45))
+            rift_surf = pg.Surface((rw * 2 + 12, rh * 2 + 12), pg.SRCALPHA)
+            cx, cy = rw + 6, rh + 6
+            # Outer soft void glow + crisp inner star-fire ring
+            pg.draw.ellipse(rift_surf, (25, 10, 45, int(alpha * 0.55)), (6, 6, rw * 2, rh * 2))
+            pg.draw.ellipse(rift_surf, (*r["color"], alpha), (6, 6, rw * 2, rh * 2), 3)
+            inner_w = max(4, int(rw * 0.55))
+            inner_h = max(8, int(rh * 0.65))
+            pg.draw.ellipse(
+                rift_surf,
+                (255, 245, 200, int(alpha * 0.85)),
+                (cx - inner_w, cy - inner_h, inner_w * 2, inner_h * 2),
+                2,
+            )
+            surface.blit(rift_surf, (int(r["x"] - cx), int(r["y"] - cy)))
+
+        # 3. Horizontal streaking void-transport sparks
+        for s in self._transport_sparks:
+            frac = max(0.0, s["timer"] / s["max_timer"])
+            alpha = int(240 * frac)
+            if alpha <= 4:
+                continue
+            x0, y0 = int(s["x"]), int(s["y"])
+            dx = int(math.copysign(s["length"] * frac, s["vx"] if s["vx"] != 0 else 1.0))
+            line_w = abs(dx) + 6
+            streak = pg.Surface((line_w, 8), pg.SRCALPHA)
+            sy = 4
+            sx0 = 3 if dx >= 0 else line_w - 3
+            sx1 = sx0 + dx
+            pg.draw.line(streak, (*s["color"], alpha), (sx0, sy), (sx1, sy), 3)
+            pg.draw.circle(streak, (255, 250, 225, alpha), (sx1, sy), 2)
+            surface.blit(streak, (min(x0, x0 + dx) - 3, y0 - 4))
 
     def get_attack_hitbox(self) -> Optional[pg.Rect]:
         """Get current attack hitbox if on an active hit frame."""
@@ -480,12 +739,12 @@ class DarkRonin(EntityAudioMixin, Actor):
 
         idx = int(self.animation_index)
         if idx in config.hit_frames:
-            hitbox_w = 104 if getattr(self, "is_boss", False) else 92
-            hitbox_h = 76 if getattr(self, "is_boss", False) else 68
+            hitbox_w = 160 if getattr(self, "is_boss", False) else 92
+            hitbox_h = 115 if getattr(self, "is_boss", False) else 68
             if self._direction == -1:
-                hx = self.rect.left - hitbox_w + 16
+                hx = self.rect.left - hitbox_w + 24
             else:
-                hx = self.rect.right - 16
+                hx = self.rect.right - 24
             hy = self.rect.centery - hitbox_h // 2
             return pg.Rect(hx, hy, hitbox_w, hitbox_h)
         return None
@@ -524,8 +783,33 @@ class DarkRonin(EntityAudioMixin, Actor):
         )
 
     def draw(self, surface: pg.Surface) -> None:
-        """Render DarkRonin onto target surface."""
-        surface.blit(self.image, self.get_render_position())
+        """Render DarkRonin along with phase-out afterimages, rifts, and transport streaks."""
+        # Always draw phase-out / transport VFX behind & around the boss
+        self._draw_phase_vfx(surface)
+
+        # While vanished in Phase 2 shadow-transport, draw only the transport energy core
+        if self._is_phase_transporting:
+            progress = max(0.0, min(1.0, 1.0 - (self._phase_transport_timer / 0.85)))
+            ox, oy = self._phase_transport_origin
+            cur_x = ox + (self._phase_transport_target_x - ox) * progress
+            orb = pg.Surface((96, 64), pg.SRCALPHA)
+            pg.draw.ellipse(orb, (140, 70, 235, 110), (4, 12, 88, 40))
+            pg.draw.ellipse(orb, (255, 215, 100, 190), (20, 20, 56, 24))
+            pg.draw.ellipse(orb, (255, 250, 235, 240), (34, 25, 28, 14))
+            surface.blit(orb, (int(cur_x - 48), int(oy - 32)))
+            return
+
+        # Smooth alpha dissolve during DASH_STRIKE phase-out/re-materialization frames
+        img = self.image
+        if self._state == DarkRoninState.DASH_STRIKE and img is not None:
+            idx = int(self.animation_index)
+            phase_alphas = {4: 200, 5: 120, 6: 120, 7: 195}
+            alpha = phase_alphas.get(idx)
+            if alpha is not None:
+                img = img.copy()
+                img.set_alpha(alpha)
+
+        surface.blit(img, self.get_render_position())
         if not getattr(self, "is_boss", False) and self._health < self._max_health and self._state != DarkRoninState.DEATH:
             self._draw_health_bar(surface)
 

@@ -86,6 +86,9 @@ class GameState(PlayingState):
     # Game over delay in milliseconds
     _GAME_OVER_DELAY_MS: Final[int] = 3000
 
+    # Set by MainMenuState.continue_game() to load a saved slot on GameState init
+    _pending_continue_slot: Optional[str] = None
+
     def __init__(self, manager: StateManager) -> None:
         """
         Initialize the game state.
@@ -152,6 +155,9 @@ class GameState(PlayingState):
             self.audio_manager.register_events(self.event_bus)
         self.bg_music_channel_id: Optional[int] = None
         self._boss_defeat_count: int = 0
+        self._bosses_defeated: list[str] = []
+        self._resumed_from_save: bool = False
+        self._death_auto_saved: bool = False
         self._current_bg_music_track: Optional[str] = None
         
         # Attach audio manager to CombatCollisionLogger singleton
@@ -350,11 +356,23 @@ class GameState(PlayingState):
         self._last_log_time = pg.time.get_ticks()
         self._frame_count = 0
         
+        # Check if MainMenuState requested resuming from a saved slot
+        _continue_slot_id = GameState._pending_continue_slot
+        GameState._pending_continue_slot = None
+        _continue_slot = SaveManager.load(_continue_slot_id) if _continue_slot_id else None
+
         default_level = os.path.join("storyline", "prologue_covenant_of_ash.json")
         if not os.path.exists(default_level):
             default_level = os.path.join("game_data", "level_1.json")
 
         level_path = os.environ.get("GAME_LEVEL_PATH", default_level)
+        if (
+            _continue_slot is not None
+            and not os.environ.get("GAME_LEVEL_PATH")
+            and _continue_slot.level_path
+            and os.path.exists(_continue_slot.level_path)
+        ):
+            level_path = _continue_slot.level_path
         last_level_cfg = os.path.join("game_data", ".level_default.json")
         if level_path == default_level and os.path.exists(last_level_cfg):
             try:
@@ -365,6 +383,7 @@ class GameState(PlayingState):
                     level_path = cand
             except Exception:
                 pass
+        self._level_path = level_path
         self.level_data = WorldLoader.load_json(level_path)
         
         level_data = self.level_data
@@ -490,6 +509,78 @@ class GameState(PlayingState):
             self._bat_min_count = 3
             self._bat_max_count = 5
             self._intro_npc_done = True
+
+        # Restore saved progress when launched via Main Menu -> CONTINUE
+        if _continue_slot is not None and not self._is_simulating:
+            self._restore_from_save(_continue_slot)
+
+    def _restore_from_save(self, slot) -> None:
+        """Restore world distance, player state, relics, souls, and skip past world events."""
+        self._resumed_from_save = True
+        self.world_distance = float(slot.world_distance)
+        self.max_distance_reached = max(float(slot.max_distance), float(slot.world_distance))
+
+        # Skip all distance-triggered world events at or before the resumed distance
+        # so already-defeated bosses and earlier NPCs do not immediately re-spawn.
+        for evt in getattr(self.world_manager, "_events", []):
+            if float(evt.distance) <= self.world_distance:
+                evt.triggered = True
+                self.world_manager._spawned_ids.add(evt.id)
+
+        self._intro_npc_done = True
+        self._show_objective_on_start = False
+        self._show_tutorial_on_start = False
+
+        # Restore player health, mana, and enhanced pact form
+        player_sprite = self.player.sprite
+        if player_sprite is not None:
+            max_hp = float(getattr(slot, "player_max_health", 100.0))
+            if max_hp <= 0.0:
+                max_hp = 100.0
+            saved_hp = float(getattr(slot, "player_health", max_hp))
+            if saved_hp <= 0.0:
+                saved_hp = max_hp
+            player_sprite.max_health = max_hp
+            player_sprite._health = min(saved_hp, max_hp)
+            player_sprite.is_dead = False
+            player_sprite.can_move = True
+            if hasattr(player_sprite, "mana"):
+                player_sprite.mana = float(getattr(slot, "player_mana", 100.0))
+            if getattr(slot, "is_enhanced", False):
+                player_sprite.is_enhanced = True
+            player_sprite.set_state(PlayerState.IDLE, force=True)
+
+        self._demonic_pact_offered = bool(getattr(slot, "demonic_pact_offered", False))
+        self._boss_defeat_count = int(getattr(slot, "boss_defeat_count", 0))
+        self._bosses_defeated = list(getattr(slot, "bosses_defeated", []))
+
+        # Restore souls & UI counter
+        saved_total = int(getattr(slot, "total_souls", 0))
+        if saved_total <= 0 and int(slot.souls_collected) > int(self.player_ui.soul_harvest_start):
+            saved_total = int(slot.souls_collected) - int(self.player_ui.soul_harvest_start)
+        self.total_souls = max(0, saved_total)
+        self.player_ui.souls_collected = self.total_souls
+        self.player_ui._soul_last_total = self.player_ui.current_soul_total
+
+        # Restore corruption & relics (including Demon Time unlock if The Eye was collected)
+        if hasattr(self, "corruption_manager") and self.corruption_manager is not None:
+            self.corruption_manager._value = max(0.0, min(100.0, float(getattr(slot, "corruption", 0.0))))
+        saved_relics = list(getattr(slot, "relics_collected", []))
+        if saved_relics and hasattr(self, "relic_manager") and self.relic_manager is not None:
+            self.relic_manager._collected = list(saved_relics)
+            if "the_eye" in saved_relics and hasattr(self, "demon_time_system"):
+                self.demon_time_system.unlock()
+
+        self._health_relic_charges = int(getattr(slot, "health_relic_charges", 3))
+        self.hud_overlay.health_relic_charges = self._health_relic_charges
+
+        # Sync active story zone so zone transition banners don't re-fire for earlier acts
+        self._active_story_zone = self._get_story_zone_index()
+        print(
+            f"[SAVE MANAGER] Restored slot '{slot.slot_id}' at distance={self.world_distance:.0f} "
+            f"(HP={player_sprite.health if player_sprite else 0:.0f}/{player_sprite.max_health if player_sprite else 0:.0f}, "
+            f"souls={self.player_ui.current_soul_total}, relics={len(saved_relics)})"
+        )
     
     def _setup_triggers(self) -> None:
         """Configure concise narrative triggers tied to Andras's Harvester Pact."""
@@ -1008,8 +1099,11 @@ class GameState(PlayingState):
         sounds_dict = getattr(self.audio_manager, "master_audio_config", {}).get("sounds", {})
         seq = getattr(self.audio_manager, "master_audio_config", {}).get("boss_music_sequence", ["game_loop", "game_loop_2"])
         
-        idx = min(self._boss_defeat_count, len(seq) - 1) if seq else 0
-        bg_track_key = seq[idx] if (seq and idx < len(seq) and seq[idx] in sounds_dict) else ("game_loop" if "game_loop" in sounds_dict else "background_music")
+        if self._resumed_from_save:
+            bg_track_key = self._get_zone_music_track()
+        else:
+            idx = min(self._boss_defeat_count, len(seq) - 1) if seq else 0
+            bg_track_key = seq[idx] if (seq and idx < len(seq) and seq[idx] in sounds_dict) else ("game_loop" if "game_loop" in sounds_dict else "background_music")
         
         self._current_bg_music_track = bg_track_key
         self.audio_manager.play_music(bg_track_key, loop=True)
@@ -1021,16 +1115,17 @@ class GameState(PlayingState):
             self.notification_banner.show(self._level_name, notification="yellow")
             self._show_objective_on_start = False
 
-        # Prologue / Awakening side notification if configured and enabled
-        prologue_popup = self.popup_scene_manager.get_popup("event_prologue_awakening") if hasattr(self, "popup_scene_manager") else None
-        if prologue_popup and prologue_popup.get("enabled", True):
-            self.side_notification.show(
-                prologue_popup.get("text", "The catacombs stir. Death has not taken you, but the dark beckons. Advance through the shadows."),
-                prologue_popup.get("title", "The Awakening"),
-                icon=prologue_popup.get("icon", "assets/graphics/UI/PNG/Exclamation_Yellow.png"),
-                hold=prologue_popup.get("hold", 6.0),
-                theme=prologue_popup.get("theme", "gothic_gold"),
-            )
+        # Prologue / Awakening side notification if configured and enabled (skip on Continue)
+        if not self._resumed_from_save:
+            prologue_popup = self.popup_scene_manager.get_popup("event_prologue_awakening") if hasattr(self, "popup_scene_manager") else None
+            if prologue_popup and prologue_popup.get("enabled", True):
+                self.side_notification.show(
+                    prologue_popup.get("text", "The catacombs stir. Death has not taken you, but the dark beckons. Advance through the shadows."),
+                    prologue_popup.get("title", "The Awakening"),
+                    icon=prologue_popup.get("icon", "assets/graphics/UI/PNG/Exclamation_Yellow.png"),
+                    hold=prologue_popup.get("hold", 6.0),
+                    theme=prologue_popup.get("theme", "gothic_gold"),
+                )
 
         # Start tutorial on first entry
         if self._show_tutorial_on_start:
@@ -1044,7 +1139,7 @@ class GameState(PlayingState):
             self.bg_music_channel_id = None
         if self.tracker is not None:
             self.tracker.close()
-        if hasattr(self, "watsonx_client"):
+        if getattr(self, "watsonx_client", None) is not None:
             self.watsonx_client.shutdown()
         
     def _show_relic_reveal(self, reveal_state) -> None:
@@ -1440,7 +1535,10 @@ class GameState(PlayingState):
                     notification="green"
                 )
 
-            # Auto-save progress upon boss defeat
+            # Track defeated boss class name & auto-save progress upon boss defeat
+            _defeated_cls = type(enemy).__name__
+            if _defeated_cls not in self._bosses_defeated:
+                self._bosses_defeated.append(_defeated_cls)
             SaveManager.auto_save(self)
 
             # ── Boss death line & sequence advance (Sub-task 4) ──────────────
@@ -2219,6 +2317,7 @@ class GameState(PlayingState):
                 
             self._game_over_start_time = None
             self._demonic_pact_offered = True
+            self._death_auto_saved = False
             
         elif buff_data.get("kill_player"):
             self._pact_rejected = True
@@ -2251,6 +2350,12 @@ class GameState(PlayingState):
     def _check_game_over(self) -> None:
         """Check if game over conditions are met and handle transition."""
         player = self.player.sprite
+
+        # Auto-save current position & progress the moment the player dies so
+        # they can close the game and press CONTINUE to resume from this spot.
+        if player.is_dead and not self._death_auto_saved:
+            self._death_auto_saved = True
+            SaveManager.auto_save(self)
         
         # Demonic Pact Injection
         if player.is_dead and not getattr(self, "_demonic_pact_offered", False):
@@ -2278,6 +2383,7 @@ class GameState(PlayingState):
             pg.time.get_ticks() - self._game_over_start_time >= self._GAME_OVER_DELAY_MS):
             print("Game Over!")
             self._game_over_start_time = None
+            self._death_auto_saved = False
             player.reset()
     
     def draw(self, surface: pg.Surface) -> None:

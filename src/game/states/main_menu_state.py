@@ -143,11 +143,15 @@ class MainMenuState(State):
 
     def continue_game(self):
         if not self.is_starting:
+            from src.game.states.game_state import GameState
+            GameState._pending_continue_slot = "auto"
             self.pending_route = "CONTINUE"
             self.is_starting = True
 
     def start_game(self):
         if not self.is_starting:
+            from src.game.states.game_state import GameState
+            GameState._pending_continue_slot = None
             self.pending_route = "PLAY"
             self.is_starting = True
 
