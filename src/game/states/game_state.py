@@ -938,36 +938,44 @@ class GameState(PlayingState):
     def _on_soul_quota_reached(self) -> None:
         """Triggered when the soul harvest counter reaches 10,000.
 
-        This is the narrative climax of Level 1 — the Arch-Fabricator's
-        revelation that the contract was a spiritual trap.
+        Mid-run narrative reveal of Andras's betrayal — amplifies urgency without
+        terminating music or blocking the 36,000px climax against Commander Kaelen.
         """
         self._soul_quota_reached = True
-        self._level_complete = True
 
-        # The forest goes dead silent
-        self.audio_manager.stop_music()
+        # Play ominous corruption sting while keeping level music active
+        if self.audio_manager:
+            sounds_dict = getattr(self.audio_manager, "master_audio_config", {}).get("sounds", {})
+            cue = "corruption_drone" if "corruption_drone" in sounds_dict else (
+                "boss_taunt" if "boss_taunt" in sounds_dict else None
+            )
+            if cue:
+                try:
+                    self.audio_manager.play_sound(cue, volume=0.55)
+                except Exception:
+                    pass
 
-        # Show the Fabricator's revelation via non-blocking side notification
         popup = self.popup_scene_manager.get_popup("event_soul_quota_betrayal") if hasattr(self, "popup_scene_manager") else None
         if popup:
             if popup.get("enabled", True):
                 self.side_notification.show(
-                    popup.get("text", "Ten thousand souls bound by your hand!"),
-                    popup.get("title", "The Fabricator's Betrayal"),
+                    popup.get("text", "Ten thousand souls sealed! Andras is forging you into his vessel - press on and break his hold!"),
+                    popup.get("title", "Andras's True Design"),
                     icon=popup.get("icon", "assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png"),
-                    hold=popup.get("hold", 7.5),
+                    hold=popup.get("hold", 6.0),
                     theme=popup.get("theme", "blood_bone"),
                 )
         else:
             self.side_notification.show(
-                "Ten thousand souls bound by your hand! The Arch-Fabricator's contract was a trap, "
-                "bonding your soul to his domain. Keep the Scythe... hunt the Holy Artifacts!",
-                "The Fabricator's Betrayal",
-                icon="assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png"
+                "Ten thousand souls sealed! Andras is forging you into his vessel - reach the Bleeding Tree!",
+                "Andras's True Design",
+                icon="assets/free-undead-loot-pixel-art-icons/PNG/Transperent/Icon1.png",
+                hold=6.0,
+                theme="blood_bone",
             )
 
-    def _show_ambient_lore(self, text: str, duration: float = 8.5) -> None:
-        """Callback used by WorldManager to display ambient lore notifications."""
+    def _show_ambient_lore(self, text: str, duration: float = 5.0) -> None:
+        """Callback used by WorldManager to display concise ambient lore cards."""
         if not text:
             return
         if "|" in text:
@@ -982,16 +990,17 @@ class GameState(PlayingState):
             getattr(self.hud_overlay, "side_notification", None) if hasattr(self, "hud_overlay") else None
         )
         if target_notif is not None:
+            hold_secs = max(4.2, min(float(duration), 5.5))
             try:
                 target_notif.show(
                     body,
                     title,
                     icon="assets/graphics/magic_book_single/magic_book.png",
-                    hold=max(duration, 7.5),
+                    hold=hold_secs,
                     theme="grimoire_leather",
                 )
             except TypeError:
-                target_notif.show(body, title, hold=max(duration, 7.5))
+                target_notif.show(body, title, hold=hold_secs)
 
     def _get_story_zone_index(self, dist: Optional[float] = None) -> int:
         """Return 0..3 corresponding to the 4 Visual Story Zones across 0..36,000px."""
@@ -1078,7 +1087,7 @@ class GameState(PlayingState):
                             p_lore["text"],
                             p_lore["title"],
                             icon="assets/graphics/magic_book_single/magic_book.png",
-                            hold=5.5,
+                            hold=4.6,
                             theme=theme,
                         )
                     except TypeError:

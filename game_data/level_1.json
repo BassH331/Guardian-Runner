@@ -179,7 +179,7 @@
                     480,
                     488
                 ],
-                "pos_x": 1056.0,
+                "pos_x": 1680.0,
                 "pos_y": 192.0,
                 "scale": 0.5,
                 "layer_index": 5,
@@ -192,7 +192,7 @@
                 "in_front": false,
                 "lore_id": "prop_fallen_wyvern_1",
                 "lore_title": "Carcass of the Sky-Drake",
-                "lore_text": "Commander Kaelen felled this rift-drake during the opening charge, buying the vanguard time to reach the treeline.",
+                "lore_text": "Kaelen's Opening Charge: Your Commander felled this rift-drake to clear the vanguard's path.",
                 "corruption_low": "Its scales still bear the clean silver scorch of Kaelen's blade.",
                 "corruption_high": "Black flies hum over the drake's ribs, drawn to the mark on your hand.",
                 "glow_color": [
@@ -303,7 +303,7 @@
                 "in_front": false,
                 "lore_id": "prop_vane_watch_torch",
                 "lore_title": "Corporal Vane's Perimeter Torch",
-                "lore_text": "A Watch-torch still burning with oil and pine-resin. Corporal Vane stood triple-watch here the night the supply line was severed.",
+                "lore_text": "Vane's Watch-Torch: Corporal Vane stood triple-watch here when the supply road was severed.",
                 "corruption_low": "The warm flame steadies your breathing against the forest chill.",
                 "corruption_high": "The flame bends away from your shadow as you pass.",
                 "glow_color": [
@@ -375,7 +375,7 @@
                 "in_front": false,
                 "lore_id": "prop_vanguard_campfire_1",
                 "lore_title": "Ashes of the Vanguard Bivouac",
-                "lore_text": "Four bedrolls and a half-melted Watch kettle surround the embers. Here your squad shared their last meal before marching into the rift.",
+                "lore_text": "Last Squad Watchfire: Four cold bedrolls ring a dead kettle — your last night together.",
                 "corruption_low": "You can almost hear Garrick's deep laugh and Solen's quiet hymn over the crackling wood.",
                 "corruption_high": "The hearth fire sputters low, chilled by the demonic aura clinging to your cloak.",
                 "glow_color": [
@@ -493,7 +493,7 @@
                 "in_front": true,
                 "lore_id": "prop_boundary_weeping_tree",
                 "lore_title": "The Weeping Boundary Oak",
-                "lore_text": "Beyond this hollowed trunk lie the graves of previous runners who accepted Andras's bargain and never returned.",
+                "lore_text": "The Weeping Boundary: Past these hollows, Blight-Bombers prowl the graves of fallen runners.",
                 "corruption_low": "You grip your hilt tighter, vowing to bring your comrades' names back to the light.",
                 "corruption_high": "The carved face in the bark seems to nod in grim recognition of the mark on your palm.",
                 "glow_color": [
@@ -511,7 +511,7 @@
                     49,
                     35
                 ],
-                "pos_x": 9650.0,
+                "pos_x": 9450.0,
                 "pos_y": 455.0,
                 "scale": 1.6,
                 "layer_index": 6,
@@ -524,7 +524,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone2_cairn",
                 "lore_title": "Cairn of the Shield-Brethren",
-                "lore_text": "Stacked river stones topped with a dented Star-Fire helmet. Garrick built this cairn alone while holding the rear.",
+                "lore_text": "Garrick's Cairn: Stacked river stones and a dented helm mark where Garrick stalled the horde.",
                 "corruption_low": "You place a small stone atop the pile in silent salute.",
                 "corruption_high": "The silver star on the helmet tarnishes as your shadow crosses it.",
                 "glow_color": [
@@ -582,7 +582,7 @@
                     41,
                     37
                 ],
-                "pos_x": 15400.0,
+                "pos_x": 15850.0,
                 "pos_y": 455.0,
                 "scale": 1.5,
                 "layer_index": 6,
@@ -595,7 +595,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone2_scribe_fire",
                 "lore_title": "Scribe Orin's Watchfire",
-                "lore_text": "Charred pages of the vanguard muster roll flutter around a low fire. Orin tried to keep the names dry as the dark closed in.",
+                "lore_text": "Orin's Scorched Pages: Charred muster rolls stir beside embers ahead of Scribe Orin's vigil.",
                 "corruption_low": "A few unburned pages still preserve the oaths of your company.",
                 "corruption_high": "The embers flare violet as your corrupted shadow falls across the ledger.",
                 "glow_color": [
@@ -634,7 +634,7 @@
                     244,
                     448
                 ],
-                "pos_x": 19200.0,
+                "pos_x": 19550.0,
                 "pos_y": 215.0,
                 "scale": 0.65,
                 "layer_index": 6,
@@ -647,7 +647,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone3_moon_shrine_1",
                 "lore_title": "Candora's Weeping Moon-Shrine",
-                "lore_text": "Silver moonlight pools at the feet of Candora's weathered effigy. Medic Lyra and Pyromancer Solen consecrated this ground against the rift.",
+                "lore_text": "Candora's Moon-Shrine: Pale moonlight resists the ash, while Demon Eyes swoop past the altar.",
                 "corruption_low": "A cool, Merciful breeze washes over your brow - Candora still walks with you.",
                 "corruption_high": "The statue's silver eyes weep pale light, pleading for you to cast off Andras's hold.",
                 "glow_color": [
@@ -732,7 +732,7 @@
                     41,
                     37
                 ],
-                "pos_x": 22360.0,
+                "pos_x": 22600.0,
                 "pos_y": 452.0,
                 "scale": 1.6,
                 "layer_index": 6,
@@ -745,7 +745,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone3_solen_hearth",
                 "lore_title": "Pyromancer Solen's Sanctuary Hearth",
-                "lore_text": "Solen kept this sacred brazier burning for seven nights to guide lost Watchmen through the fog - until the rift turned his flames against him.",
+                "lore_text": "Solen's Sacred Hearth: Solen kept this brazier burning seven nights before his flame twisted.",
                 "corruption_low": "Golden sparks rise gently from the hearth, recognizing an uncorrupted brother.",
                 "corruption_high": "The brazier crackles with urgent warning: Solen awaits ahead, consumed by the ash.",
                 "glow_color": [
@@ -764,7 +764,7 @@
                     244,
                     448
                 ],
-                "pos_x": 24600.0,
+                "pos_x": 24450.0,
                 "pos_y": 215.0,
                 "scale": 0.65,
                 "layer_index": 6,
@@ -777,7 +777,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone3_altar_of_tears",
                 "lore_title": "Altar of the Silver Tear",
-                "lore_text": "Scorched prayer beads lie scattered across the steps. Ahead stands Pyromancer Solen, guarding the last Tear of Candora.",
+                "lore_text": "Altar of Tears: Prayer beads litter the steps — Solen waits in wildfire just ahead.",
                 "corruption_low": "May your blade grant Solen the peaceful rest he earned.",
                 "corruption_high": "Claim Candora's Tear from Solen - it may be your last chance to cleanse the demon's brand!",
                 "glow_color": [
@@ -796,7 +796,7 @@
                     41,
                     37
                 ],
-                "pos_x": 31100.0,
+                "pos_x": 32100.0,
                 "pos_y": 452.0,
                 "scale": 1.6,
                 "layer_index": 6,
@@ -809,7 +809,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone4_kaelen_vigil",
                 "lore_title": "Commander Kaelen's Final Vigil",
-                "lore_text": "Kaelen's scabbard is driven into the earth beside the dying fire. Scratched into the leather: 'If I fall to the Marquis, send my student to finish the watch.'",
+                "lore_text": "Kaelen's Scabbard: 'If the Marquis claims me, send my student to finish the watch.'",
                 "corruption_low": "Your hand steadies on your hilt. You will not let your mentor remain a puppet.",
                 "corruption_high": "The brand on your palm throbs violently - Andras is eager to see student and master collide.",
                 "glow_color": [
@@ -848,7 +848,7 @@
                     388,
                     524
                 ],
-                "pos_x": 33600.0,
+                "pos_x": 33750.0,
                 "pos_y": -25.0,
                 "scale": 1.05,
                 "layer_index": 6,
@@ -861,7 +861,7 @@
                 "in_front": false,
                 "lore_id": "prop_zone4_bleeding_sanctum",
                 "lore_title": "Sanctum of the Bleeding Great Tree",
-                "lore_text": "Crimson sap weeps from the ancient canopy above the stone arch. Commander Kaelen stands waiting in the silence ahead.",
+                "lore_text": "Roots of the Sanctuary: Crimson sap weeps down stone arches before the final duel.",
                 "corruption_low": "Remember every lesson he taught you. Free your Commander.",
                 "corruption_high": "The rift roars in your ears - the final vessel trial is at hand.",
                 "glow_color": [
@@ -1073,7 +1073,7 @@
                 "proximity_radius": 210.0,
                 "lore_id": "prop_zone1_watch_cabin",
                 "lore_title": "Abandoned Elderwood Watch-Cabin",
-                "lore_text": "Rot-blackened cedar shudders under mossy tiles. Fourth Vanguard scouts once watched this bend before the creeping mist took them."
+                "lore_text": "Watch Outpost Cabin: Scouts kept vigil by this roof before the Elderwood mist closed in."
             },
             {
                 "texture_path": "assets/Dungeon_Prop_Assets_v1.0/assets/pot_frames.png",
@@ -1335,7 +1335,7 @@
                 ],
                 "lore_id": "prop_zone2_cursed_wagon",
                 "lore_title": "Shattered Watch Supply Wagon",
-                "lore_text": "Iron-rimmed wheels locked into mud by severed skulls. Vaulting onto its strapped war-chests keeps you clear of road-level cursed mines."
+                "lore_text": "Cursed Siege Wagon: Skulls lock its wheels in mud — vault the chests to clear ground mines."
             },
             {
                 "texture_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Demon Mine.png",
@@ -1674,7 +1674,7 @@
                 "proximity_radius": 220.0,
                 "lore_id": "prop_zone3_collapsed_outpost",
                 "lore_title": "Collapsed Two-Story Watch-Outpost",
-                "lore_text": "Sprint straight under its skull archway or vault onto the charred 2nd-floor beam to strike airborne Demon Eyes."
+                "lore_text": "Collapsed Watchtower: Sprint through the skull arch or leap upstairs to strike Demon Eyes."
             },
             {
                 "texture_path": "assets/graphics/RedMoonTower/baal_alter_00.png",
@@ -2061,7 +2061,7 @@
                 "proximity_radius": 240.0,
                 "lore_id": "prop_zone4_obsidian_gatehouse",
                 "lore_title": "Hell-Scorched Obsidian Gatehouse",
-                "lore_text": "Basalt bricks glow with magma fissures where the Rift tears open beneath the Elderwood. Take the upper rampart to avoid Rift ambushers."
+                "lore_text": "Obsidian Rift-Gate: Magma splits the earth here. Climb the rampart above Rift ambushers."
             },
             {
                 "texture_path": "assets/graphics/totem/totem/totem.png",
@@ -2212,7 +2212,7 @@
                 "proximity_radius": 220.0,
                 "lore_id": "prop_zone4_rift_crone",
                 "lore_title": "The Hollow Crone of the Rift",
-                "lore_text": "Her iron shepherd's crook scrapes against obsidian glass. 'Another Watchman wearing Kaelen's steel... only ash answers the Horn now.'"
+                "lore_text": "The Rift Crone: Her crook scrapes black glass — beyond her, Rift-Bombers and Rift Eyes swarm."
             },
             {
                 "texture_path": "assets/graphics/BespokeProps/sliced/obsidian_spikes.png",
@@ -2393,10 +2393,10 @@
     },
     "spawn_zones": [
         {
-            "min_dist": 1700,
-            "max_dist": 3950,
-            "max_skeletons": 3,
-            "delay": 3800,
+            "min_dist": 1600,
+            "max_dist": 2800,
+            "max_skeletons": 2,
+            "delay": 4000,
             "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
@@ -2410,7 +2410,7 @@
             },
             "variants": [
                 {
-                    "weight": 3,
+                    "weight": 4,
                     "enemy_name": "Forest Skeleton",
                     "tier": "minion",
                     "sprite_root": "assets/skeleton",
@@ -2436,8 +2436,8 @@
                         "Idle": "idle"
                     },
                     "scale": 2.6,
-                    "health": 60.0,
-                    "speed": 2.4
+                    "health": 65.0,
+                    "speed": 2.5
                 },
                 {
                     "weight": 1,
@@ -2485,10 +2485,220 @@
             ]
         },
         {
-            "min_dist": 5000,
+            "min_dist": 2850,
+            "max_dist": 3950,
+            "max_skeletons": 3,
+            "delay": 3400,
+            "required_kills": 0,
+            "tier": "minion",
+            "sprite_root": "assets/skeleton",
+            "behaviour_map": {
+                "Skeleton_01_White_Attack1": "attack",
+                "Skeleton_01_White_Attack2": "attack",
+                "Skeleton_01_White_Die": "death",
+                "Skeleton_01_White_Hurt": "hurt",
+                "Skeleton_01_White_Idle": "idle",
+                "Skeleton_01_White_Walk": "walk"
+            },
+            "variants": [
+                {
+                    "weight": 2,
+                    "enemy_name": "Forest Skeleton",
+                    "tier": "minion",
+                    "sprite_root": "assets/skeleton",
+                    "behaviour_map": {
+                        "Skeleton_01_White_Attack1": "attack",
+                        "Skeleton_01_White_Attack2": "attack",
+                        "Skeleton_01_White_Die": "death",
+                        "Skeleton_01_White_Hurt": "hurt",
+                        "Skeleton_01_White_Idle": "idle",
+                        "Skeleton_01_White_Walk": "walk"
+                    },
+                    "health": 50.0
+                },
+                {
+                    "weight": 3,
+                    "enemy_name": "Risen Vanguard Husk",
+                    "tier": "minion",
+                    "sprite_root": "assets/graphics/SkeletonZombie",
+                    "behaviour_map": {
+                        "Attack": "attack",
+                        "Chase": "walk",
+                        "Hurt": "hurt",
+                        "Idle": "idle"
+                    },
+                    "scale": 2.6,
+                    "health": 65.0,
+                    "speed": 2.5
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Plague Flies",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Plague Flies.png",
+                    "sheet_grid": [
+                        5,
+                        2
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            4
+                        ],
+                        "walk": [
+                            0,
+                            4
+                        ],
+                        "attack": [
+                            0,
+                            4
+                        ],
+                        "death": [
+                            1,
+                            5
+                        ]
+                    },
+                    "scale": 1.9,
+                    "health": 25.0,
+                    "speed": 3.1,
+                    "is_flying": true,
+                    "hover_y": 430,
+                    "tint_color": [
+                        222,
+                        232,
+                        214
+                    ],
+                    "shadow_outline_color": [
+                        34,
+                        46,
+                        36
+                    ]
+                }
+            ]
+        },
+        {
+            "min_dist": 5200,
+            "max_dist": 8350,
+            "max_skeletons": 3,
+            "delay": 3200,
+            "required_kills": 0,
+            "tier": "minion",
+            "sprite_root": "assets/skeleton",
+            "behaviour_map": {
+                "Skeleton_01_White_Attack1": "attack",
+                "Skeleton_01_White_Attack2": "attack",
+                "Skeleton_01_White_Die": "death",
+                "Skeleton_01_White_Hurt": "hurt",
+                "Skeleton_01_White_Idle": "idle",
+                "Skeleton_01_White_Walk": "walk"
+            },
+            "variants": [
+                {
+                    "weight": 3,
+                    "enemy_name": "Shrouded Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Male Damned covered.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.8,
+                    "health": 65.0,
+                    "speed": 2.4,
+                    "tint_color": [
+                        212,
+                        214,
+                        238
+                    ],
+                    "shadow_outline_color": [
+                        36,
+                        34,
+                        52
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Risen Vanguard Husk",
+                    "tier": "minion",
+                    "sprite_root": "assets/graphics/SkeletonZombie",
+                    "behaviour_map": {
+                        "Attack": "attack",
+                        "Chase": "walk",
+                        "Hurt": "hurt",
+                        "Idle": "idle"
+                    },
+                    "scale": 2.6,
+                    "health": 65.0,
+                    "speed": 2.5
+                },
+                {
+                    "weight": 1,
+                    "enemy_name": "Plague Flies",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Plague Flies.png",
+                    "sheet_grid": [
+                        5,
+                        2
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            4
+                        ],
+                        "walk": [
+                            0,
+                            4
+                        ],
+                        "attack": [
+                            0,
+                            4
+                        ],
+                        "death": [
+                            1,
+                            5
+                        ]
+                    },
+                    "scale": 1.9,
+                    "health": 25.0,
+                    "speed": 3.1,
+                    "is_flying": true,
+                    "hover_y": 430,
+                    "tint_color": [
+                        222,
+                        232,
+                        214
+                    ],
+                    "shadow_outline_color": [
+                        34,
+                        46,
+                        36
+                    ]
+                }
+            ]
+        },
+        {
+            "min_dist": 8500,
             "max_dist": 12900,
             "max_skeletons": 4,
-            "delay": 3000,
+            "delay": 2900,
             "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
@@ -2606,9 +2816,151 @@
         },
         {
             "min_dist": 14100,
-            "max_dist": 24900,
+            "max_dist": 19100,
             "max_skeletons": 4,
             "delay": 2800,
+            "required_kills": 0,
+            "tier": "minion",
+            "sprite_root": "assets/skeleton",
+            "behaviour_map": {
+                "Skeleton_01_White_Attack1": "attack",
+                "Skeleton_01_White_Attack2": "attack",
+                "Skeleton_01_White_Die": "death",
+                "Skeleton_01_White_Hurt": "hurt",
+                "Skeleton_01_White_Idle": "idle",
+                "Skeleton_01_White_Walk": "walk"
+            },
+            "variants": [
+                {
+                    "weight": 3,
+                    "enemy_name": "Burning Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Burning Damned.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.85,
+                    "health": 80.0,
+                    "speed": 2.65,
+                    "tint_color": [
+                        238,
+                        206,
+                        198
+                    ],
+                    "shadow_outline_color": [
+                        48,
+                        28,
+                        24
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Ashen Imp",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Imp.png",
+                    "sheet_grid": [
+                        10,
+                        5
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            10
+                        ],
+                        "walk": [
+                            2,
+                            8
+                        ],
+                        "attack": [
+                            3,
+                            5
+                        ],
+                        "death": [
+                            4,
+                            6
+                        ]
+                    },
+                    "scale": 2.9,
+                    "health": 60.0,
+                    "speed": 3.4,
+                    "tint_color": [
+                        238,
+                        206,
+                        198
+                    ],
+                    "shadow_outline_color": [
+                        48,
+                        28,
+                        24
+                    ]
+                },
+                {
+                    "weight": 1,
+                    "enemy_name": "Shrouded Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Male Damned covered.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.8,
+                    "health": 65.0,
+                    "speed": 2.4,
+                    "tint_color": [
+                        212,
+                        214,
+                        238
+                    ],
+                    "shadow_outline_color": [
+                        36,
+                        34,
+                        52
+                    ]
+                }
+            ]
+        },
+        {
+            "min_dist": 19200,
+            "max_dist": 24900,
+            "max_skeletons": 4,
+            "delay": 2600,
             "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
@@ -2754,9 +3106,9 @@
         },
         {
             "min_dist": 26200,
-            "max_dist": 33900,
-            "max_skeletons": 5,
-            "delay": 2500,
+            "max_dist": 29500,
+            "max_skeletons": 4,
+            "delay": 2550,
             "required_kills": 0,
             "tier": "minion",
             "sprite_root": "assets/skeleton",
@@ -2771,6 +3123,148 @@
             "variants": [
                 {
                     "weight": 3,
+                    "enemy_name": "Twisted Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Twisted Damned.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.95,
+                    "health": 95.0,
+                    "speed": 2.95,
+                    "tint_color": [
+                        242,
+                        204,
+                        196
+                    ],
+                    "shadow_outline_color": [
+                        44,
+                        18,
+                        18
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Blue-Flame Damned",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Burning Damned blue.png",
+                    "sheet_grid": [
+                        8,
+                        4
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            5
+                        ],
+                        "walk": [
+                            1,
+                            8
+                        ],
+                        "attack": [
+                            2,
+                            6
+                        ],
+                        "death": [
+                            3,
+                            7
+                        ]
+                    },
+                    "scale": 2.95,
+                    "health": 95.0,
+                    "speed": 3.0,
+                    "tint_color": [
+                        225,
+                        225,
+                        245
+                    ],
+                    "shadow_outline_color": [
+                        34,
+                        24,
+                        48
+                    ]
+                },
+                {
+                    "weight": 2,
+                    "enemy_name": "Ashen Imp",
+                    "tier": "minion",
+                    "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Imp.png",
+                    "sheet_grid": [
+                        10,
+                        5
+                    ],
+                    "row_map": {
+                        "idle": [
+                            0,
+                            10
+                        ],
+                        "walk": [
+                            2,
+                            8
+                        ],
+                        "attack": [
+                            3,
+                            5
+                        ],
+                        "death": [
+                            4,
+                            6
+                        ]
+                    },
+                    "scale": 2.9,
+                    "health": 60.0,
+                    "speed": 3.4,
+                    "tint_color": [
+                        238,
+                        206,
+                        198
+                    ],
+                    "shadow_outline_color": [
+                        48,
+                        28,
+                        24
+                    ]
+                }
+            ]
+        },
+        {
+            "min_dist": 29600,
+            "max_dist": 33900,
+            "max_skeletons": 5,
+            "delay": 2400,
+            "required_kills": 0,
+            "tier": "minion",
+            "sprite_root": "assets/skeleton",
+            "behaviour_map": {
+                "Skeleton_01_White_Attack1": "attack",
+                "Skeleton_01_White_Attack2": "attack",
+                "Skeleton_01_White_Die": "death",
+                "Skeleton_01_White_Hurt": "hurt",
+                "Skeleton_01_White_Idle": "idle",
+                "Skeleton_01_White_Walk": "walk"
+            },
+            "variants": [
+                {
+                    "weight": 2,
                     "enemy_name": "Twisted Damned",
                     "tier": "minion",
                     "spritesheet_path": "assets/graphics/GandalfHardcore Hell Asset Pack 32x32/GandalfHardcore The Damned Enemies and NPCs/Twisted Damned.png",
@@ -2962,6 +3456,21 @@
             "id": 1,
             "x": 1200,
             "y": 200
+        },
+        {
+            "id": 2,
+            "x": 5200,
+            "y": 200
+        },
+        {
+            "id": 3,
+            "x": 14100,
+            "y": 200
+        },
+        {
+            "id": 4,
+            "x": 26200,
+            "y": 200
         }
     ],
     "world_events": [
@@ -2972,7 +3481,7 @@
             "params": {
                 "npc_type": "generic",
                 "title": "Chronicle of the Fourth Vanguard",
-                "text": "The field ledger of your fallen company pulses with a faint ember. Every page smells of pine-smoke and iron.",
+                "text": "A cold Watch ledger pulses with ember light. Inside, every vanguard name smells of ash.",
                 "radius": 90,
                 "sprite_dir": "assets/graphics/magic_book_single",
                 "scale": 1.12,
@@ -2996,10 +3505,10 @@
         },
         {
             "id": 101,
-            "distance": 3200,
+            "distance": 3900,
             "type": "ambient_lore",
             "params": {
-                "text": "Vane's Distress Cipher|Seven hash-marks are gouged into the bleeding bark ahead - Corporal Vane's signal that the vanguard was cut off."
+                "text": "Vane's Distress Cipher|Seven knife-marks score the Watch post ahead — Corporal Vane never got relief."
             }
         },
         {
@@ -3024,10 +3533,10 @@
         },
         {
             "id": 102,
-            "distance": 7400,
+            "distance": 7150,
             "type": "ambient_lore",
             "params": {
-                "text": "The Shattered Rearguard|Broken Star-Fire shields line the ditch. Garrick held this narrow pass alone while the wounded fell back."
+                "text": "The Shattered Rearguard|Star-Fire shields line the ditch. Garrick held this narrow pass alone."
             }
         },
         {
@@ -3037,7 +3546,7 @@
             "params": {
                 "npc_type": "generic",
                 "title": "The Moonstone Keeper",
-                "text": "Garrick stood at the Obsidian Gate just ahead until his mortal heart gave out - and Andras locked him inside his own armor.",
+                "text": "Garrick guarded the Obsidian Gate until his heart stopped — then Andras welded him inside it.",
                 "radius": 160,
                 "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
                 "scale": 2.0,
@@ -3081,15 +3590,15 @@
         },
         {
             "id": 21,
-            "distance": 16500,
+            "distance": 16800,
             "type": "npc",
             "params": {
-                "npc_type": "generic",
+                "npc_type": "wizard",
                 "title": "Scribe Orin of the Watch",
-                "text": "I recorded every soul Andras hollowed from our company. Take this torn muster page - do not let the Citadel forget what we sacrificed.",
+                "text": "I inked every Watchman's fate in blood and soot. Take this ledger page — remember our company.",
                 "radius": 160,
-                "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
-                "scale": 1.9,
+                "sprite_dir": "assets/graphics/Wizard_NPC",
+                "scale": 1.15,
                 "dialogue": {
                     "default": "I am Scribe Orin of the Fourth Vanguard. Even in the dark, I keep the roll of our fallen brothers so their names are not swallowed by the rift.",
                     "corruption_variants": {
@@ -3102,23 +3611,23 @@
         },
         {
             "id": 103,
-            "distance": 19800,
+            "distance": 23550,
             "type": "ambient_lore",
             "params": {
-                "text": "Sanctuary of the Silver Moon|White lilies bloom through the ash around Candora's ruined shrines. Ahead, Pyromancer Solen's sacred hearth has turned to wildfire."
+                "text": "Ashen Ember Woods|Candora's white lilies curl under black soot ahead, where Solen's flame turned wild."
             }
         },
         {
             "id": 22,
-            "distance": 21200,
+            "distance": 21400,
             "type": "npc",
             "params": {
                 "npc_type": "generic",
                 "title": "Candora's Envoy",
-                "text": "Pyromancer Solen wept as the rift corrupted his sacred flame. When you free him, claim Candora's Silver Tear from his robes - it will purge Andras's venom from your soul.",
+                "text": "Solen weeps inside his own wildfire. Free him and claim Candora's Silver Tear to purge Andras's mark.",
                 "radius": 160,
-                "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
-                "scale": 2.0,
+                "sprite_dir": "assets/graphics/Fairy/Fairy 1_frames",
+                "scale": 3.0,
                 "dialogue": {
                     "default": "Candora sent me to find the last Guardian of the Fourth Vanguard. Pyromancer Solen awaits at the ruined altar ahead, fighting to keep one last Silver Tear pure for you.",
                     "corruption_variants": {
@@ -3126,7 +3635,8 @@
                         "mid": "She grieves for the shadow creeping up your arm, but Solen's Silver Tear will wash the brand away.",
                         "high": "You are nearly lost to the Marquis - only Solen's Tear can pull you back from the abyss now!"
                     }
-                }
+                },
+                "play_death_on_interact": false
             }
         },
         {
@@ -3151,23 +3661,23 @@
         },
         {
             "id": 104,
-            "distance": 28800,
+            "distance": 28450,
             "type": "ambient_lore",
             "params": {
-                "text": "Trail of the First Vessel|Clean, lightning-fast sword cuts scar the ironwood trees ahead. Only Commander Kaelen's blade leaves a mark like that."
+                "text": "Trail of the First Vessel|Clean razor cuts cleave the ironwood ahead — only Commander Kaelen strikes that fast."
             }
         },
         {
             "id": 28,
-            "distance": 30200,
+            "distance": 30850,
             "type": "npc",
             "params": {
                 "npc_type": "generic",
                 "title": "Echo of Lieutenant Marek",
-                "text": "Commander Kaelen ordered us to stay behind while he marched to the Bleeding Tree alone. He took Andras's full curse to buy your life - go free him!",
+                "text": "Kaelen marched to the Bleeding Tree alone and took the full curse for us. Go — set him free!",
                 "radius": 160,
-                "sprite_dir": "assets/graphics/Moonstone_Keeper Eldermoon_Grove - By SUCART/Idle-MoonstoneKeeper-SUCART/No BG",
-                "scale": 2.0,
+                "sprite_dir": "assets/graphics/Hero Knight 2/Sprites/Idle.png",
+                "scale": 2.2,
                 "dialogue": {
                     "default": "I was Kaelen's second-in-command. He knew Andras needed a master swordsman as his vessel, so he offered himself at the Bleeding Tree to spare you.",
                     "corruption_variants": {
@@ -3175,15 +3685,16 @@
                         "mid": "This is the mile where the curse is heaviest. Remember Kaelen's teachings, not the demon's fury.",
                         "high": "If you strike our Commander down while drunk on Andras's power, you will become the new Dark Ronin in his stead!"
                     }
-                }
+                },
+                "play_death_on_interact": false
             }
         },
         {
             "id": 105,
-            "distance": 32600,
+            "distance": 33050,
             "type": "ambient_lore",
             "params": {
-                "text": "The Bleeding Great Tree|The wind dies completely. Beneath the crimson canopy ahead, Commander Kaelen slowly draws his blade."
+                "text": "The Bleeding Great Tree|The wind dies completely. Beneath crimson boughs ahead, Commander Kaelen draws steel."
             }
         },
         {

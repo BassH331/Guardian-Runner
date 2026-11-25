@@ -409,3 +409,48 @@ def test_boss_and_npc_hitboxes_and_retreat_orientations():
     assert npc.rect.width < 120
     assert npc.image_offset.x < npc.image.get_width() // 2
     assert npc.rect.bottom == 568
+
+
+def test_story_pacing_unique_npc_cast_and_soul_quota():
+    """Verify 8 story-staged spawn zones, distinct NPC sprites, 4 checkpoints, and non-blocking soul quota."""
+    level = json.loads((REPO_ROOT / "game_data" / "level_1.json").read_text(encoding="utf-8"))
+    zones = level["spawn_zones"]
+    assert len(zones) == 8
+
+    # Exploders/eyes only debut after Zone 2A / 3A / 4A story build-ups
+    z2a_names = {v["enemy_name"] for v in zones[2]["variants"]}
+    z2b_names = {v["enemy_name"] for v in zones[3]["variants"]}
+    z3a_names = {v["enemy_name"] for v in zones[4]["variants"]}
+    z3b_names = {v["enemy_name"] for v in zones[5]["variants"]}
+    z4a_names = {v["enemy_name"] for v in zones[6]["variants"]}
+    z4b_names = {v["enemy_name"] for v in zones[7]["variants"]}
+    assert "Bloated Blight-Bomber" not in z2a_names and "Bloated Blight-Bomber" in z2b_names
+    assert "Flying Demon Eye" not in z3a_names and "Flying Demon Eye" in z3b_names
+    assert "Bloated Rift-Bomber" not in z4a_names and "Bloated Rift-Bomber" in z4b_names
+    assert "Flying Rift Demon Eye" not in z4a_names and "Flying Rift Demon Eye" in z4b_names
+
+    # All 5 world_event NPCs have unique sprite assets (no Moonstone Keeper clones)
+    npc_sprites = [
+        e["params"].get("sprite_dir")
+        for e in level["world_events"]
+        if e.get("type") == "npc"
+    ]
+    assert len(npc_sprites) == 5
+    assert len(set(npc_sprites)) == 5
+    assert len(level["checkpoints"]) == 4
+
+    # Soul quota betrayal popup is enabled and does not prematurely mark _level_complete = True
+    from src.game.systems.popup_scene_manager import PopupSceneManager
+    PopupSceneManager.reset_instance()
+    psm = PopupSceneManager.get_instance()
+    psm.load_config()
+    betrayal = psm.get_popup("event_soul_quota_betrayal")
+    assert betrayal is not None and betrayal.get("enabled") is True
+
+    from src.game.states.game_state import GameState
+    with patch("v3x_zulfiqar_gideon.asset_manager.AssetManager.get_font") as mock_font:
+        mock_font.return_value = pg.font.Font(None, 20)
+        gs = GameState(MagicMock())
+        gs._on_soul_quota_reached()
+        assert gs._soul_quota_reached is True
+        assert gs._level_complete is False

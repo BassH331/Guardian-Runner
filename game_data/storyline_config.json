@@ -251,8 +251,8 @@
     "GreenMonster": {
       "role": "soldier",
       "pre_fight": [
-        "Hold... state your company and cipher! Wait - I know that blade stance...",
-        "Andras couldn't force me to unlock the Obsidian Ward, so he welded my armor across it! Strike true, brother - break this prison and keep the Rift sealed!"
+        "Halt — give your cipher! Wait... I know that Star-Fire stance!",
+        "Andras welded me across this gate. Break the seal, brother — hold the line!"
       ],
       "death_line": "My oath... passes to you, kid. Keep the 10,000-soul tithe out of his hands... free Kaelen...",
       "corruption_variants": {
@@ -271,8 +271,8 @@
     "Gatekeeper": {
       "role": "soldier",
       "pre_fight": [
-        "Hold... state your company and cipher! Wait - I know that blade stance...",
-        "Andras offered to heal my crushed ribs if I opened the Watch's second seal. When I refused, he fused me to the stone arch. End this watch for me, brother!"
+        "Halt — give your cipher! Wait... I know that Star-Fire stance!",
+        "Andras welded me across this gate. Break the seal, brother — hold the line!"
       ],
       "death_line": "The iron chain... snaps at last. Reach Solen before Andras takes the flame... keep the Citadel safe...",
       "corruption_variants": {
@@ -292,8 +292,8 @@
     "Garrick, The Iron Bulwark": {
       "role": "soldier",
       "pre_fight": [
-        "Hold... state your company and cipher! Wait - I know that blade stance...",
-        "Andras offered to heal my crushed ribs if I opened the Watch's second seal. When I refused, he fused me to the stone arch. End this watch for me, brother!"
+        "Halt — give your cipher! Wait... I know that Star-Fire stance!",
+        "Andras welded me across this gate. Break the seal, brother — hold the line!"
       ],
       "death_line": "The iron chain... snaps at last. Reach Solen before Andras takes the flame... keep the Citadel safe...",
       "corruption_variants": {
@@ -313,9 +313,8 @@
     "BloodZombie": {
       "role": "corrupted_soul",
       "pre_fight": [
-        "Wait... that cloak... you're from the Fourth Vanguard! You actually woke up?!",
-        "Andras promised me the sap would buy time until Kaelen reinforced the Seal... When I refused to hand over the Watch cipher, he twisted my blood into starvation!",
-        "End me before he forces my claws through another brother!"
+        "Wait... that Watch cloak! You actually woke up?",
+        "Andras turned my blood to starvation — end me before I tear another brother apart!"
       ],
       "death_line": "Free at last... Take my prism, kid - use it to see through the forest's lies, NOT to feed his cage...",
       "corruption_variants": {
@@ -335,9 +334,8 @@
     "Corporal Vane, The Weeping Husk": {
       "role": "corrupted_soul",
       "pre_fight": [
-        "Wait... that cloak... you're from the Fourth Vanguard! You actually woke up?!",
-        "Andras promised me the sap would buy time until Kaelen reinforced the Seal... When I refused to hand over the Watch cipher, he twisted my blood into starvation!",
-        "End me before he forces my claws through another brother!"
+        "Wait... that Watch cloak! You actually woke up?",
+        "Andras turned my blood to starvation — end me before I tear another brother apart!"
       ],
       "death_line": "Free at last... Take my prism, kid - use it to see through the forest's lies, NOT to feed his cage...",
       "corruption_variants": {
@@ -357,9 +355,8 @@
     "FireWizard": {
       "role": "corrupted_paragon",
       "pre_fight": [
-        "Stay back from the shrine! Andras hijacked my hearth-fire to melt the Silver Roots sealing his tomb!",
-        "Even with my mind burning, I locked half his power inside Candora's Tear beneath my robes.",
-        "Cut me down and claim that Tear - burn his Harvester key off your hand before you meet Kaelen!"
+        "Stay back! Andras hijacked my flame to melt the Silver Roots below!",
+        "Cut me down and claim Candora's Tear from my robes before you face Kaelen!"
       ],
       "death_line": "The wildfire dies... Wash the Marquis's brand clean with Candora's Tear... collapse the Rift for good!",
       "corruption_variants": {
@@ -379,9 +376,8 @@
     "Pyromancer Solen, The Ash Keeper": {
       "role": "corrupted_paragon",
       "pre_fight": [
-        "Stay back from the shrine! Andras hijacked my hearth-fire to melt the Silver Roots sealing his tomb!",
-        "Even with my mind burning, I locked half his power inside Candora's Tear beneath my robes.",
-        "Cut me down and claim that Tear - burn his Harvester key off your hand before you meet Kaelen!"
+        "Stay back! Andras hijacked my flame to melt the Silver Roots below!",
+        "Cut me down and claim Candora's Tear from my robes before you face Kaelen!"
       ],
       "death_line": "The wildfire dies... Wash the Marquis's brand clean with Candora's Tear... collapse the Rift for good!",
       "corruption_variants": {
@@ -401,9 +397,8 @@
     "DarkRonin": {
       "role": "corrupted_paragon",
       "pre_fight": [
-        "So... you reached the Rift-Gate beneath the Bleeding Tree, recruit.",
-        "I couldn't slay an immortal Marquis through bars of Watch stone - so I drove my own oath straight through the gate to lock him below until one of ours arrived strong enough to shatter the roots onto his head.",
-        "Show me why you fought your way here! Did you come to bury Andras's prison forever... or break it open for him?!"
+        "So... you reached the Bleeding Tree at last, recruit.",
+        "I drove my own oath through this gate to stall Andras. Strike true — end the watch!"
       ],
       "death_line": "That final parry... pure Watch steel. Strike the roots now - seal the Marquis in the dark forever...",
       "corruption_variants": {
@@ -423,9 +418,8 @@
     "Commander Kaelen, The Hollowed Mentor": {
       "role": "corrupted_paragon",
       "pre_fight": [
-        "So... you reached the Rift-Gate beneath the Bleeding Tree, recruit.",
-        "I couldn't slay an immortal Marquis through bars of Watch stone - so I drove my own oath straight through the gate to lock him below until one of ours arrived strong enough to shatter the roots onto his head.",
-        "Show me why you fought your way here! Did you come to bury Andras's prison forever... or break it open for him?!"
+        "So... you reached the Bleeding Tree at last, recruit.",
+        "I drove my own oath through this gate to stall Andras. Strike true — end the watch!"
       ],
       "death_line": "That final parry... pure Watch steel. Strike the roots now - seal the Marquis in the dark forever...",
       "corruption_variants": {

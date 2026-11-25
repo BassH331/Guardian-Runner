@@ -348,9 +348,11 @@ class GenericNPC(Actor):
         self.image_offset = pg.math.Vector2(0, 0)
         self.set_state(init_state, force=True)
 
-        # Intro NPCs walk in from the right -> they should face left toward the player
-        if self.is_intro_npc:
+        # Road NPCs wait on the eastern side facing left toward the approaching player
+        if not self.is_magic_book and not self.is_spirit_of_scythe:
             self.facing_left = True
+            if self.image:
+                self.image = pg.transform.flip(self.image, True, False)
 
         # ── Talk prompt (cached surface) ────────────────────────────────────
         self._font = AssetManager.get_font(self._FONT_PATH, self._FONT_SIZE)
@@ -561,6 +563,8 @@ class GenericNPC(Actor):
                     print(f"[INTRO NPC] Proximity reached! dist={distance:.0f}px → Phase 2: Camera Zoom-In starting")
 
         self._in_range = distance <= self.proximity_radius
+        if self._in_range and not self.is_magic_book and not self.is_spirit_of_scythe and not self.is_walking:
+            self.facing_left = (self.rect.centerx > player_rect.centerx)
         return self._in_range
 
     def update(self, dt: Optional[float] = None, scroll_speed: int = 0) -> None:

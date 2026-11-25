@@ -29,7 +29,7 @@
         "top": 0,
         "bottom": 0,
         "ground_offset": 34,
-        "scale": 2.0
+        "scale": 1.15
     },
     "boss:wizard": {
         "left": 222,
@@ -174,5 +174,21 @@
         "bottom": 0,
         "ground_offset": 127,
         "scale": 4.6
+    },
+    "generic_npc_fairy 1_frames": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0,
+        "ground_offset": 34,
+        "scale": 3.0
+    },
+    "generic_npc_idle.png": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0,
+        "ground_offset": 34,
+        "scale": 2.2
     }
 }

@@ -2,7 +2,7 @@
   "event_node_00_prologue": {
     "event_id": "event_node_00_prologue",
     "category": "RELIC",
-    "title": "Relic: Shattered Gauntlet",
+    "title": "Andras's Brand",
     "text": "When the treeline collapsed, Shield-Brother Garrick shoved you behind him and took the crushing blow meant for your heart.",
     "distance": 0,
     "act": "Act I: The Forest Verge",
@@ -19,7 +19,7 @@
   "event_node_01_grimoire": {
     "event_id": "event_node_01_grimoire",
     "category": "INTERACTION",
-    "title": "The Sealed Book",
+    "title": "Chronicle of the Watch",
     "text": "The book pulses with a dark energy. Strange runes glow along the spine. Something awakens in the spiritual realm.",
     "distance": 650,
     "act": "Act I: The Forest Verge",
@@ -68,7 +68,7 @@
   "event_node_02_skeletons": {
     "event_id": "event_node_02_skeletons",
     "category": "AMBIENT_LORE",
-    "title": "Ambient Lore: Bone Fields Outpost",
+    "title": "Watch Perimeter Ruins",
     "text": "Rattling bones rise from the soil! Intruders shall feed the roots of the woods!",
     "distance": 1080,
     "act": "Act I: The Forest Verge",
@@ -82,7 +82,7 @@
   "event_node_03_void_scribe": {
     "event_id": "event_node_03_void_scribe",
     "category": "AMBIENT_LORE",
-    "title": "Ambient Lore: The Void Scribe's Ledger",
+    "title": "Scribe Orin's Muster Roll",
     "text": "I record what Andras makes. Names, dates, fates. The ledger is never full. There is always room.",
     "distance": 1800,
     "act": "Act I: The Forest Verge",
@@ -96,7 +96,7 @@
   "event_node_04_void_bloom": {
     "event_id": "event_node_04_void_bloom",
     "category": "AMBIENT_LORE",
-    "title": "Discovery: The Void Bloom",
+    "title": "Sanctuary Moon-Lilies",
     "text": "A flower grows from a crack in the earth ahead — black petals, silver centre. It turns toward you as you pass.",
     "distance": 2200,
     "act": "Act I: The Forest Verge",
@@ -110,7 +110,7 @@
   "event_node_05_blood_zombie": {
     "event_id": "event_node_05_blood_zombie",
     "category": "ITEM_DISCOVERY",
-    "title": "Spoils: Unholy Relics",
+    "title": "Corporal Vane Freed",
     "text": "The Blood Zombie falls. Two dark relics remain: the Bark of the Bleeding Tree and The EYE of Andras.",
     "distance": 2558,
     "act": "Act I: The Forest Verge",
@@ -143,7 +143,7 @@
   "event_node_06_candora_messenger": {
     "event_id": "event_node_06_candora_messenger",
     "category": "INTERACTION",
-    "title": "Interaction: Candora's Messenger Altar",
+    "title": "Candora's Envoy",
     "text": "Candora sent me to find the runner before he is lost. I may be too late. I am rarely early.",
     "distance": 3100,
     "act": "Act I: The Forest Verge",
@@ -157,7 +157,7 @@
   "event_node_07_mural": {
     "event_id": "event_node_07_mural",
     "category": "AMBIENT_LORE",
-    "title": "Ancient Inscription: The Scratched Mural",
+    "title": "Kaelen's Carved Vow",
     "text": "A half-collapsed stone mural showing a figure at a threshold. Deep gouges mark the stone where a face once was.",
     "distance": 3400,
     "act": "Act I: The Forest Verge",
@@ -171,7 +171,7 @@
   "event_node_08_previous_runner": {
     "event_id": "event_node_08_previous_runner",
     "category": "INTERACTION",
-    "title": "Encounter: The Fallen Runner's Warning",
+    "title": "Lieutenant Marek's Echo",
     "text": "A wandering shade recognizes your mark: 'I thought it made me stronger. I was right. I was also wrong.'",
     "distance": 5200,
     "act": "Act II: The Sunken Crypts",
@@ -185,7 +185,7 @@
   "event_node_09_gatekeeper": {
     "event_id": "event_node_09_gatekeeper",
     "category": "SOUL_QUOTA",
-    "title": "Soul Harvest Quota: 1,000 Souls Reaped",
+    "title": "Garrick's Last Stand",
     "text": "The Gatekeeper's threshold demands concentrated soul essence. Harvest quota achieved: the path unlocks.",
     "distance": 7000,
     "act": "Act II: The Sunken Crypts",
@@ -201,7 +201,7 @@
   "event_node_10_void_silence": {
     "event_id": "event_node_10_void_silence",
     "category": "AMBIENT_LORE",
-    "title": "Ambient Lore: The Void Silence",
+    "title": "Stillness of the Great Tree",
     "text": "The world falls utterly silent. For three seconds, footsteps make no sound before reality rushes back in.",
     "distance": 9500,
     "act": "Act II: The Sunken Crypts",
@@ -215,7 +215,7 @@
   "event_node_11_wizard": {
     "event_id": "event_node_11_wizard",
     "category": "RELIC",
-    "title": "Relic: Amalgam Core",
+    "title": "Candora's Silver Tear",
     "text": "The heart of Andras's prototype vessel — human flesh merged with shadow power. A warning of what lies ahead.",
     "distance": 14250,
     "act": "Act III: Threshold of Discord",
@@ -231,7 +231,7 @@
   "event_node_12_blood_altar": {
     "event_id": "event_node_12_blood_altar",
     "category": "SOUL_QUOTA",
-    "title": "Soul Harvest Quota: 5,000 Souls Reaped",
+    "title": "The 10,000-Soul Tithe",
     "text": "Five thousand souls bound to your blade. The blood tithe is honored, saturating the necrotic sigil.",
     "distance": 18000,
     "act": "Act III: Threshold of Discord",
@@ -247,7 +247,7 @@
   "event_node_13_blood_zombie": {
     "event_id": "event_node_13_blood_zombie",
     "category": "ITEM_DISCOVERY",
-    "title": "Item Discovery: The Blood Brand",
+    "title": "Vane's Cinder Phial",
     "text": "Unearthed from the ash of the high crypts. Infuses strikes with leeching crimson fire.",
     "distance": 24000,
     "act": "Act III: Threshold of Discord",
@@ -261,7 +261,7 @@
   "event_node_14_voragis_shrine": {
     "event_id": "event_node_14_voragis_shrine",
     "category": "RELIC",
-    "title": "Relic: Vial of Void Blood",
+    "title": "Orin's Brass Inkwell",
     "text": "A vial left by one who walked this path before. A stark reminder that reliance on the power tightens the grip.",
     "distance": 30000,
     "act": "Act IV: The Obsidian Citadel",
@@ -277,7 +277,7 @@
   "event_node_15_dark_ronin": {
     "event_id": "event_node_15_dark_ronin",
     "category": "LEVEL_COMPLETE",
-    "title": "Level Complete: Act I Extraction",
+    "title": "Act I: Threshold Cleared",
     "text": "You have breached the outer perimeter of the Obsidian Citadel. The undead horde falters as dawn approaches.",
     "distance": 36000,
     "act": "Act IV: The Obsidian Citadel",

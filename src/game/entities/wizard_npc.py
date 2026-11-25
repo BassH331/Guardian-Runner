@@ -77,8 +77,21 @@ class WizardNPC(Actor):
 
         self.rect = self.image.get_rect(midbottom=(x, y))
         self.rect.bottom += self.bottom_offset
-        
-        self.adjust_hitbox_sides(left=margins.left, right=margins.right, top=margins.top, bottom=margins.bottom)
+        self.image_offset = pg.math.Vector2(0, 0)
+
+        m_left, m_right, m_top, m_bottom = margins.left, margins.right, margins.top, margins.bottom
+        if (m_left == 0 and m_right == 0 and m_top == 0 and m_bottom == 0):
+            vbr = first_frame.get_bounding_rect(min_alpha=10)
+            if vbr.width > 0 and vbr.height > 0:
+                m_left = max(0, vbr.left - 12)
+                m_right = max(0, first_frame.get_width() - vbr.right - 12)
+                m_top = max(0, vbr.top - 8)
+                m_bottom = max(0, first_frame.get_height() - vbr.bottom)
+        self.bottom_offset = max(0, self.bottom_offset - m_bottom)
+        self.adjust_hitbox_sides(left=m_left, right=m_right, top=m_top, bottom=m_bottom)
+        self.facing_left = True
+        if self.image:
+            self.image = pg.transform.flip(self.image, True, False)
 
         # --- Talk prompt (cached surface) ---
         self._font = AssetManager.get_font(self._FONT_PATH, self._FONT_SIZE)
@@ -174,6 +187,8 @@ class WizardNPC(Actor):
         dy = abs(self.rect.centery - player_rect.centery)
         distance = (dx * dx + dy * dy) ** 0.5
         self._in_range = distance <= self.proximity_radius
+        if self._in_range:
+            self.facing_left = (self.rect.centerx > player_rect.centerx)
         return self._in_range
 
     def update(

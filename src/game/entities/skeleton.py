@@ -933,11 +933,13 @@ class Skeleton(BaseEnemy):
             self._teleport_cooldown_timer = max(0.0, self._teleport_cooldown_timer - dt_sec)
 
         # Decrement teleport vanish timer (split-second delay from disappear to appear)
+        just_materialized = False
         if self._teleport_vanish_timer > 0.0:
             self._teleport_vanish_timer = max(0.0, self._teleport_vanish_timer - dt_sec)
             if self._teleport_vanish_timer == 0.0:
                 if getattr(self, "_teleport_arrival_pending", False):
                     self._execute_teleport_arrival()
+                    just_materialized = True
                 else:
                     self._is_teleporting = False
 
@@ -955,11 +957,11 @@ class Skeleton(BaseEnemy):
 
         self._apply_gravity()
         self._target_vx = 0.0
-        if not self._is_teleporting:
+        if not self._is_teleporting and not just_materialized:
             self._update_ai(dt_sec)
 
         # Smooth inertia & crowd spacing integration (eliminates integer-step jitter and moonwalking)
-        if self.state == SkeletonState.CHASE and not self._is_teleporting:
+        if self.state == SkeletonState.CHASE and not self._is_teleporting and not just_materialized:
             if self._target_vx * self._vel_x < 0.0:
                 self._vel_x = 0.0
             accel = min(1.0, dt_sec * 14.0)
