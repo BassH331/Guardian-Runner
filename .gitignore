@@ -3,6 +3,11 @@
 !.env.example
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+save_data/*.json
+*.lock
 logs/
 custom_logs/
 scratch/
